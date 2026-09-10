@@ -1,10 +1,11 @@
 import { Phone, Mail, MapPin } from "lucide-react";
+import { assets } from "../assets/assets";
 
 const QUICK_LINKS = [
-  { label: "Why Solar", href: "#why-solar" },
+  { label: "Terms & Conditions", href: "#why-solar" },
   { label: "Subsidy & Scheme", href: "#scheme" },
-  { label: "How It Works", href: "#process" },
-  { label: "Products", href: "#products" },
+  { label: "Privacy & Policy", href: "#process" },
+  { label: "Refund & Cancellation", href: "#products" },
   { label: "Why Choose Us", href: "#why-us" },
   { label: "Contact", href: "#contact" },
 ];
@@ -16,8 +17,15 @@ export default function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <h3 className="text-lg font-extrabold text-white">
-              Manyata <span className="text-amber">Enterprises</span>
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white p-1 sm:h-10 sm:w-10">
+                        <img
+                          src={assets.logoImg}
+                          alt="Manyata Enterprises logo"
+                          className="h-full w-full object-contain"
+                        />
+                      </span>
+            <h3 className="text-lg flex font-extrabold text-amber">
+              Manyata 
             </h3>
             <p className="mt-3 text-sm leading-relaxed text-white/60">
               Transforming energy solutions across Odisha — from loan
@@ -63,10 +71,10 @@ export default function Footer() {
               <li className="flex items-center gap-2.5">
                 <Mail size={16} className="shrink-0 text-amber" />
                 
-                 <a href="mailto:manyataenterprises53@gmail.com"
+                 <a href="mailto:support@themanyata.com"
                   className="hover:text-amber"
                 >
-                  manyataenterprises53@gmail.com
+                  support@themanyata.com
                 </a>
               </li>
               <li className="flex items-center gap-2.5">
