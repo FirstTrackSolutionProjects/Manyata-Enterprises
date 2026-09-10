@@ -74,7 +74,7 @@ export default function Career() {
               <Field label="Email" name="email" value={form.email} onChange={handleChange} placeholder="Eg: john@doe.com" type="email" />
               <Field label="Phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter your phone number" type="tel" />
               <Field label="Date of Birth" name="dob" value={form.dob} onChange={handleChange} type="date" />
-              <SelectField label="Gender" name="gender" value={form.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
+              <SelectField label="Gender" name="gender" value={form.gender} onChange={handleChange} options={["Male", "Female"]} />
             </div>
           </FormCard>
 

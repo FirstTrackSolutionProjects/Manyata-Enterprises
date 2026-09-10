@@ -39,11 +39,11 @@ export default function CTASection() {
             8114721300 / 7008581300
           </a>
           
-           <a href="mailto:manyataenterprises53@gmail.com"
+           <a href="mailto:support@themanyata.com"
             className="flex items-center gap-2 rounded-full border border-white/25 px-7 py-3 text-sm font-bold text-white transition-colors hover:border-white/50"
           >
             <Mail size={16} />
-            manyataenterprises53@gmail.com
+            support@themanyata.com
           </a>
         </div>
       </motion.div>

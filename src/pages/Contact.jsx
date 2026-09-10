@@ -72,8 +72,8 @@ const contactCards = [
   {
     icon: Mail,
     label: "Email us",
-    lines: ["manyataenterprises53@gmail.com"],
-    href: "mailto:manyataenterprises53@gmail.com",
+    lines: ["support@themanyata.com"],
+    href: "mailto:support@themanyata.com",
   },
   {
     icon: MapPin,

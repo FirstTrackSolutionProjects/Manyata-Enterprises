@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { assets } from "../assets/assets";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
@@ -9,6 +10,7 @@ const NAV_LINKS = [
   { label: "Service", href: "/service" },
   { label: "Careers", href: "/career" },
   { label: "Contact", href: "/contact" },
+  { label: "Join Us", href: "/contact" },
 ];
 
 export default function Navbar() {
@@ -29,10 +31,15 @@ export default function Navbar() {
     >
       <nav className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-3.5 lg:px-8">
         <Link to="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          {/* TODO: replace with actual logo image */}
-          <span className="h-9 w-9 shrink-0 rounded-lg bg-white/10 ring-1 ring-white/20" />
-          <span className="text-lg font-extrabold tracking-tight text-white">
-            Manyata <span className="text-amber">Enterprises</span>
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white p-1 sm:h-10 sm:w-10">
+            <img
+              src={assets.logoImg}
+              alt="Manyata Enterprises logo"
+              className="h-full w-full object-contain"
+            />
+          </span>
+          <span className="text-lg font-extrabold tracking-tight text-amber">
+            Manyata
           </span>
         </Link>
 
@@ -85,7 +92,7 @@ export default function Navbar() {
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
                   
-                   <a href={link.href}
+                    <a href={link.href}
                     onClick={() => setOpen(false)}
                     className="block rounded-lg px-3 py-3 text-white/90 hover:bg-white/5 hover:text-amber"
                   >
