@@ -2,12 +2,12 @@ import { Phone, Mail, MapPin } from "lucide-react";
 import { assets } from "../assets/assets";
 
 const QUICK_LINKS = [
-  { label: "Terms & Conditions", href: "#why-solar" },
+  { label: "Terms & Conditions", href: "/terms" },
   { label: "Subsidy & Scheme", href: "#scheme" },
-  { label: "Privacy & Policy", href: "#process" },
-  { label: "Refund & Cancellation", href: "#products" },
+  { label: "Privacy & Policy", href: "/privacy" },
+  { label: "Refund & Cancellation", href: "/refund" },
   { label: "Why Choose Us", href: "#why-us" },
-  { label: "Contact", href: "#contact" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export default function Footer() {
@@ -79,7 +79,9 @@ export default function Footer() {
               </li>
               <li className="flex items-center gap-2.5">
                 <MapPin size={16} className="shrink-0 text-amber" />
-                Odisha, India
+                 College Square, Soro, Balasore, Odisha - 
+756045
+
               </li>
             </ul>
           </div>
@@ -97,8 +99,10 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/45 sm:flex-row">
-          <p>© {new Date().getFullYear()} Manyata Enterprises. All rights reserved.</p>
-          <p>Odisha, India</p>
+          <p>© {new Date().getFullYear()} Manyata Enterprises | Developed by First Track Solution Technologies.  All rights reserved.</p>
+          <p>Office Address: College Square, Soro, Balasore, Odisha - 
+756045
+</p>
         </div>
       </div>
     </footer>
