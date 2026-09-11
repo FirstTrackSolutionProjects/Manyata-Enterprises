@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { label: "Service", href: "/service" },
   { label: "Careers", href: "/career" },
   { label: "Contact", href: "/contact" },
-  { label: "Join Us", href: "/contact" },
+  { label: "Join Us", href: "/joinus" },
 ];
 
 export default function Navbar() {

@@ -5,7 +5,8 @@ import { User, MapPin, GraduationCap, Upload, Send } from "lucide-react";
 const QUALIFICATIONS = [
   { value: "post-grad", label: "Post Graduation / Master's" },
   { value: "graduation", label: "Graduation" },
-  { value: "btech", label: "B.Tech" },
+  { value: "higher secondary", label: "Higher Secondary" },
+  { value: "other", label: "Other" },
 ];
 
 const initialState = {
