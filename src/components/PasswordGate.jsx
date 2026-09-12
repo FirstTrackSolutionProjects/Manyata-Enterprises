@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Eye, EyeOff } from "lucide-react";
 
-const PASSWORD = "manyata2026"; // change this whenever you like
+const PASSWORD = "manyata123"; // change this whenever you like
 
 export default function PasswordGate({ children }) {
   const [unlocked, setUnlocked] = useState(false);
@@ -72,7 +72,7 @@ export default function PasswordGate({ children }) {
           type="submit"
           className="mt-5 w-full rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover"
         >
-          Enter
+          Submit
         </button>
       </motion.form>
     </section>
