@@ -10,7 +10,7 @@ const NAV_LINKS = [
   { label: "Service", href: "/service" },
   { label: "Careers", href: "/career" },
   { label: "Contact", href: "/contact" },
-  { label: "Join Us", href: "/joinus" },
+  { label: "Join Us", href: "/join-us-mnyt2026" },
 ];
 
 export default function Navbar() {
