@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ShieldCheck, Phone } from "lucide-react";
 import { Link } from "react-router-dom";
+import { assets } from "../assets/assets";
 
 const WARRANTY = [
   { product: "Solar Modules", warranty: "25 Years Warranty" },
@@ -72,7 +73,7 @@ export default function About() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            src="https://picsum.photos/seed/solar-team-bright/900/700"
+            src={assets.aboutImg}
             alt="Manyata Enterprises solar installation team"
             className="h-full w-full rounded-2xl object-cover"
           />

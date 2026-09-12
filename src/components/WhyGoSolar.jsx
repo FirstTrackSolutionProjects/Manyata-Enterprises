@@ -1,5 +1,6 @@
 import { TrendingDown, Leaf, PiggyBank, ShieldCheck } from "lucide-react";
 import { motion } from "framer-motion";
+import { assets } from "../assets/assets";
 
 const BENEFITS = [
   {
@@ -35,7 +36,7 @@ export default function WhyGoSolar() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.2 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          src="https://picsum.photos/seed/indian-family-home/900/1000"
+          src={assets.about}
           alt="Family enjoying their solar-powered home"
           className="order-2 h-full w-full rounded-3xl object-cover lg:order-1"
         />

@@ -10,6 +10,7 @@ import JoinUs from "./pages/JoinUs";
 import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
+import PasswordGate from "./components/PasswordGate";
 
 
 export default function App() {
@@ -23,10 +24,16 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/apply" element={<Apply />} />
           <Route path="/career" element={<Career/>} />
-          <Route path="/joinus" element={<JoinUs/>} />
+          <Route
+  path="/join-us-mnyt2026"
+  element={
+    <PasswordGate>
+      <JoinUs />
+    </PasswordGate> }/>
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/refund" element={<RefundPolicy/>} />
+          
         </Route>
       </Routes>
     </BrowserRouter>
