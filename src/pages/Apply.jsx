@@ -317,6 +317,67 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+const ODISHA_SUB_VENDORS = [
+  "MAYADHAR NAYAK",
+  "PRADEEP KUMAR BEHERA",
+  "PRAHFULA NAYAK",
+  "BABUL BEHERA",
+  "TEJASH PAREKH",
+  "TARUN KUMAR BEHERA",
+  "SOURAV KUMAR NAYAK",
+  "ABHISHEK MANDAL",
+  "PRAFULLA KUMAR MAHATA",
+  "ASHOKE BHUNIA",
+  "SIBA PRASAD SAHOO",
+  "MADHUSUDAN ROUT",
+  "NABAJIBAN BHOI",
+  "MAORANJAN SAHOO",
+  "JAYANTI MOHAPATRA",
+  "MD NASIR KHAN",
+  "SANJAYA KUMAR BEHERA",
+  "SHANTUN KUMAR MISHRA",
+  "DEBENDRANATH ACHARAY",
+  "UMESH SING",
+  "SUNAMATI DUTICHAND",
+  "JAGANATHA BEHERA",
+  "SARAT KUMAR SAHOO",
+  "ABHISHEK SAHOO",
+  "AJAYA KUMAR NAYAK",
+  "MANYATA NENTERPRISES",
+  "AJAYA KUAMR GOCHHAYAT",
+  "SUBHASH CHANDRA DASH",
+  "GIRIJA SANKAR SAHOO",
+
+]; 
+const KOLKATA_SUB_VENDORS = [
+  "PRAFULLA KUMAR MAHATA",
+  "SAILEN TUDU",
+  "SUJIT GHOSH",
+  "ASHOKE BHUNIA",
+  "SUBAJEET BARMAN",
+  "TAPANN KUAMR PRADHAN",
+  "SWARUP MALIK",
+  "SANJOY POREL",
+  "HAWK SAHEB",
+  "SHYAMAL MITRA",
+  "MASKARA BESUNMA",
+  "ARPITA SIKDAR",
+  "UTPAL KOLE",
+  "ARKA PRAVA BHUNIA",
+  "SWAPNA PANDIT",
+  "ASHIS BHATTAACHAJEE",
+  "JAYANTA BERA",
+  "KOUSTAV BISWAS",
+  "SUMNARRAYAN DEY",
+  "RINKU DAS",
+  "MAHABUL ALAM",
+  "MANIRUL ISLAM LASKAR",
+  "SATYA RANJAN SARDAR",
+  "PRABIR SABUD",
+  "JAVED MONDAL",
+
+];
+
 /* =========================================================
    SOLAR SYSTEM TYPES
 ========================================================= */
@@ -362,6 +423,13 @@ const initialState = {
   postOffice: "",
   pinCode: "",
   landmark: "",
+
+  // Odisha specific
+  subVendorName: "",
+ 
+  // Kolkata / West Bengal specific
+  subVendorName: "",
+
 
   // Kolkata / West Bengal specific
   municipality: "",
@@ -761,6 +829,17 @@ export default function Apply() {
                   required
                 />
 
+{/* SUB VENDOR DROPDOWN */}
+      <SelectField
+        label="SUB_VENDOR_NAME"
+        name="subVendorName"
+        value={form.subVendorName}
+        onChange={handleChange}
+        options={ODISHA_SUB_VENDORS}
+        placeholder="Choose"
+        required
+      />
+
                 <Field
                   label="Block"
                   name="block"
@@ -854,6 +933,17 @@ export default function Apply() {
                   placeholder="Enter your district"
                   required
                 />
+
+{/* SUB VENDOR DROPDOWN */}
+      <SelectField
+        label="SUB_VENDOR_NAME"
+        name="subVendorName"
+        value={form.subVendorName}
+        onChange={handleChange}
+        options={KOLKATA_SUB_VENDORS}
+        placeholder="Choose"
+        required
+      />
 
                 <Field
                   label="Municipality / Corporation"
@@ -1177,6 +1267,7 @@ function Field({
 /* =========================================================
    SELECT FIELD
 ========================================================= */
+   
 
 function SelectField({
   label,
@@ -1185,17 +1276,23 @@ function SelectField({
   onChange,
   options,
   placeholder,
+  required = false,
 }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
         {label}
+
+        {required && (
+          <span className="ml-1 text-red-500">*</span>
+        )}
       </span>
 
       <select
         name={name}
         value={value}
         onChange={onChange}
+        required={required}
         className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
       >
         <option value="">{placeholder}</option>
@@ -1209,6 +1306,37 @@ function SelectField({
     </label>
   );
 }
+// function SelectField({
+//   label,
+//   name,
+//   value,
+//   onChange,
+//   options,
+//   placeholder,
+// }) {
+//   return (
+//     <label className="block">
+//       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+//         {label}
+//       </span>
+
+//       <select
+//         name={name}
+//         value={value}
+//         onChange={onChange}
+//         className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
+//       >
+//         <option value="">{placeholder}</option>
+
+//         {options.map((opt) => (
+//           <option key={opt} value={opt}>
+//             {opt}
+//           </option>
+//         ))}
+//       </select>
+//     </label>
+//   );
+// }
 
 /* =========================================================
    RADIO OPTION
