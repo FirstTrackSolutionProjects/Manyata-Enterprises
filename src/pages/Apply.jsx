@@ -396,11 +396,11 @@ const SYSTEM_SIZES = [
   { value: "2kw", label: "2 kW" },
   { value: "3kw", label: "3 kW" },
 ];
+const INCOME_SOURCES = ["FARMER", "BUSINESS", "PRIVATE JOB", "GOVT JOB"];
 
 /* =========================================================
    INITIAL FORM
 ========================================================= */
-
 const initialState = {
   systemType: "",
   systemSize: "",
@@ -411,6 +411,11 @@ const initialState = {
   gender: "",
   dob: "",
   email: "",
+
+  // Vendor & Sales
+  subVendorName: "",
+  salesExecutiveName: "",
+  incomeSource: "",
 
   // Location
   state: "",
@@ -423,13 +428,6 @@ const initialState = {
   postOffice: "",
   pinCode: "",
   landmark: "",
-
-  // Odisha specific
-  subVendorName: "",
- 
-  // Kolkata / West Bengal specific
-  subVendorName: "",
-
 
   // Kolkata / West Bengal specific
   municipality: "",
@@ -446,7 +444,6 @@ const initialState = {
   accountNumber: "",
   ifscCode: "",
 };
-
 /* =========================================================
    MAIN APPLY COMPONENT
 ========================================================= */
@@ -711,10 +708,48 @@ export default function Apply() {
             </div>
           </FormCard>
 
-          {/* =================================================
-              SYSTEM TYPE
-          ================================================= */}
+         {/* =================================================
+    VENDOR & SALES DETAILS
+================================================= */}
 
+<FormCard icon={User} title="Vendor & Sales Details">
+  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <SelectField
+      label="Sub Vendor Name"
+      name="subVendorName"
+      value={form.subVendorName}
+      onChange={handleChange}
+      options={
+        selectedLocation === "odisha"
+          ? ODISHA_SUB_VENDORS
+          : KOLKATA_SUB_VENDORS
+      }
+      placeholder="Choose"
+      required
+    />
+
+    <Field
+      label="Sales Executive Name"
+      name="salesExecutiveName"
+      value={form.salesExecutiveName}
+      onChange={handleChange}
+      placeholder="Enter sales executive name"
+      required
+    />
+
+    <div className="sm:col-span-2">
+      <SelectField
+        label="Consumer Source of Income"
+        name="incomeSource"
+        value={form.incomeSource}
+        onChange={handleChange}
+        options={INCOME_SOURCES}
+        placeholder="Choose"
+        required
+      />
+    </div>
+  </div>
+</FormCard>
           <FormCard icon={SunMedium} title="Choose Your Solar System">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {SYSTEM_TYPES.map((opt) => (
@@ -809,7 +844,7 @@ export default function Apply() {
           ================================================= */}
 
           {selectedLocation === "odisha" && (
-            <FormCard icon={MapPin} title="Odisha Address Details">
+            <FormCard icon={MapPin} title="Consumer Address Details">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field
                   label="State"
@@ -829,16 +864,7 @@ export default function Apply() {
                   required
                 />
 
-{/* SUB VENDOR DROPDOWN */}
-      <SelectField
-        label="SUB_VENDOR_NAME"
-        name="subVendorName"
-        value={form.subVendorName}
-        onChange={handleChange}
-        options={ODISHA_SUB_VENDORS}
-        placeholder="Choose"
-        required
-      />
+
 
                 <Field
                   label="Block"
@@ -914,7 +940,7 @@ export default function Apply() {
           ================================================= */}
 
           {selectedLocation === "kolkata" && (
-            <FormCard icon={Map} title="Kolkata Address Details">
+            <FormCard icon={Map} title="Consumer Address Details">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field
                   label="State"
@@ -934,16 +960,7 @@ export default function Apply() {
                   required
                 />
 
-{/* SUB VENDOR DROPDOWN */}
-      <SelectField
-        label="SUB_VENDOR_NAME"
-        name="subVendorName"
-        value={form.subVendorName}
-        onChange={handleChange}
-        options={KOLKATA_SUB_VENDORS}
-        placeholder="Choose"
-        required
-      />
+
 
                 <Field
                   label="Municipality / Corporation"
@@ -1119,7 +1136,7 @@ export default function Apply() {
 
           <FormCard icon={Camera} title="Site Documentation">
             <FileUpload
-              label="Site Photo (Rooftop)"
+              label="GPS Photo (Rooftop)"
               name="sitePhoto"
             />
           </FormCard>
