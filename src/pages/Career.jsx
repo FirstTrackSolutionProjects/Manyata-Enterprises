@@ -1,6 +1,17 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { User, MapPin, GraduationCap, Upload, Send } from "lucide-react";
+import {
+  User,
+  MapPin,
+  GraduationCap,
+  Upload,
+  Send,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const QUALIFICATIONS = [
   { value: "post-grad", label: "Post Graduation / Master's" },
@@ -27,17 +38,59 @@ const initialState = {
 
 export default function Career() {
   const [form, setForm] = useState(initialState);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const formRef = useRef(null);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: wire this up to your backend / email service to actually
-    // receive applications.
-    console.log("Career application submitted:", form);
-    alert("Thanks for applying! Our HR team will get back to you soon.");
+    if (submitting) return;
+
+    setSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          fd.append(key, String(value));
+        }
+      });
+
+      const formEl = formRef.current;
+      if (formEl) {
+        const fileInputs = formEl.querySelectorAll('input[type="file"]');
+        fileInputs.forEach((input) => {
+          if (input.files?.[0]) fd.append(input.name, input.files[0]);
+        });
+      }
+
+      const res = await fetch(`${API_URL}/careers`, {
+        method: "POST",
+        body: fd,
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        const firstError =
+          data.errors?.[0]?.message || data.message || "Submission failed.";
+        throw new Error(firstError);
+      }
+
+      setSubmitSuccess(true);
+      setForm(initialState);
+      formEl?.reset();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setSubmitError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -64,6 +117,7 @@ export default function Career() {
 
       <section className="bg-offwhite py-14 lg:py-20">
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="mx-auto flex max-w-[800px] flex-col gap-6 px-5 lg:px-8"
         >
@@ -130,13 +184,39 @@ export default function Career() {
             <FileUpload label="Resume / CV" name="cv" />
           </FormCard>
 
+          {submitSuccess && (
+            <div className="flex items-start gap-3 rounded-xl border border-green-300 bg-green-50 p-4">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-green-600" />
+              <p className="text-sm text-green-800">
+                Thanks for applying! Our HR team will get back to you soon.
+              </p>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-4">
+              <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-600" />
+              <p className="text-sm text-red-800">{submitError}</p>
+            </div>
+          )}
+
           <motion.button
             type="submit"
-            whileTap={{ scale: 0.98 }}
-            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-amber px-7 py-3.5 text-sm font-bold text-navy transition-colors hover:bg-amber-hover"
+            disabled={submitting}
+            whileTap={{ scale: submitting ? 1 : 0.98 }}
+            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-amber px-7 py-3.5 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Send size={16} strokeWidth={2.5} />
-            Submit Application
+            {submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Submitting…
+              </>
+            ) : (
+              <>
+                <Send size={16} strokeWidth={2.5} />
+                Submit Application
+              </>
+            )}
           </motion.button>
         </form>
       </section>
