@@ -1,4 +1,5 @@
 import { Phone, Mail, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 import { assets } from "../assets/assets";
 
 const QUICK_LINKS = [
@@ -39,16 +40,27 @@ export default function Footer() {
               Quick Links
             </h4>
             <ul className="mt-4 space-y-2.5">
-              {QUICK_LINKS.map((link) => (
-                <li key={link.href}>
-                  
-                  <a  href={link.href}
-                    className="text-sm text-white/65 transition-colors hover:text-amber"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
+              {QUICK_LINKS.map((link) =>
+                link.href.startsWith("#") ? (
+                  <li key={link.href}>
+                    <a
+                      href={link.href}
+                      className="text-sm text-white/65 transition-colors hover:text-amber"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ) : (
+                  <li key={link.href}>
+                    <Link
+                      to={link.href}
+                      className="text-sm text-white/65 transition-colors hover:text-amber"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                )
+              )}
             </ul>
           </div>
 
