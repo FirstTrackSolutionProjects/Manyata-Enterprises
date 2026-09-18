@@ -11,6 +11,7 @@ import TermsAndConditions from "./pages/TermsAndConditions";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 import PasswordGate from "./components/PasswordGate";
+import Installation from "./pages/Installation";
 
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/refund" element={<RefundPolicy/>} />
+          <Route path="/installation" element={<Installation />} />
           
         </Route>
       </Routes>

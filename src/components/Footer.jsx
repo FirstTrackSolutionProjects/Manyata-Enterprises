@@ -7,7 +7,7 @@ const QUICK_LINKS = [
   { label: "Subsidy & Scheme", href: "#scheme" },
   { label: "Privacy & Policy", href: "/privacy" },
   { label: "Refund & Cancellation", href: "/refund" },
-  { label: "Why Choose Us", href: "#why-us" },
+  { label: "Installation Form", href: "/installation" },
   { label: "Contact", href: "/contact" },
 ];
 
