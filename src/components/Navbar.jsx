@@ -47,25 +47,25 @@ export default function Navbar() {
         <ul className="hidden items-center gap-8 lg:flex">
           {NAV_LINKS.map((link) => (
             <li key={link.href}>
-              
-              <a  href={link.href}
+              <Link
+                to={link.href}
                 className="text-sm font-medium text-white/85 transition-colors hover:text-amber"
               >
                 {link.label}
-              </a>
+              </Link>
             </li>
           ))}
         </ul>
 
         <div className="flex items-center gap-3">
-          
-          <a  href="/apply"
+          <Link
+            to="/apply"
             className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy transition-colors hover:bg-amber-hover sm:gap-2 sm:px-5 sm:py-2.5 sm:text-sm"
           >
             <Phone size={15} strokeWidth={2.5} />
             <span className="hidden xs:inline">Apply Form</span>
             <span className="xs:hidden">Apply</span>
-          </a>
+          </Link>
 
           {/* Mobile toggle — sits right after the CTA */}
           <button
@@ -91,13 +91,13 @@ export default function Navbar() {
             <ul className="flex flex-col gap-1 border-t border-white/10 px-5 py-3">
               {NAV_LINKS.map((link) => (
                 <li key={link.href}>
-                  
-                    <a href={link.href}
+                  <Link
+                    to={link.href}
                     onClick={() => setOpen(false)}
                     className="block rounded-lg px-3 py-3 text-white/90 hover:bg-white/5 hover:text-amber"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

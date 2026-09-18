@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   SunMedium,
@@ -697,17 +697,6 @@ export default function Apply() {
                   placeholder="Enter your district"
                   required
                 />
-
-{/* SUB VENDOR DROPDOWN */}
-      <SelectField
-        label="SUB_VENDOR_NAME"
-        name="subVendorName"
-        value={form.subVendorName}
-        onChange={handleChange}
-        options={KOLKATA_SUB_VENDORS}
-        placeholder="Choose"
-        required
-      />
 
                 <Field
                   label="Municipality / Corporation"
