@@ -13,7 +13,11 @@ import {
   ArrowLeft,
   Map,
   CheckCircle2,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const ODISHA_SUB_VENDORS = [
   "MAYADHAR NAYAK",
@@ -150,6 +154,10 @@ const initialState = {
 export default function Apply() {
   const [selectedLocation, setSelectedLocation] = useState("");
   const [form, setForm] = useState(initialState);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const formRef = useRef(null);
 
   /* -------------------------------------------------------
      HANDLE INPUT CHANGE
@@ -196,21 +204,57 @@ export default function Apply() {
      SUBMIT
   ------------------------------------------------------- */
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
 
-    const applicationData = {
-      location: selectedLocation,
-      ...form,
-    };
+    setSubmitting(true);
+    setSubmitError("");
 
-    console.log("Application submitted:", applicationData);
+    try {
+      const fd = new FormData();
 
-    alert(
-      `Thank you! Your ${
-        selectedLocation === "odisha" ? "Odisha" : "Kolkata"
-      } solar application has been received. Our team will contact you shortly.`
-    );
+      // Text fields
+      fd.append("location", selectedLocation);
+      Object.entries(form).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          fd.append(key, String(value));
+        }
+      });
+
+      // Files — read directly from the form element (uncontrolled inputs)
+      const formEl = formRef.current;
+      if (formEl) {
+        const fileInputs = formEl.querySelectorAll('input[type="file"]');
+        fileInputs.forEach((input) => {
+          if (input.files?.[0]) {
+            fd.append(input.name, input.files[0]);
+          }
+        });
+      }
+
+      const res = await fetch(`${API_URL}/applications`, {
+        method: "POST",
+        body: fd,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const firstError =
+          data.errors?.[0]?.message || data.message || "Submission failed.";
+        throw new Error(firstError);
+      }
+
+      setSubmitSuccess(true);
+      setForm(initialState);
+      formEl?.reset();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setSubmitError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   /* =========================================================
@@ -368,6 +412,7 @@ export default function Apply() {
 
       <section className="bg-offwhite py-10 sm:py-14 lg:py-20">
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="mx-auto flex max-w-[800px] flex-col gap-5 px-4 sm:gap-6 sm:px-5 lg:px-8"
         >
@@ -867,15 +912,43 @@ export default function Apply() {
               SUBMIT BUTTON
           ================================================= */}
 
+          {/* Feedback banners */}
+          {submitSuccess && (
+            <div className="flex items-start gap-3 rounded-xl border border-green-300 bg-green-50 p-4">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-green-600" />
+              <p className="text-sm text-green-800">
+                Thank you! Your{" "}
+                {selectedLocation === "odisha" ? "Odisha" : "Kolkata"} solar
+                application has been received. Our team will contact you shortly.
+              </p>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-4">
+              <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-600" />
+              <p className="text-sm text-red-800">{submitError}</p>
+            </div>
+          )}
+
           <motion.button
             type="submit"
-            whileTap={{ scale: 0.98 }}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-7 py-3.5 text-sm font-bold text-navy transition-colors hover:bg-amber-hover sm:w-auto sm:self-end"
+            disabled={submitting}
+            whileTap={{ scale: submitting ? 1 : 0.98 }}
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-7 py-3.5 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto sm:self-end"
           >
-            <Send size={16} strokeWidth={2.5} />
-            Submit{" "}
-            {selectedLocation === "odisha" ? "Odisha" : "Kolkata"}{" "}
-            Application
+            {submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Submitting…
+              </>
+            ) : (
+              <>
+                <Send size={16} strokeWidth={2.5} />
+                Submit {selectedLocation === "odisha" ? "Odisha" : "Kolkata"}{" "}
+                Application
+              </>
+            )}
           </motion.button>
         </form>
       </section>
