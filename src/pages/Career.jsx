@@ -19,7 +19,17 @@ const QUALIFICATIONS = [
   { value: "higher secondary", label: "Higher Secondary" },
   { value: "other", label: "Other" },
 ];
-
+const ROLE =[
+  {value:"HR Intern",label:"HR Intern"},
+  {value:"HR Executive",label:"HR Executive"},
+  {value:"Back Office Executive",label:"Back Office Executive"},
+  {value:"Sales Executive",label:"Sales Executive"},
+  {value:"Sr. Sales Executive",label:"Sr. Sales Executive"},
+  {value:"Sales Manager",label:"Sales Manager"},
+  {value:"Technical Engineer",label:"Technical Engineer"},
+  
+  
+]
 const initialState = {
   firstName: "",
   lastName: "",
@@ -34,6 +44,7 @@ const initialState = {
   country: "India",
   description: "",
   qualification: "",
+  jobrole:"",
 };
 
 export default function Career() {
@@ -178,7 +189,20 @@ export default function Career() {
               ))}
             </div>
           </FormCard>
-
+<FormCard icon={GraduationCap} title="Job Role">
+            <div className="flex flex-col gap-3">
+              {ROLE.map((opt) => (
+                <RadioOption
+                  key={opt.value}
+                  name="jobrole"
+                  value={opt.value}
+                  label={opt.label}
+                  checked={form.jobrole === opt.value}
+                  onChange={handleChange}
+                />
+              ))}
+            </div>
+          </FormCard>
           {/* Upload CV */}
           <FormCard icon={Upload} title="Upload CV">
             <FileUpload label="Resume / CV" name="cv" />
