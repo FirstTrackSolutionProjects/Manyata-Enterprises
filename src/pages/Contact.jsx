@@ -7,6 +7,7 @@ import {
   Clock,
   Send,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
 
@@ -173,6 +174,8 @@ function ContactForm() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -189,12 +192,33 @@ function ContactForm() {
     return next;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     const next = validate();
     setErrors(next);
-    if (Object.keys(next).length === 0) {
+    setServerError("");
+    if (Object.keys(next).length > 0) return;
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/contacts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        const firstError =
+          data.errors?.[0]?.message || data.message || "Submission failed.";
+        throw new Error(firstError);
+      }
+
       setSubmitted(true);
+    } catch (err) {
+      setServerError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -274,12 +298,26 @@ function ContactForm() {
         />
       </div>
 
+      {serverError && (
+        <p className="text-sm text-red-500">{serverError}</p>
+      )}
+
       <button
         type="submit"
-        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-amber hover:bg-amber-hover text-navy font-medium px-6 py-3 rounded-lg transition-colors"
+        disabled={submitting}
+        className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-amber hover:bg-amber-hover text-navy font-medium px-6 py-3 rounded-lg transition-colors disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <Send size={18} />
-        Request a free site survey
+        {submitting ? (
+          <>
+            <Loader2 size={18} className="animate-spin" />
+            Sending…
+          </>
+        ) : (
+          <>
+            <Send size={18} />
+            Request a free site survey
+          </>
+        )}
       </button>
     </form>
   );

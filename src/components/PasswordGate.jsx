@@ -1,22 +1,40 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Eye, EyeOff } from "lucide-react";
+import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 
-const PASSWORD = "manyata123"; // change this whenever you like
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function PasswordGate({ children }) {
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (input === PASSWORD) {
-      setUnlocked(true);
-      setError(false);
-    } else {
-      setError(true);
+    if (!input.trim() || loading) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await fetch(`${API_URL}/admin/verify-join-us`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: input }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setUnlocked(true);
+      } else {
+        setError(data.message || "Incorrect password. Please try again.");
+      }
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -45,7 +63,7 @@ export default function PasswordGate({ children }) {
             value={input}
             onChange={(e) => {
               setInput(e.target.value);
-              setError(false);
+              setError("");
             }}
             placeholder="Enter password"
             className={`w-full rounded-lg border px-3.5 py-2.5 pr-10 text-sm text-navy placeholder:text-muted focus:outline-none ${
@@ -64,15 +82,23 @@ export default function PasswordGate({ children }) {
 
         {error && (
           <p className="mt-2 text-left text-xs font-medium text-red-500">
-            Incorrect password. Please try again.
+            {error}
           </p>
         )}
 
         <button
           type="submit"
-          className="mt-5 w-full rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover"
+          disabled={loading}
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Submit
+          {loading ? (
+            <>
+              <Loader2 size={16} className="animate-spin" />
+              Verifying…
+            </>
+          ) : (
+            "Submit"
+          )}
         </button>
       </motion.form>
     </section>
