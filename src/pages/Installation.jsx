@@ -11,6 +11,9 @@ import {
   Map,
   CheckCircle2,
   CheckCircle,
+  Sun,
+  Battery,
+  Zap,
 } from "lucide-react";
 
 const INSTALLATION_TYPES = [
@@ -20,6 +23,15 @@ const INSTALLATION_TYPES = [
   "Maintenance",
 ];
 
+const GENDER_OPTIONS = ["Male", "Female", "Other"];
+
+const SOLAR_PANEL_TYPES = ["TOPCON", "BIFACIAL"];
+
+const CONNECTION_TYPES = ["On-Grid", "Off-Grid", "Hybrid"];
+
+// Add more names here as they're provided
+const ELECTRICIANS = ["SRABAN KUMAR PATI"];
+
 const initialState = {
   // Customer Information
   customerName: "",
@@ -27,11 +39,15 @@ const initialState = {
   phone: "",
   email: "",
   contactPerson: "",
+  gender: "",
 
   // Installation Details
   installationType: "",
   installationDate: "",
   technicianName: "",
+  electricianName: "",
+  solarPanelType: "",
+  connectionType: "",
 
   // Location
   state: "",
@@ -310,13 +326,6 @@ export default function Installation() {
                 required
               />
               <Field
-                label="Company / Business Name"
-                name="companyName"
-                value={form.companyName}
-                onChange={handleChange}
-                placeholder="Enter company name"
-              />
-              <Field
                 label="Phone Number"
                 name="phone"
                 value={form.phone}
@@ -324,6 +333,22 @@ export default function Installation() {
                 placeholder="Enter phone number"
                 type="tel"
                 required
+              />
+              <SelectField
+                label="Gender"
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                options={GENDER_OPTIONS}
+                placeholder="Choose"
+                required
+              />
+              <Field
+                label="Company / Business Name"
+                name="companyName"
+                value={form.companyName}
+                onChange={handleChange}
+                placeholder="Enter company name"
               />
               <Field
                 label="Email Address"
@@ -363,12 +388,39 @@ export default function Installation() {
                 type="date"
                 required
               />
+              <SelectField
+                label="Electricians Name"
+                name="electricianName"
+                value={form.electricianName}
+                onChange={handleChange}
+                options={ELECTRICIANS}
+                placeholder="Choose"
+                required
+              />
               <Field
                 label="Technician Name"
                 name="technicianName"
                 value={form.technicianName}
                 onChange={handleChange}
                 placeholder="Enter technician name"
+              />
+              <SelectField
+                label="Solar Panel Type"
+                name="solarPanelType"
+                value={form.solarPanelType}
+                onChange={handleChange}
+                options={SOLAR_PANEL_TYPES}
+                placeholder="Choose"
+                required
+              />
+              <SelectField
+                label="Connection Type"
+                name="connectionType"
+                value={form.connectionType}
+                onChange={handleChange}
+                options={CONNECTION_TYPES}
+                placeholder="Choose"
+                required
               />
             </div>
           </FormCard>
@@ -419,8 +471,75 @@ export default function Installation() {
             </div>
           </FormCard>
 
+          {/* Consumer & Site Photos */}
+          <FormCard icon={FileText} title="Consumer & Site Documentation">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FileUpload
+                label="Consumer Aadhaar Card Photo (Front & Back Side)"
+                name="aadhaarPhoto"
+                required
+              />
+              <FileUpload
+                label="Full Setup Installation GPS Camera Photo With Consumer"
+                name="fullSetupPhoto"
+                required
+              />
+            </div>
+          </FormCard>
+
+          {/* Panel Documentation */}
+          <FormCard icon={Sun} title="Solar Panel Documentation">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FileUpload label="Panel Serial Number Photo 1" name="panelSerialPhoto1" required />
+              <FileUpload label="Panel Serial Number Photo 2" name="panelSerialPhoto2" required />
+              <FileUpload label="Panel Serial Number Photo 3" name="panelSerialPhoto3" required />
+              <FileUpload label="Panel Serial Number Photo 4" name="panelSerialPhoto4" required />
+              <FileUpload label="Panel Serial Number Photo 5" name="panelSerialPhoto5" required />
+              <FileUpload label="Panel Serial Number Photo 6" name="panelSerialPhoto6" required />
+            </div>
+          </FormCard>
+
+          {/* Inverter & Earthing Documentation */}
+          <FormCard icon={Zap} title="Inverter & Earthing Documentation">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FileUpload
+                label="Inverter Serial Number With GPS Camera Photo"
+                name="inverterSerialPhoto"
+                required
+              />
+              <FileUpload label="Earthing GPS Photo 1" name="earthingPhoto1" required />
+              <FileUpload label="Earthing GPS Photo 2" name="earthingPhoto2" required />
+              <FileUpload label="Earthing GPS Photo 3" name="earthingPhoto3" required />
+              <FileUpload
+                label="LA Cable Connector GPS Photo"
+                name="laCableConnectorPhoto"
+                required
+              />
+              <FileUpload
+                label="Earthing Arrester & Spike GPS Photo"
+                name="earthingArresterSpikePhoto"
+                required
+              />
+              <div className="sm:col-span-2">
+                <FileUpload
+                  label="Inverter, ACDB & DCDB GPS Camera Photo"
+                  name="inverterAcdbDcdbPhoto"
+                  required
+                />
+              </div>
+            </div>
+          </FormCard>
+
+          {/* Battery Documentation */}
+          <FormCard icon={Battery} title="Battery Documentation">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FileUpload label="Battery GPS Photo 1" name="batteryPhoto1" required />
+              <FileUpload label="Battery GPS Photo 2" name="batteryPhoto2" required />
+            </div>
+          </FormCard>
+
           {/* Documents */}
-          <FormCard icon={FileText} title="Documents / Attachment">
+          <FormCard icon={FileText} title="Other Documents / Attachment">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-navy/70">
                 Upload Document
@@ -448,11 +567,11 @@ export default function Installation() {
             )}
           </FormCard>
 
-          {/* Notes */}
-          <FormCard icon={FileText} title="Additional Notes">
+          {/* Notes / Remarks */}
+          <FormCard icon={FileText} title="Remarks">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold text-navy/70">
-                Notes (optional)
+                Additional Notes (optional)
               </span>
               <textarea
                 name="notes"
@@ -587,6 +706,26 @@ function SelectField({ label, name, value, onChange, options, placeholder, requi
           </option>
         ))}
       </select>
+    </label>
+  );
+}
+
+/* =========================================================
+   FILE UPLOAD
+========================================================= */
+
+function FileUpload({ label, name, required = false }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+        {label}
+        {required && <span className="ml-1 text-red-500">*</span>}
+      </span>
+      <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-center text-xs text-muted transition-colors hover:border-amber hover:text-navy">
+        <Upload size={16} />
+        <span>Click to upload a file</span>
+        <input type="file" name={name} required={required} className="sr-only" />
+      </div>
     </label>
   );
 }
