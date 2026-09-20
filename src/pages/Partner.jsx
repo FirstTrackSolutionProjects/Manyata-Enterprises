@@ -9,12 +9,12 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Landmark,
 } from "lucide-react";
 import { submitPartner } from "../services/api";
 
 const PARTNER_TYPES = [
   { value: "vendor", label: "Vendor" },
-  { value: "installer", label: "Installer" },
   { value: "dealer", label: "Dealer" },
   { value: "other", label: "Other" },
 ];
@@ -27,12 +27,16 @@ const initialState = {
   phone: "",
   gstNumber: "",
   panNumber: "",
+  msmeNumber: "",
   address: "",
   city: "",
   state: "",
   pincode: "",
   experienceYears: "",
   description: "",
+  bankName: "",
+  accountNumber: "",
+  ifscCode: "",
 };
 
 export default function Partner() {
@@ -139,6 +143,13 @@ export default function Partner() {
                 placeholder="Enter PAN number (optional)"
               />
               <Field
+                label="MSME / Udyam Number"
+                name="msmeNumber"
+                value={form.msmeNumber}
+                onChange={handleChange}
+                placeholder="Enter MSME / Udyam number (optional)"
+              />
+              <Field
                 label="Years of Experience"
                 name="experienceYears"
                 value={form.experienceYears}
@@ -215,7 +226,36 @@ export default function Partner() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <FileUpload label="GST Certificate" name="gstFile" />
               <FileUpload label="PAN Card" name="panFile" />
-              <FileUpload label="ID Proof" name="idProof" />
+              <FileUpload label="Aadhaar Card" name="aadhaarFile" />
+              <FileUpload label="MSME Certificate" name="msmeFile" />
+              <FileUpload label="Business Documents" name="businessDocFile" />
+            </div>
+          </FormCard>
+
+          <FormCard icon={Landmark} title="Bank Details">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field
+                label="Bank Name"
+                name="bankName"
+                value={form.bankName}
+                onChange={handleChange}
+                placeholder="Enter your bank name"
+              />
+              <Field
+                label="Account Number"
+                name="accountNumber"
+                value={form.accountNumber}
+                onChange={handleChange}
+                placeholder="Enter account number"
+              />
+              <Field
+                label="IFSC Code"
+                name="ifscCode"
+                value={form.ifscCode}
+                onChange={handleChange}
+                placeholder="e.g. SBIN0001234"
+              />
+              <FileUpload label="Cancelled Cheque / Passbook" name="chequePassbook" />
             </div>
           </FormCard>
 

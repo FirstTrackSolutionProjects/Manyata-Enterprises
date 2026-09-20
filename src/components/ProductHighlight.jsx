@@ -81,6 +81,12 @@ const BRANDS = [
   { name: "Jindal", logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTqKYOb8YpXGr7vog1tU4FlldwGbgu-Y-JhMIGMaG5MHA&s=10" },
   { name: "Polycab", logo: "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/81/Polycab_India_logo.png/250px-Polycab_India_logo.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail" },
   { name: "Havells", logo: "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/57/Havells_Logo.svg/250px-Havells_Logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail" },
+  { name: "JSW", logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTvJQfvutyaf_AmjfWxuKQYYeA2ybc8wZbiw9VO6zD3Tg&s=10" },
+  { name: "Tata Steel", logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSURmtgyeSgUbtKSXkZatqvyTYpjt9FOKYdincQd1ZJVg&s=10" },
+  { name: "VGuard", logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLAiRMUILy9uAoA9Lt5vqAxg1CQuIetTfJIULGJGK51A&s=10" },
+  { name: "Exide", logo: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRq_j60KvfMi6ZaLOWwIBqOYcxKN2YaODf9N8HFC3E5&s" },
+  { name: "Finolex", logo: "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f0/Finolex_Logo.svg/250px-Finolex_Logo.svg.png?utm_source=en.wikipedia.org&utm_campaign=parser&utm_content=thumbnail" },
+  { name: "KEI", logo: "https://www.kei-ind.com/wp-content/uploads/2024/08/logo.png" },
 ];
 
 export default function ProductHighlight() {

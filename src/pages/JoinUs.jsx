@@ -216,7 +216,8 @@ export default function JoinUs() {
               <Field label="PAN Number" name="panNumber" value={form.panNumber} onChange={handleChange} placeholder="Enter your PAN number" />
               <FileUpload label="Aadhaar Card (Front)" name="aadhaarFront" />
               <FileUpload label="Aadhaar Card (Back)" name="aadhaarBack" />
-              <FileUpload label="PAN Card" name="panCard" />
+              <FileUpload label="PAN Card (Front)" name="panFront" />
+              <FileUpload label="PAN Card (Back)" name="panBack" />
               <FileUpload label="Passport-size Photo" name="photo" />
             </div>
           </FormCard>
