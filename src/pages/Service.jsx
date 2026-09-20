@@ -368,13 +368,13 @@ function WarrantyTable() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="mt-8 overflow-hidden rounded-xl border border-navy/10"
+        className="mt-8 overflow-x-auto rounded-xl border border-navy/10"
       >
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[560px] text-sm">
           <thead>
             <tr className="bg-navy text-offwhite text-left">
-              <th className="px-4 sm:px-6 py-3 font-medium">Product</th>
-              <th className="px-4 sm:px-6 py-3 font-medium">Warranty</th>
+              <th className="px-4 sm:px-6 py-3 font-medium whitespace-nowrap">Product</th>
+              <th className="px-4 sm:px-6 py-3 font-medium whitespace-nowrap">Warranty</th>
             </tr>
           </thead>
           <tbody>
@@ -383,8 +383,8 @@ function WarrantyTable() {
                 key={row.product}
                 className={i % 2 === 0 ? "bg-white" : "bg-navy-soft/[0.03]"}
               >
-                <td className="px-4 sm:px-6 py-3 text-navy/90">{row.product}</td>
-                <td className="px-4 sm:px-6 py-3 text-muted">{row.warranty}</td>
+                <td className="px-4 sm:px-6 py-3 text-navy/90 whitespace-nowrap">{row.product}</td>
+                <td className="px-4 sm:px-6 py-3 text-muted whitespace-nowrap">{row.warranty}</td>
               </tr>
             ))}
           </tbody>

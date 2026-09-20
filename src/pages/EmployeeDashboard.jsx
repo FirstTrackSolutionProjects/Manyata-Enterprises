@@ -109,6 +109,19 @@ export default function EmployeeDashboard() {
       activeSection={tab}
       onSectionChange={setTab}
     >
+      {/* ── Welcome banner ── */}
+      <div className="mb-6 rounded-2xl border border-amber/30 bg-gradient-to-r from-amber-soft to-white p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-widest text-amber">
+          Welcome back
+        </p>
+        <h2 className="mt-1 text-xl font-extrabold text-navy sm:text-2xl">
+          Welcome, {user?.name || "Employee"}
+        </h2>
+        <p className="mt-1 text-sm text-muted">
+          Here's a quick overview of your branch and applications.
+        </p>
+      </div>
+
       {/* Employee info cards */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-5">
@@ -288,40 +301,40 @@ export default function EmployeeDashboard() {
         ) : (
           <>
             <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-              <table className="w-full text-sm">
+              <table className="w-full min-w-[920px] text-sm">
                 <thead>
                   <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                    <th className="p-3">App No</th>
-                    <th className="p-3">Name</th>
-                    <th className="p-3">Phone</th>
-                    <th className="p-3">Location</th>
-                    <th className="p-3">System</th>
-                    <th className="p-3">Status</th>
-                    <th className="p-3">Created</th>
-                    <th className="p-3">Actions</th>
+                    <th className="p-3 whitespace-nowrap">App No</th>
+                    <th className="p-3 whitespace-nowrap">Name</th>
+                    <th className="p-3 whitespace-nowrap">Phone</th>
+                    <th className="p-3 whitespace-nowrap">Location</th>
+                    <th className="p-3 whitespace-nowrap">System</th>
+                    <th className="p-3 whitespace-nowrap">Status</th>
+                    <th className="p-3 whitespace-nowrap">Created</th>
+                    <th className="p-3 whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((a) => (
                     <tr key={a.id} className="border-b border-navy/5">
-                      <td className="p-3 font-mono text-xs text-navy">
+                      <td className="p-3 font-mono text-xs text-navy whitespace-nowrap">
                         {a.application_no}
                       </td>
-                      <td className="p-3 font-semibold text-navy">
+                      <td className="p-3 font-semibold text-navy whitespace-nowrap">
                         {a.full_name}
                       </td>
-                      <td className="p-3">{a.phone_number}</td>
-                      <td className="p-3 text-xs capitalize">{a.location}</td>
-                      <td className="p-3 text-xs capitalize">
+                      <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
+                      <td className="p-3 text-xs capitalize whitespace-nowrap">{a.location}</td>
+                      <td className="p-3 text-xs capitalize whitespace-nowrap">
                         {a.system_size} · {a.system_type}
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 whitespace-nowrap">
                         <StatusBadge status={a.status} />
                       </td>
-                      <td className="p-3 text-xs text-muted">
+                      <td className="p-3 text-xs text-muted whitespace-nowrap">
                         {new Date(a.created_at).toLocaleDateString("en-IN")}
                       </td>
-                      <td className="p-3">
+                      <td className="p-3 whitespace-nowrap">
                         <Link
                           to={`/employee/applications/${a.id}`}
                           className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"

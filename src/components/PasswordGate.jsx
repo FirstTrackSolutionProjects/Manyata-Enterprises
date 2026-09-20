@@ -105,6 +105,15 @@ export default function PasswordGate({ children }) {
             "Submit"
           )}
         </button>
+
+        {/* Help hint — visible so testers know how to configure the password */}
+        <p className="mt-4 text-[11px] leading-relaxed text-muted">
+          Password is configured on the backend via the{" "}
+          <code className="rounded bg-offwhite px-1 py-0.5 font-mono text-[10px] text-navy">
+            JOIN_US_PASSWORD
+          </code>{" "}
+          environment variable.
+        </p>
       </motion.form>
     </section>
   );

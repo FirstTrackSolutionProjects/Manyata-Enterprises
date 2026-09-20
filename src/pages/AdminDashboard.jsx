@@ -108,6 +108,23 @@ function OverviewTab() {
 
   return (
     <div className="space-y-6">
+      {/* ── Welcome banner ── */}
+      <div className="rounded-2xl border border-amber/30 bg-gradient-to-r from-amber-soft to-white p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber">
+              Welcome back
+            </p>
+            <h2 className="mt-1 text-xl font-extrabold text-navy sm:text-2xl">
+              Welcome, Manyata Enterprises
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              Here's a quick overview of your business at a glance.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
           label="Applications"
@@ -122,16 +139,16 @@ function OverviewTab() {
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
         <h2 className="text-sm font-bold text-navy">Branch-wise Applications</h2>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                <th className="py-2">Branch</th>
-                <th className="py-2">Total</th>
-                <th className="py-2">Pending</th>
-                <th className="py-2">Verified</th>
-                <th className="py-2">Submitted</th>
-                <th className="py-2">Approved</th>
-                <th className="py-2">Rejected</th>
+                <th className="py-2 pr-4 whitespace-nowrap">Branch</th>
+                <th className="py-2 px-3 whitespace-nowrap">Total</th>
+                <th className="py-2 px-3 whitespace-nowrap">Pending</th>
+                <th className="py-2 px-3 whitespace-nowrap">Verified</th>
+                <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
+                <th className="py-2 px-3 whitespace-nowrap">Approved</th>
+                <th className="py-2 px-3 whitespace-nowrap">Rejected</th>
               </tr>
             </thead>
             <tbody>
@@ -144,15 +161,15 @@ function OverviewTab() {
               )}
               {branchStats.map((b) => (
                 <tr key={b.branch_id} className="border-b border-navy/5">
-                  <td className="py-2 font-semibold text-navy">
+                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">
                     {b.branch_name} ({b.branch_code})
                   </td>
-                  <td className="py-2">{b.total || 0}</td>
-                  <td className="py-2">{b.pending || 0}</td>
-                  <td className="py-2">{b.verified || 0}</td>
-                  <td className="py-2">{b.submitted || 0}</td>
-                  <td className="py-2">{b.approved || 0}</td>
-                  <td className="py-2">{b.rejected || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{b.total || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{b.pending || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{b.verified || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{b.submitted || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{b.approved || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{b.rejected || 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -163,16 +180,16 @@ function OverviewTab() {
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
         <h2 className="text-sm font-bold text-navy">Employee Performance</h2>
         <div className="mt-4 overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[820px] text-sm">
             <thead>
               <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                <th className="py-2">Employee</th>
-                <th className="py-2">Designation</th>
-                <th className="py-2">Department</th>
-                <th className="py-2">Branch</th>
-                <th className="py-2">Handled</th>
-                <th className="py-2">Verified</th>
-                <th className="py-2">Submitted</th>
+                <th className="py-2 pr-4 whitespace-nowrap">Employee</th>
+                <th className="py-2 px-3 whitespace-nowrap">Designation</th>
+                <th className="py-2 px-3 whitespace-nowrap">Department</th>
+                <th className="py-2 px-3 whitespace-nowrap">Branch</th>
+                <th className="py-2 px-3 whitespace-nowrap">Handled</th>
+                <th className="py-2 px-3 whitespace-nowrap">Verified</th>
+                <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
               </tr>
             </thead>
             <tbody>
@@ -185,18 +202,18 @@ function OverviewTab() {
               )}
               {(empStats?.byEmployee || []).map((e) => (
                 <tr key={e.user_id} className="border-b border-navy/5">
-                  <td className="py-2 font-semibold text-navy">
+                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">
                     {e.name}
                     <span className="ml-1 text-xs text-muted">
                       ({e.login_id})
                     </span>
                   </td>
-                  <td className="py-2 text-xs">{e.designation || "-"}</td>
-                  <td className="py-2 text-xs">{e.department || "-"}</td>
-                  <td className="py-2">{e.branch_name || "-"}</td>
-                  <td className="py-2">{e.total_handled || 0}</td>
-                  <td className="py-2">{e.verified_count || 0}</td>
-                  <td className="py-2">{e.submitted_count || 0}</td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">{e.designation || "-"}</td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">{e.department || "-"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{e.branch_name || "-"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{e.total_handled || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{e.verified_count || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{e.submitted_count || 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -204,29 +221,37 @@ function OverviewTab() {
         </div>
       </div>
 
+      {/* ── Recent Activity — FIXED: scrollable container ── */}
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
-        <h2 className="text-sm font-bold text-navy">Recent Activity</h2>
-        <div className="mt-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-navy">Recent Activity</h2>
+          <span className="text-xs text-muted">
+            {activity.length} {activity.length === 1 ? "entry" : "entries"}
+          </span>
+        </div>
+        <div className="mt-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-light">
           {activity.length === 0 && (
             <p className="text-sm text-muted">No activity yet.</p>
           )}
-          {activity.map((a) => (
-            <div
-              key={a.id}
-              className="flex items-start gap-3 border-l-2 border-amber/40 pl-4"
-            >
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-navy">{a.action}</p>
-                <p className="text-xs text-muted">
-                  {a.user_name} ·{" "}
-                  {new Date(a.created_at).toLocaleString("en-IN")}
-                </p>
-                {a.details && (
-                  <p className="mt-0.5 text-xs text-muted">{a.details}</p>
-                )}
+          <div className="space-y-3">
+            {activity.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-start gap-3 border-l-2 border-amber/40 pl-4"
+              >
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-navy">{a.action}</p>
+                  <p className="text-xs text-muted">
+                    {a.user_name} ·{" "}
+                    {new Date(a.created_at).toLocaleString("en-IN")}
+                  </p>
+                  {a.details && (
+                    <p className="mt-0.5 text-xs text-muted">{a.details}</p>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -501,42 +526,42 @@ function ApplicationsTab() {
       ) : (
         <>
           <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-            <table className="w-full text-sm">
+            <table className="w-full min-w-[1000px] text-sm">
               <thead>
                 <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                  <th className="p-3">App No</th>
-                  <th className="p-3">Name</th>
-                  <th className="p-3">Phone</th>
-                  <th className="p-3">Location</th>
-                  <th className="p-3">Branch</th>
-                  <th className="p-3">System</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Created</th>
-                  <th className="p-3">Actions</th>
+                  <th className="p-3 whitespace-nowrap">App No</th>
+                  <th className="p-3 whitespace-nowrap">Name</th>
+                  <th className="p-3 whitespace-nowrap">Phone</th>
+                  <th className="p-3 whitespace-nowrap">Location</th>
+                  <th className="p-3 whitespace-nowrap">Branch</th>
+                  <th className="p-3 whitespace-nowrap">System</th>
+                  <th className="p-3 whitespace-nowrap">Status</th>
+                  <th className="p-3 whitespace-nowrap">Created</th>
+                  <th className="p-3 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {items.map((a) => (
                   <tr key={a.id} className="border-b border-navy/5">
-                    <td className="p-3 font-mono text-xs text-navy">
+                    <td className="p-3 font-mono text-xs text-navy whitespace-nowrap">
                       {a.application_no}
                     </td>
-                    <td className="p-3 font-semibold text-navy">
+                    <td className="p-3 font-semibold text-navy whitespace-nowrap">
                       {a.full_name}
                     </td>
-                    <td className="p-3">{a.phone_number}</td>
-                    <td className="p-3 text-xs capitalize">{a.location}</td>
-                    <td className="p-3 text-xs">{a.branch_name || "-"}</td>
-                    <td className="p-3 text-xs capitalize">
+                    <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
+                    <td className="p-3 text-xs capitalize whitespace-nowrap">{a.location}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.branch_name || "-"}</td>
+                    <td className="p-3 text-xs capitalize whitespace-nowrap">
                       {a.system_size} · {a.system_type}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <StatusBadge status={a.status} />
                     </td>
-                    <td className="p-3 text-xs text-muted">
+                    <td className="p-3 text-xs text-muted whitespace-nowrap">
                       {new Date(a.created_at).toLocaleDateString("en-IN")}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3 whitespace-nowrap">
                       <Link
                         to={`/admin/applications/${a.id}`}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"
@@ -789,32 +814,32 @@ function EmployeesTab() {
         </p>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[1100px] text-sm">
             <thead>
               <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                <th className="p-3">User ID</th>
-                <th className="p-3">Name</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Designation</th>
-                <th className="p-3">Department</th>
-                <th className="p-3">Branch</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Last Login</th>
-                <th className="p-3">Actions</th>
+                <th className="p-3 whitespace-nowrap">User ID</th>
+                <th className="p-3 whitespace-nowrap">Name</th>
+                <th className="p-3 whitespace-nowrap">Email</th>
+                <th className="p-3 whitespace-nowrap">Designation</th>
+                <th className="p-3 whitespace-nowrap">Department</th>
+                <th className="p-3 whitespace-nowrap">Branch</th>
+                <th className="p-3 whitespace-nowrap">Status</th>
+                <th className="p-3 whitespace-nowrap">Last Login</th>
+                <th className="p-3 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((u) => (
                 <tr key={u.id} className="border-b border-navy/5">
-                  <td className="p-3 font-mono text-xs">{u.user_id}</td>
-                  <td className="p-3 font-semibold text-navy">{u.name}</td>
-                  <td className="p-3 text-xs">{u.email}</td>
-                  <td className="p-3 text-xs">{u.designation || "-"}</td>
-                  <td className="p-3 text-xs">{u.department || "-"}</td>
-                  <td className="p-3 text-xs">
+                  <td className="p-3 font-mono text-xs whitespace-nowrap">{u.user_id}</td>
+                  <td className="p-3 font-semibold text-navy whitespace-nowrap">{u.name}</td>
+                  <td className="p-3 text-xs whitespace-nowrap">{u.email}</td>
+                  <td className="p-3 text-xs whitespace-nowrap">{u.designation || "-"}</td>
+                  <td className="p-3 text-xs whitespace-nowrap">{u.department || "-"}</td>
+                  <td className="p-3 text-xs whitespace-nowrap">
                     {u.branch_name} ({u.branch_code})
                   </td>
-                  <td className="p-3">
+                  <td className="p-3 whitespace-nowrap">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                         u.status === "active"
@@ -825,7 +850,7 @@ function EmployeesTab() {
                       {u.status}
                     </span>
                   </td>
-                  <td className="p-3 text-xs text-muted">
+                  <td className="p-3 text-xs text-muted whitespace-nowrap">
                     {u.last_login_at
                       ? new Date(u.last_login_at).toLocaleString("en-IN")
                       : "Never"}
@@ -1485,37 +1510,37 @@ function SubmissionList({ type }) {
 
   return (
     <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[760px] text-sm">
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-            <th className="p-3">ID</th>
-            <th className="p-3">Name</th>
-            <th className="p-3">Phone</th>
-            <th className="p-3">Status</th>
-            <th className="p-3">Created</th>
-            {isPartners && <th className="p-3">Actions</th>}
+            <th className="p-3 whitespace-nowrap">ID</th>
+            <th className="p-3 whitespace-nowrap">Name</th>
+            <th className="p-3 whitespace-nowrap">Phone</th>
+            <th className="p-3 whitespace-nowrap">Status</th>
+            <th className="p-3 whitespace-nowrap">Created</th>
+            {isPartners && <th className="p-3 whitespace-nowrap">Actions</th>}
           </tr>
         </thead>
         <tbody>
           {items.map((it) => (
             <tr key={it.id} className="border-b border-navy/5">
-              <td className="p-3 font-mono text-xs">{it.id}</td>
-              <td className="p-3 font-semibold text-navy">
+              <td className="p-3 font-mono text-xs whitespace-nowrap">{it.id}</td>
+              <td className="p-3 font-semibold text-navy whitespace-nowrap">
                 {it.name ||
                   it.full_name ||
                   it.company_name ||
                   `${it.first_name || ""} ${it.last_name || ""}`.trim() ||
                   "-"}
               </td>
-              <td className="p-3">{it.phone || it.phone_number || "-"}</td>
-              <td className="p-3">
+              <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
+              <td className="p-3 whitespace-nowrap">
                 <StatusBadge status={it.status} />
               </td>
-              <td className="p-3 text-xs text-muted">
+              <td className="p-3 text-xs text-muted whitespace-nowrap">
                 {new Date(it.created_at).toLocaleDateString("en-IN")}
               </td>
               {isPartners && (
-                <td className="p-3">
+                <td className="p-3 whitespace-nowrap">
                   <div className="flex flex-wrap gap-1.5">
                     {it.status !== "approved" && (
                       <button
