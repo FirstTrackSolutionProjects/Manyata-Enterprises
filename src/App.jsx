@@ -47,9 +47,7 @@ export default function App() {
             <Route
               path="/join-us-mnyt2026"
               element={
-                <PasswordGate>
                   <JoinUs />
-                </PasswordGate>
               }
             />
 
