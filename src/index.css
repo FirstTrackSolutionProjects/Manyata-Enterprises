@@ -23,6 +23,59 @@ body {
   background-color: #ffffff;
 }
 
+/* ── Themed scrollbar ─────────────────────────────────── */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #F5A524 #0B1F3A;
+}
+
+/* WebKit (Chrome, Edge, Safari, Opera) */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B1F3A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #F5A524;
+  border-radius: 10px;
+  border: 2px solid #0B1F3A;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #FFB84D;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: #FFB84D;
+}
+
+::-webkit-scrollbar-corner {
+  background: #0B1F3A;
+}
+
+/* Light-background surfaces (cards, dashboards) get a lighter track */
+.scrollbar-light::-webkit-scrollbar-track {
+  background: #F8F9FB;
+}
+.scrollbar-light::-webkit-scrollbar-thumb {
+  background: #0B1F3A;
+  border-color: #F8F9FB;
+}
+.scrollbar-light::-webkit-scrollbar-thumb:hover {
+  background: #132B4D;
+}
+.scrollbar-light {
+  scrollbar-color: #0B1F3A #F8F9FB;
+}
+
+/* ── Motion preferences ───────────────────────────────── */
+
 /* Respect users who prefer reduced motion */
 @media (prefers-reduced-motion: reduce) {
   * {
@@ -33,7 +86,8 @@ body {
   }
 }
 
-/* Visible keyboard focus */
+/* ── Keyboard focus ───────────────────────────────────── */
+
 a:focus-visible,
 button:focus-visible {
   outline: 2px solid #f5a524;

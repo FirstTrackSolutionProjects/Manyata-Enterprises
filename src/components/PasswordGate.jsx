@@ -4,9 +4,6 @@ import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
-// Demo password — lets the demo user in even if the backend is offline.
-const DEMO_PASSWORD = "manyata123";
-
 export default function PasswordGate({ children }) {
   const [unlocked, setUnlocked] = useState(false);
   const [input, setInput] = useState("");
@@ -18,15 +15,8 @@ export default function PasswordGate({ children }) {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    // Demo shortcut — works without any backend.
-    if (input === DEMO_PASSWORD) {
-      setUnlocked(true);
-      return;
-    }
-
-    // If no backend is configured, don't even try to fetch.
     if (!API_URL) {
-      setError("Incorrect password. Please try again.");
+      setError("Server not configured. Please try again later.");
       return;
     }
 
@@ -47,8 +37,7 @@ export default function PasswordGate({ children }) {
         setError(data.message || "Incorrect password. Please try again.");
       }
     } catch {
-      // Backend unreachable — fall back to demo message instead of a scary network error.
-      setError("Incorrect password. Please try again.");
+      setError("Could not reach server. Please try again.");
     } finally {
       setLoading(false);
     }

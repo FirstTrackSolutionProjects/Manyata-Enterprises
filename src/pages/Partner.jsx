@@ -1,0 +1,350 @@
+import { useRef, useState } from "react";
+import { motion } from "framer-motion";
+import {
+  User,
+  Building2,
+  MapPin,
+  Upload,
+  Send,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
+import { submitPartner } from "../services/api";
+
+const PARTNER_TYPES = [
+  { value: "vendor", label: "Vendor" },
+  { value: "installer", label: "Installer" },
+  { value: "dealer", label: "Dealer" },
+  { value: "other", label: "Other" },
+];
+
+const initialState = {
+  partnerType: "vendor",
+  companyName: "",
+  contactName: "",
+  email: "",
+  phone: "",
+  gstNumber: "",
+  panNumber: "",
+  address: "",
+  city: "",
+  state: "",
+  pincode: "",
+  experienceYears: "",
+  description: "",
+};
+
+export default function Partner() {
+  const [form, setForm] = useState(initialState);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const formRef = useRef(null);
+
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    setSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) fd.append(k, String(v));
+      });
+
+      const formEl = formRef.current;
+      if (formEl) {
+        const fileInputs = formEl.querySelectorAll('input[type="file"]');
+        fileInputs.forEach((input) => {
+          if (input.files?.[0]) fd.append(input.name, input.files[0]);
+        });
+      }
+
+      await submitPartner(fd);
+      setSubmitSuccess(true);
+      setForm(initialState);
+      formEl?.reset();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setSubmitError(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <section className="bg-navy py-14 text-white lg:py-16">
+        <div className="mx-auto max-w-[1200px] px-5 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <span className="text-sm font-semibold text-amber">
+              Partner With Us
+            </span>
+            <h1 className="mt-2 text-3xl font-extrabold sm:text-4xl">
+              Become a Manyata Partner
+            </h1>
+            <p className="mt-3 max-w-xl text-sm text-white/70 sm:text-base">
+              Apply to become a vendor, installer, or dealer. Our team will
+              review your application and reach out.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      <section className="bg-offwhite py-14 lg:py-20">
+        <form
+          ref={formRef}
+          onSubmit={handleSubmit}
+          className="mx-auto flex max-w-[800px] flex-col gap-6 px-5 lg:px-8"
+        >
+          <FormCard icon={Building2} title="Company Details">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <SelectField
+                label="Partner Type"
+                name="partnerType"
+                value={form.partnerType}
+                onChange={handleChange}
+                options={PARTNER_TYPES}
+              />
+              <Field
+                label="Company Name"
+                name="companyName"
+                value={form.companyName}
+                onChange={handleChange}
+                placeholder="Enter your company name"
+              />
+              <Field
+                label="GST Number"
+                name="gstNumber"
+                value={form.gstNumber}
+                onChange={handleChange}
+                placeholder="Enter GST number (optional)"
+              />
+              <Field
+                label="PAN Number"
+                name="panNumber"
+                value={form.panNumber}
+                onChange={handleChange}
+                placeholder="Enter PAN number (optional)"
+              />
+              <Field
+                label="Years of Experience"
+                name="experienceYears"
+                value={form.experienceYears}
+                onChange={handleChange}
+                placeholder="e.g. 5"
+              />
+            </div>
+          </FormCard>
+
+          <FormCard icon={User} title="Contact Person">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field
+                label="Contact Name"
+                name="contactName"
+                value={form.contactName}
+                onChange={handleChange}
+                placeholder="Enter contact person name"
+              />
+              <Field
+                label="Email"
+                name="email"
+                value={form.email}
+                onChange={handleChange}
+                placeholder="Enter email"
+                type="email"
+              />
+              <Field
+                label="Phone"
+                name="phone"
+                value={form.phone}
+                onChange={handleChange}
+                placeholder="Enter phone number"
+                type="tel"
+              />
+            </div>
+          </FormCard>
+
+          <FormCard icon={MapPin} title="Address">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <Field
+                  label="Address"
+                  name="address"
+                  value={form.address}
+                  onChange={handleChange}
+                  placeholder="Enter full address"
+                />
+              </div>
+              <Field
+                label="City"
+                name="city"
+                value={form.city}
+                onChange={handleChange}
+                placeholder="Enter city"
+              />
+              <Field
+                label="State"
+                name="state"
+                value={form.state}
+                onChange={handleChange}
+                placeholder="Enter state"
+              />
+              <Field
+                label="PIN Code"
+                name="pincode"
+                value={form.pincode}
+                onChange={handleChange}
+                placeholder="Enter PIN code"
+              />
+            </div>
+          </FormCard>
+
+          <FormCard icon={Upload} title="Documents">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <FileUpload label="GST Certificate" name="gstFile" />
+              <FileUpload label="PAN Card" name="panFile" />
+              <FileUpload label="ID Proof" name="idProof" />
+            </div>
+          </FormCard>
+
+          <FormCard icon={User} title="Additional Information">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+                Description
+              </span>
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={handleChange}
+                placeholder="Tell us about your business.."
+                rows={4}
+                className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy placeholder:text-muted focus:border-amber focus:outline-none"
+              />
+            </label>
+          </FormCard>
+
+          {submitSuccess && (
+            <div className="flex items-start gap-3 rounded-xl border border-green-300 bg-green-50 p-4">
+              <CheckCircle2 size={18} className="mt-0.5 shrink-0 text-green-600" />
+              <p className="text-sm text-green-800">
+                Thank you! Your partner application has been received. Our
+                team will reach out soon.
+              </p>
+            </div>
+          )}
+
+          {submitError && (
+            <div className="flex items-start gap-3 rounded-xl border border-red-300 bg-red-50 p-4">
+              <AlertCircle size={18} className="mt-0.5 shrink-0 text-red-600" />
+              <p className="text-sm text-red-800">{submitError}</p>
+            </div>
+          )}
+
+          <motion.button
+            type="submit"
+            disabled={submitting}
+            whileTap={{ scale: submitting ? 1 : 0.98 }}
+            className="mt-2 flex items-center justify-center gap-2 rounded-full bg-amber px-7 py-3.5 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Submitting…
+              </>
+            ) : (
+              <>
+                <Send size={16} strokeWidth={2.5} />
+                Submit Partner Application
+              </>
+            )}
+          </motion.button>
+        </form>
+      </section>
+    </>
+  );
+}
+
+function FormCard({ icon: Icon, title, children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.35 }}
+      className="rounded-2xl border border-navy/10 bg-white p-5 sm:p-6"
+    >
+      <div className="mb-5 flex items-center gap-2.5">
+        <Icon size={18} className="text-amber" />
+        <h2 className="text-sm font-bold text-navy">{title}</h2>
+      </div>
+      {children}
+    </motion.div>
+  );
+}
+
+function Field({ label, name, value, onChange, placeholder, type = "text" }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+        {label}
+      </span>
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy placeholder:text-muted focus:border-amber focus:outline-none"
+      />
+    </label>
+  );
+}
+
+function SelectField({ label, name, value, onChange, options }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+        {label}
+      </span>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function FileUpload({ label, name }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+        {label}
+      </span>
+      <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-xs text-muted transition-colors hover:border-amber hover:text-navy">
+        <Upload size={16} />
+        Choose File
+        <input type="file" name={name} className="hidden" />
+      </div>
+    </label>
+  );
+}
