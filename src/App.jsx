@@ -39,6 +39,11 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/career" element={<Career />} />
+
+            {/* Join Us is password-gated.
+                To make it public, wrap JoinUs directly without PasswordGate:
+                  element={<JoinUs />}
+            */}
             <Route
               path="/join-us-mnyt2026"
               element={
@@ -47,6 +52,7 @@ export default function App() {
                 </PasswordGate>
               }
             />
+
             <Route path="/terms" element={<TermsAndConditions />} />
             <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/refund" element={<RefundPolicy />} />

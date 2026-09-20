@@ -58,11 +58,16 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex bg-offwhite">
-      {/* ── Sidebar (desktop + mobile drawer) ────────────── */}
+      {/* ── Sidebar (desktop + mobile drawer) ──────────────
+          - Desktop: sticky, h-screen, self-start → never stretches with content
+          - Mobile: fixed drawer with overlay
+      */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform bg-navy text-white transition-transform duration-200 lg:static lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 transform bg-navy text-white transition-transform duration-200
+          lg:sticky lg:top-0 lg:h-screen lg:self-start lg:translate-x-0
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
       >
         <div className="flex h-full flex-col">
           {/* Brand — links to home */}
@@ -206,6 +211,35 @@ export default function DashboardLayout({
             <Menu size={22} />
           </button>
         </header>
+
+        {/* ── Manyata Enterprises branding bar (DESKTOP ONLY) ──
+            Hidden on mobile because the mobile top bar already shows the logo.
+        */}
+        <div className="hidden border-b border-navy/10 bg-white lg:block">
+          <div className="mx-auto max-w-[1400px] px-5 py-3 lg:px-8">
+            <Link
+              to="/"
+              className="inline-flex items-center gap-3 transition-opacity hover:opacity-80"
+              title="Manyata Enterprises — Home"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy p-1">
+                <img
+                  src={assets.logoImg}
+                  alt="Manyata Enterprises logo"
+                  className="h-full w-full object-contain"
+                />
+              </span>
+              <div className="leading-tight">
+                <p className="text-base font-extrabold tracking-tight text-amber sm:text-lg">
+                  Manyata Enterprises
+                </p>
+                <p className="text-[10px] font-medium uppercase tracking-widest text-muted sm:text-xs">
+                  Rooftop Solar · Odisha
+                </p>
+              </div>
+            </Link>
+          </div>
+        </div>
 
         {/* Page header */}
         {(title || subtitle) && (
