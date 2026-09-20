@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Lock, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Lock, Loader2, AlertCircle, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { changePassword } from "../services/api";
 
@@ -12,6 +12,9 @@ export default function ChangePassword() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -92,39 +95,69 @@ export default function ChangePassword() {
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
             Current Password
           </span>
-          <input
-            type="password"
-            required
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              type={showCurrent ? "text" : "password"}
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 pr-10 text-sm text-navy focus:border-amber focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowCurrent((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy"
+              aria-label={showCurrent ? "Hide password" : "Show password"}
+            >
+              {showCurrent ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </label>
 
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
             New Password
           </span>
-          <input
-            type="password"
-            required
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              type={showNew ? "text" : "password"}
+              required
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 pr-10 text-sm text-navy focus:border-amber focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNew((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy"
+              aria-label={showNew ? "Hide password" : "Show password"}
+            >
+              {showNew ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </label>
 
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
             Confirm New Password
           </span>
-          <input
-            type="password"
-            required
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
-          />
+          <div className="relative">
+            <input
+              type={showConfirm ? "text" : "password"}
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 pr-10 text-sm text-navy focus:border-amber focus:outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-navy"
+              aria-label={showConfirm ? "Hide password" : "Show password"}
+            >
+              {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </label>
 
         <button
