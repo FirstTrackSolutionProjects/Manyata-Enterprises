@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { uploadFilesToS3 } from "../services/api";
 import {
   User,
   MapPin,
@@ -66,24 +67,25 @@ export default function Career() {
     setSubmitError("");
 
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          fd.append(key, String(value));
-        }
-      });
-
+      // 1. Collect files from the form
       const formEl = formRef.current;
+      const fileMap = {};
       if (formEl) {
         const fileInputs = formEl.querySelectorAll('input[type="file"]');
         fileInputs.forEach((input) => {
-          if (input.files?.[0]) fd.append(input.name, input.files[0]);
+          if (input.files?.[0]) fileMap[input.name] = input.files[0];
         });
       }
 
+      // 2. Upload files directly to S3 via presigned URLs
+      const uploadedFiles = await uploadFilesToS3("careers", fileMap);
+
+      // 3. Submit JSON payload with S3 keys
+      const payload = { ...form, files: uploadedFiles };
       const res = await fetch(`${API_URL}/careers`, {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
 

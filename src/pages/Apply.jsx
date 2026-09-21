@@ -23,7 +23,7 @@ import {
   Eye,
   Trash2,
 } from "lucide-react";
-import { submitApplication, downloadApplicationPdf } from "../services/api";
+import { submitApplication, downloadApplicationPdf, uploadFilesToS3 } from "../services/api";
 
 /* ── Constants ────────────────────────────────────────── */
 
@@ -271,27 +271,28 @@ export default function Apply() {
     setSubmitError("");
 
     try {
-      const fd = new FormData();
-      fd.append("location", location);
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          fd.append(key, String(value));
-        }
-      });
-      fd.append("currentStep", String(TOTAL_STEPS));
-      fd.append("isComplete", "true");
-
+      // 1. Collect files from the form
       const formEl = formRef.current;
+      const fileMap = {};
       if (formEl) {
         const fileInputs = formEl.querySelectorAll('input[type="file"]');
         fileInputs.forEach((input) => {
-          if (input.files?.[0]) {
-            fd.append(input.name, input.files[0]);
-          }
+          if (input.files?.[0]) fileMap[input.name] = input.files[0];
         });
       }
 
-      const res = await submitApplication(fd);
+      // 2. Upload files directly to S3 via presigned URLs
+      const uploadedFiles = await uploadFilesToS3("applications", fileMap);
+
+      // 3. Submit JSON payload with S3 keys
+      const payload = {
+        location,
+        ...form,
+        currentStep: TOTAL_STEPS,
+        isComplete: true,
+        files: uploadedFiles,
+      };
+      const res = await submitApplication(payload);
       setSubmitted({
         id: res.data.id,
         applicationNo: res.data.applicationNo,

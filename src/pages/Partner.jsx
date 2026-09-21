@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { uploadFilesToS3 } from "../services/api";
 import {
   User,
   Building2,
@@ -58,20 +59,22 @@ export default function Partner() {
     setSubmitError("");
 
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => {
-        if (v !== undefined && v !== null) fd.append(k, String(v));
-      });
-
+      // 1. Collect files from the form
       const formEl = formRef.current;
+      const fileMap = {};
       if (formEl) {
         const fileInputs = formEl.querySelectorAll('input[type="file"]');
         fileInputs.forEach((input) => {
-          if (input.files?.[0]) fd.append(input.name, input.files[0]);
+          if (input.files?.[0]) fileMap[input.name] = input.files[0];
         });
       }
 
-      await submitPartner(fd);
+      // 2. Upload files directly to S3 via presigned URLs
+      const uploadedFiles = await uploadFilesToS3("partners", fileMap);
+
+      // 3. Submit JSON payload with S3 keys
+      const payload = { ...form, files: uploadedFiles };
+      await submitPartner(payload);
       setSubmitSuccess(true);
       setForm(initialState);
       formEl?.reset();
