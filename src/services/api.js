@@ -239,19 +239,29 @@ export const uploadFilesToS3 = async (folder, fileMap) => {
     filetype: f.type || "application/octet-stream",
   }));
 
-  const presigned = await getPresignedUploadUrls(folder, files);
+  const res = await getPresignedUploadUrls(folder, files);
+
+  // Backend response ko wrapper se bahar nikalo (data / files / uploads / direct)
+  const presigned = res?.data || res?.files || res?.uploads || res;
+  console.log("UPLOAD presigned:", presigned);
 
   await Promise.all(
     entries.map(([inputName, f]) => {
-      const info = presigned[inputName];
-      if (!info) return Promise.resolve();
-      return putObjectToS3(info.uploadUrl, f, f.type || "application/octet-stream");
+      const info = presigned?.[inputName];
+      if (!info?.uploadUrl || !info?.fileKey) {
+        throw new Error(`Presigned URL missing for "${inputName}"`);
+      }
+      return putObjectToS3(
+        info.uploadUrl,
+        f,
+        f.type || "application/octet-stream"
+      );
     })
   );
 
   const result = {};
   for (const [inputName] of entries) {
-    result[inputName] = presigned[inputName]?.fileKey || "";
+    result[inputName] = presigned[inputName].fileKey;
   }
   return result;
 };
