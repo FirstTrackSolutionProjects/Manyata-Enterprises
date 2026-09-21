@@ -216,7 +216,11 @@ export const putObjectToS3 = async (putURL, file, filetype) => {
     body: file,
   });
   if (!res.ok) {
-    throw new Error("Failed to upload file to storage");
+    const body = await res.text().catch(() => "");
+    console.error("S3 upload failed:", res.status, body);
+    const code = body.match(/<Code>(.*?)<\/Code>/)?.[1];
+    const msg = body.match(/<Message>(.*?)<\/Message>/)?.[1];
+    throw new Error(`Upload failed: ${code || res.status} ${msg || ""}`.trim());
   }
   return true;
 };
