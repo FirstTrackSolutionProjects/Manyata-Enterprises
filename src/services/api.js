@@ -180,5 +180,75 @@ export const getBranchStats = () => apiFetch("/admin/branch-stats");
 
 /* ── Partner ────────────────────────────────────────── */
 
-export const submitPartner = (formData) =>
-  apiFetch("/partners", { method: "POST", body: formData });
+export const submitPartner = (payload) =>
+  apiFetch("/partners", {
+    method: "POST",
+    body: payload instanceof FormData ? payload : JSON.stringify(payload),
+  });
+
+/* ── S3 presigned uploads ───────────────────────────── */
+
+/**
+ * Request presigned PUT URLs for a set of files.
+ * @param {"applications"|"careers"|"join-us"|"partners"} folder
+ * @param {{ inputName: string, filename: string, filetype: string }[]} files
+ * @returns {Promise<Record<string, { uploadUrl: string, fileKey: string }>>}
+ */
+export const getPresignedUploadUrls = (folder, files) =>
+  apiFetch("/uploads/presign", {
+    method: "POST",
+    body: JSON.stringify({ folder, files }),
+  });
+
+/**
+ * PUT a File object directly to an S3 presigned URL.
+ */
+export const putObjectToS3 = async (putURL, file, filetype) => {
+  if (!putURL || !file || !filetype) {
+    throw new Error("putURL, file and filetype are required");
+  }
+  const res = await fetch(putURL, {
+    method: "PUT",
+    headers: { "Content-Type": filetype },
+    body: file,
+  });
+  if (!res.ok) {
+    throw new Error("Failed to upload file to storage");
+  }
+  return true;
+};
+
+/**
+ * High-level helper: given a map of { inputName: File }, upload each to S3
+ * and return a map of { inputName: fileKey } ready to embed in JSON payload.
+ *
+ * @param {"applications"|"careers"|"join-us"|"partners"} folder
+ * @param {Record<string, File|null|undefined>} fileMap
+ * @returns {Promise<Record<string, string>>}  { inputName: fileKey }
+ */
+export const uploadFilesToS3 = async (folder, fileMap) => {
+  const entries = Object.entries(fileMap).filter(([, f]) => f instanceof File);
+  if (entries.length === 0) return {};
+
+  const files = entries.map(([inputName, f]) => ({
+    inputName,
+    filename: f.name,
+    filetype: f.type || "application/octet-stream",
+  }));
+
+  const presigned = await getPresignedUploadUrls(folder, files);
+
+  await Promise.all(
+    entries.map(([inputName, f]) => {
+      const info = presigned[inputName];
+      if (!info) return Promise.resolve();
+      return putObjectToS3(info.uploadUrl, f, f.type || "application/octet-stream");
+    })
+  );
+
+  const result = {};
+  for (const [inputName] of entries) {
+    result[inputName] = presigned[inputName]?.fileKey || "";
+  }
+  return result;
+};
