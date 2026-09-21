@@ -161,6 +161,7 @@ const STEPS = [
 const TOTAL_STEPS = 15;
 
 /* ── Main Component ──────────────────────────────────── */
+const selectedFiles = {};
 
 export default function Apply() {
   const navigate = useNavigate();
@@ -271,15 +272,7 @@ export default function Apply() {
     setSubmitError("");
 
     try {
-      // 1. Collect files from the form
-      const formEl = formRef.current;
-      const fileMap = {};
-      if (formEl) {
-        const fileInputs = formEl.querySelectorAll('input[type="file"]');
-        fileInputs.forEach((input) => {
-          if (input.files?.[0]) fileMap[input.name] = input.files[0];
-        });
-      }
+            const fileMap = { ...selectedFiles };
 
       // 2. Upload files directly to S3 via presigned URLs
       const uploadedFiles = await uploadFilesToS3("applications", fileMap);
@@ -1518,9 +1511,11 @@ function RadioOption({ name, value, label, checked, onChange }) {
 function FileUpload({ label, name, required = false }) {
   const [filename, setFilename] = useState("");
 
-  const handleChange = (e) => {
+    const handleChange = (e) => {
     const f = e.target.files?.[0];
     setFilename(f ? f.name : "");
+    if (f) selectedFiles[name] = f;
+    else delete selectedFiles[name];
   };
 
   return (
