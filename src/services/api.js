@@ -114,8 +114,11 @@ export const deleteBranch = (id) =>
 
 /* ── Applications ───────────────────────────────────── */
 
-export const submitApplication = (formData) =>
-  apiFetch("/applications", { method: "POST", body: formData });
+export const submitApplication = (payload) =>
+  apiFetch("/applications", {
+    method: "POST",
+    body: payload instanceof FormData ? payload : JSON.stringify(payload),
+  });
 
 export const trackApplication = (applicationNo, phone) =>
   apiFetch("/applications/track", {
