@@ -16,6 +16,8 @@ import {
   Zap,
 } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const INSTALLATION_TYPES = [
   "New Installation",
   "Replacement",
@@ -93,20 +95,39 @@ export default function Installation() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: wire this up to your backend / email service.
-    setTimeout(() => {
+    try {
+      if (!API_URL) throw new Error("Server is not configured. Please try again later.");
+
+      const payload = new FormData();
+      payload.append("location", selectedLocation);
+      Object.entries(form).forEach(([key, value]) => {
+        payload.append(key, value);
+      });
+
+      const fileInputs = e.currentTarget.querySelectorAll('input[type="file"]');
+      fileInputs.forEach((input) => {
+        if (input.name && input.files?.[0]) {
+          payload.append(input.name, input.files[0]);
+        }
+      });
+
+      const res = await fetch(`${API_URL}/installations`, {
+        method: "POST",
+        body: payload,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Installation submission failed.");
+
       setLoading(false);
       setSubmitted(true);
-      console.log("Installation form submitted:", {
-        location: selectedLocation,
-        ...form,
-      });
-      console.log("Uploaded file:", file);
-    }, 800);
+    } catch (error) {
+      setLoading(false);
+      alert(error.message || "Installation submission failed. Please try again.");
+    }
   };
 
   const handleReset = () => {
@@ -554,6 +575,7 @@ export default function Installation() {
                 </span>
                 <input
                   type="file"
+                  name="otherDocument"
                   onChange={handleFileChange}
                   className="sr-only"
                 />
