@@ -247,7 +247,7 @@ export const uploadFilesToS3 = async (folder, fileMap) => {
 
   // Backend response ko wrapper se bahar nikalo (data / files / uploads / direct)
   const presigned = res?.data || res?.files || res?.uploads || res;
-  console.log("UPLOAD presigned:", presigned);
+  
 
   await Promise.all(
     entries.map(([inputName, f]) => {
