@@ -29,6 +29,7 @@ import {
   getRecentActivity,
   getBranchStats,
   listApplications,
+  deleteApplication,
   listUsers,
   listBranches,
   createEmployee,
@@ -347,6 +348,20 @@ function ApplicationsTab() {
     setFilters(EMPTY_FILTERS);
   };
 
+  const handleDeleteApplication = async (application) => {
+    const confirmed = window.confirm(
+      `Delete application ${application.application_no} for ${application.full_name}? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteApplication(application.id);
+      await load(page);
+    } catch (err) {
+      alert(err.message || "Could not delete the application.");
+    }
+  };
+
   const activeFilterCount = Object.entries(filters).filter(
     ([k, v]) =>
       v !== "" &&
@@ -568,6 +583,14 @@ function ApplicationsTab() {
                       >
                         <Eye size={14} /> View
                       </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteApplication(a)}
+                        className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:underline"
+                        title={`Delete ${a.application_no}`}
+                      >
+                        <Trash2 size={14} /> Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
