@@ -28,6 +28,7 @@ import {
   getDashboardStats,
   getEmployeeStats,
   getRecentActivity,
+  clearRecentActivity,
   getBranchStats,
   listApplications,
   deleteApplication,
@@ -72,6 +73,20 @@ function OverviewTab() {
   const [branchStats, setBranchStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [clearingActivity, setClearingActivity] = useState(false);
+
+  const handleClearActivity = async () => {
+    if (!window.confirm("Clear all recent activity entries? This cannot be undone.")) return;
+    setClearingActivity(true);
+    try {
+      await clearRecentActivity();
+      setActivity([]);
+    } catch (err) {
+      alert(err.message || "Could not clear recent activity.");
+    } finally {
+      setClearingActivity(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -225,11 +240,14 @@ function OverviewTab() {
 
       {/* ── Recent Activity — FIXED: scrollable container ── */}
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold text-navy">Recent Activity</h2>
-          <span className="text-xs text-muted">
-            {activity.length} {activity.length === 1 ? "entry" : "entries"}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted">{activity.length} {activity.length === 1 ? "entry" : "entries"}</span>
+            <button type="button" onClick={handleClearActivity} disabled={!activity.length || clearingActivity} className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">
+              <Trash2 size={13} /> {clearingActivity ? "Clearing..." : "Clear all"}
+            </button>
+          </div>
         </div>
         <div className="mt-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-light">
           {activity.length === 0 && (

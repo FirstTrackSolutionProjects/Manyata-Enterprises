@@ -185,6 +185,8 @@ export const getDashboardStats = () => apiFetch("/admin/stats");
 export const getEmployeeStats = () => apiFetch("/admin/employee-stats");
 export const getRecentActivity = (limit = 50) =>
   apiFetch(`/admin/activity?limit=${limit}`);
+export const clearRecentActivity = () =>
+  apiFetch("/admin/activity", { method: "DELETE" });
 export const getBranchStats = () => apiFetch("/admin/branch-stats");
 
 /* ── Partner ────────────────────────────────────────── */
