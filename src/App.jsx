@@ -19,6 +19,8 @@ import PasswordGate from "./components/PasswordGate";
 import Installation from "./pages/Installation";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import TrackApplication from "./pages/TrackApplication";
 import Partner from "./pages/Partner";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -63,6 +65,8 @@ export default function App() {
 
           {/* Auth (no chrome) */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/change-password"
             element={

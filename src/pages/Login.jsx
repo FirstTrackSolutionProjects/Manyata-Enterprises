@@ -127,10 +127,14 @@ export default function Login() {
           </div>
         </label>
 
+        <Link to="/forgot-password" className="mt-3 block text-right text-xs font-semibold text-amber hover:underline">
+          Forgot password?
+        </Link>
+
         <button
           type="submit"
           disabled={loading}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? (
             <>

@@ -48,6 +48,18 @@ export const login = (email, password) =>
 export const logout = () => apiFetch("/auth/logout", { method: "POST" });
 export const getMe = () => apiFetch("/auth/me");
 
+export const requestPasswordReset = (email) =>
+  apiFetch("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+export const resetPassword = (token, newPassword) =>
+  apiFetch("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  });
+
 export const changePassword = (currentPassword, newPassword) =>
   apiFetch("/auth/change-password", {
     method: "POST",
