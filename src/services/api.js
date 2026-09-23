@@ -230,6 +230,16 @@ export const updatePartnerStatus = (id, status, note = "") =>
     body: JSON.stringify({ status, note }),
   });
 
+export const getJoinUsDetail = (id) => apiFetch(`/admin/join-us/${id}`);
+export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {
+  method: "PUT",
+  body: JSON.stringify(payload),
+});
+export const updateJoinUsStatus = (id, status, note = "") => apiFetch(`/admin/join-us/${id}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status, note }),
+});
+
 /* ── S3 presigned uploads ───────────────────────────── */
 
 /**

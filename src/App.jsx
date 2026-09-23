@@ -27,6 +27,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import PartnerDetail from "./pages/PartnerDetail";
+import JoinUsDetail from "./pages/JoinUsDetail";
 
 export default function App() {
   return (
@@ -102,6 +103,16 @@ export default function App() {
               <ProtectedRoute roles={["owner"]}>
                 <DashboardLayout title="Partner Detail">
                   <PartnerDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/join-us/:id"
+            element={
+              <ProtectedRoute roles={["owner"]}>
+                <DashboardLayout title="Join Us Detail">
+                  <JoinUsDetail />
                 </DashboardLayout>
               </ProtectedRoute>
             }
