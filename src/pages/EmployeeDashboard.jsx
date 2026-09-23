@@ -4,7 +4,7 @@ import {
   FileText,
   Loader2,
   Search,
-  Eye,
+  Pencil,
   Filter,
   RotateCcw,
 } from "lucide-react";
@@ -337,9 +337,9 @@ export default function EmployeeDashboard() {
                       <td className="p-3 whitespace-nowrap">
                         <Link
                           to={`/employee/applications/${a.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
                         >
-                          <Eye size={14} /> Manage
+                          <Pencil size={14} /> Edit
                         </Link>
                       </td>
                     </tr>

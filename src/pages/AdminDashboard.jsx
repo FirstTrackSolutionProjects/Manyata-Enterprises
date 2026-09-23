@@ -11,6 +11,7 @@ import {
   Plus,
   Search,
   Eye,
+  Pencil,
   UserCheck,
   UserX,
   KeyRound,
@@ -582,6 +583,12 @@ function ApplicationsTab() {
                         className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"
                       >
                         <Eye size={14} /> View
+                      </Link>
+                      <Link
+                        to={`/admin/applications/${a.id}`}
+                        className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        <Pencil size={14} /> Edit
                       </Link>
                       <button
                         type="button"
