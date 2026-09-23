@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
-import { fileUrl, getPartnerDetail, updatePartnerStatus } from "../services/api";
+import { downloadSubmissionPdf, fileUrl, getPartnerDetail, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
   ["new", "New"], ["reviewed", "Reviewed"], ["approved", "Approved"], ["rejected", "Rejected"],
@@ -81,7 +81,7 @@ export default function PartnerDetail() {
           <p className="mt-1 text-sm text-muted">{partner.contact_name} · {partner.phone} · {partner.email}</p>
           <p className="mt-1 text-xs text-muted">Created: {formatDateTime(partner.created_at)} · Updated by {partner.updated_by_name || "—"}: {formatDateTime(partner.updated_at)}</p>
         </div>
-        <button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>
+        <div className="flex gap-2"><button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button><button onClick={() => downloadSubmissionPdf("partners", partner.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16}/>Download PDF</button></div>
       </div>
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}

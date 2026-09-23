@@ -29,6 +29,7 @@ import ApplicationDetail from "./pages/ApplicationDetail";
 import PartnerDetail from "./pages/PartnerDetail";
 import JoinUsDetail from "./pages/JoinUsDetail";
 import CareerDetail from "./pages/CareerDetail";
+import ContactDetail from "./pages/ContactDetail";
 
 export default function App() {
   return (
@@ -124,6 +125,16 @@ export default function App() {
               <ProtectedRoute roles={["owner"]}>
                 <DashboardLayout title="Career Application Detail">
                   <CareerDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/contacts/:id"
+            element={
+              <ProtectedRoute roles={["owner"]}>
+                <DashboardLayout title="Contact Enquiry Detail">
+                  <ContactDetail />
                 </DashboardLayout>
               </ProtectedRoute>
             }

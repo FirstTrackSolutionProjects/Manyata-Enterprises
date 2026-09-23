@@ -249,6 +249,10 @@ export const updateCareerStatus = (id, status, note = "") => apiFetch(`/admin/ca
   method: "PATCH",
   body: JSON.stringify({ status, note }),
 });
+export const getContactDetail = (id) => apiFetch(`/admin/contacts/${id}`);
+export const updateContact = (id, payload) => apiFetch(`/admin/contacts/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const updateContactStatus = (id, status, note = "") => apiFetch(`/admin/contacts/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) });
+export const downloadSubmissionPdf = (type, id) => window.open(`${API_URL}/admin/${type}/${id}/pdf`, "_blank", "noopener,noreferrer");
 
 /* ── S3 presigned uploads ───────────────────────────── */
 

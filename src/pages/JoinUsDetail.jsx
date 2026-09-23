@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
-import { fileUrl, getJoinUsDetail, updateJoinUsStatus } from "../services/api";
+import { downloadSubmissionPdf, fileUrl, getJoinUsDetail, updateJoinUsStatus } from "../services/api";
 
 const STATUSES = [["new","New"],["reviewed","Reviewed"],["shortlisted","Shortlisted"],["onboarded","Onboarded"],["rejected","Rejected"]];
 const dateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
@@ -21,7 +21,7 @@ export default function JoinUsDetail() {
   const timeline=history.length?history:[{id:"current",new_status:submission.status,created_at:submission.updated_at||submission.created_at,changed_by_name:submission.updated_by_name,note:"Older status changes were not recorded."}];
   const section=(heading,items)=><InfoSection key={heading} title={heading} items={items}/>;
   return <>
-    <div className="mb-6 flex flex-wrap items-start justify-between gap-4"><div><button onClick={()=>navigate(-1)} className="mb-3 inline-flex items-center gap-2 rounded-full border border-navy/20 px-4 py-2 text-xs font-semibold text-navy"><ArrowLeft size={14}/>Back</button><p className="font-mono text-xs text-amber">Join Us #{submission.id}</p><h2 className="mt-1 text-2xl font-extrabold text-navy">{fullName}</h2><p className="mt-1 text-sm text-muted">{submission.phone} · {submission.email}</p><p className="mt-1 text-xs text-muted">Created: {dateTime(submission.created_at)} · Updated by {submission.updated_by_name||"—"}: {dateTime(submission.updated_at)}</p></div><button onClick={()=>setEditing(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Edit Details</button></div>
+    <div className="mb-6 flex flex-wrap items-start justify-between gap-4"><div><button onClick={()=>navigate(-1)} className="mb-3 inline-flex items-center gap-2 rounded-full border border-navy/20 px-4 py-2 text-xs font-semibold text-navy"><ArrowLeft size={14}/>Back</button><p className="font-mono text-xs text-amber">Join Us #{submission.id}</p><h2 className="mt-1 text-2xl font-extrabold text-navy">{fullName}</h2><p className="mt-1 text-sm text-muted">{submission.phone} · {submission.email}</p><p className="mt-1 text-xs text-muted">Created: {dateTime(submission.created_at)} · Updated by {submission.updated_by_name||"—"}: {dateTime(submission.updated_at)}</p></div><div className="flex gap-2"><button onClick={()=>setEditing(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Edit Details</button><button onClick={()=>downloadSubmissionPdf("join-us",submission.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy"><Download size={16}/>Download PDF</button></div></div>
     {error&&<p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {editing&&<JoinUsDetailsModal submission={submission} onClose={()=>setEditing(false)} onSaved={async()=>{setEditing(false);await load();}}/>}
     <div className="grid gap-6 lg:grid-cols-3"><div className="space-y-6 lg:col-span-2">
