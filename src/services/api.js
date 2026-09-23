@@ -216,6 +216,12 @@ export const submitPartner = (payload) =>
     body: payload instanceof FormData ? payload : JSON.stringify(payload),
   });
 
+export const updatePartner = (id, payload) =>
+  apiFetch(`/admin/partners/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
 /* ── S3 presigned uploads ───────────────────────────── */
 
 /**
