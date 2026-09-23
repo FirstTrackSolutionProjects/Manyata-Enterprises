@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
   LogOut,
@@ -20,9 +20,9 @@ import { assets } from "../assets/assets";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "Kolkata" }] },
-  { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "Kolkata" }] },
+  { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+  { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "West Bengal" }] },
+  { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
   { id: "employees", label: "Employees", icon: Users },
   { id: "branches", label: "Branches", icon: Building2 },
   { id: "submissions", label: "Submissions", icon: Briefcase },
@@ -45,8 +45,6 @@ export default function DashboardLayout({
   const [openMenus, setOpenMenus] = useState({ applications: false, installations: false });
 
   const NAV_ITEMS = user?.role === "owner" ? OWNER_NAV : EMPLOYEE_NAV;
-  const dashboardLink = user?.role === "owner" ? "/admin" : "/employee";
-
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
 
@@ -138,14 +136,6 @@ export default function DashboardLayout({
 
           {/* Bottom actions */}
           <div className="border-t border-white/10 px-3 py-4">
-            <Link
-              to={dashboardLink}
-              onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <LayoutDashboard size={16} />
-              Dashboard
-            </Link>
             <Link
               to="/"
               onClick={() => setSidebarOpen(false)}
