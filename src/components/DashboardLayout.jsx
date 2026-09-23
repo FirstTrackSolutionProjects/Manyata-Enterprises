@@ -25,7 +25,7 @@ const OWNER_NAV = [
   { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "Kolkata" }] },
   { id: "employees", label: "Employees", icon: Users },
   { id: "branches", label: "Branches", icon: Building2 },
-  { id: "other", label: "Other Submissions", icon: Briefcase },
+  { id: "submissions", label: " Submissions", icon: Briefcase },
 ];
 
 const EMPLOYEE_NAV = [

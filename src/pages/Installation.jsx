@@ -15,6 +15,7 @@ import {
   Battery,
   Zap,
 } from "lucide-react";
+import { uploadFilesToS3 } from "../services/api";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -102,21 +103,19 @@ export default function Installation() {
     try {
       if (!API_URL) throw new Error("Server is not configured. Please try again later.");
 
-      const payload = new FormData();
-      payload.append("location", selectedLocation);
-      Object.entries(form).forEach(([key, value]) => {
-        payload.append(key, value);
-      });
-
+      const fileMap = {};
       const fileInputs = e.currentTarget.querySelectorAll('input[type="file"]');
       fileInputs.forEach((input) => {
         if (input.name && input.files?.[0]) {
-          payload.append(input.name, input.files[0]);
+          fileMap[input.name] = input.files[0];
         }
       });
+      const uploadedFiles = await uploadFilesToS3("installations", fileMap);
+      const payload = JSON.stringify({ location: selectedLocation, ...form, files: uploadedFiles });
 
       const res = await fetch(`${API_URL}/installations`, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: payload,
       });
       const data = await res.json().catch(() => null);

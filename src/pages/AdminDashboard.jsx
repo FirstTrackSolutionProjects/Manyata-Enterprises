@@ -33,6 +33,11 @@ import {
   listApplications,
   deleteApplication,
   listInstallations,
+  getInstallation,
+  updateInstallation,
+  updateInstallationStatus,
+  deleteInstallation,
+  uploadFilesToS3,
   listUsers,
   listBranches,
   createEmployee,
@@ -1494,11 +1499,12 @@ function BranchModal({ branch, onClose, onSaved }) {
 function InstallationsTab({ location }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const load = async () => { const res = await listInstallations(location); setItems(res.data.items || []); };
   useEffect(() => {
     (async () => {
       try {
-        const res = await listInstallations(location);
-        setItems(res.data.items || []);
+        await load();
       } catch (err) {
         alert(err.message || "Could not load installations.");
       } finally {
@@ -1509,7 +1515,15 @@ function InstallationsTab({ location }) {
 
   const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "Kolkata Installations" : "All Installations";
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
-  return <div className="space-y-4"><h2 className="text-xl font-extrabold text-navy">{title}</h2>{items.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">No installation submissions found.</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[850px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td></tr>)}</tbody></table></div>}</div>;
+  return <div className="space-y-4"><h2 className="text-xl font-extrabold text-navy">{title}</h2>{items.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">No installation submissions found.</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td><td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button><button onClick={async () => { if (confirm(`Delete installation for ${item.customer_name}?`)) { await deleteInstallation(item.id); await load(); } }} className="ml-3 text-xs font-semibold text-red-600">Delete</button></td></tr>)}</tbody></table></div>}{selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}</div>;
+}
+
+function InstallationModal({ id, onClose, onSaved }) {
+  const [item, setItem] = useState(null); const [form, setForm] = useState(null); const [files, setFiles] = useState({}); const [saving, setSaving] = useState(false);
+  useEffect(() => { (async () => { const res = await getInstallation(id); const x = res.data.installation; setItem(x); setForm({ location: x.location, customerName: x.customer_name, phone: x.phone, email: x.email, gender: x.gender, companyName: x.company_name, contactPerson: x.contact_person, installationType: x.installation_type, installationDate: x.installation_date, electricianName: x.electrician_name, technicianName: x.technician_name, solarPanelType: x.solar_panel_type, connectionType: x.connection_type, state: x.state, address: x.address, city: x.city, pincode: x.pincode, notes: x.notes }); })(); }, [id]);
+  if (!form) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60"><Loader2 className="animate-spin text-amber" /></div>;
+  const fields = [["customerName","Customer Name"],["phone","Phone"],["email","Email"],["companyName","Company"],["contactPerson","Contact Person"],["installationType","Installation Type"],["installationDate","Installation Date","date"],["electricianName","Electrician"],["technicianName","Technician"],["solarPanelType","Solar Panel Type"],["connectionType","Connection Type"],["state","State"],["address","Address"],["city","City"],["pincode","PIN Code"],["notes","Notes"]];
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><div className="mx-auto my-5 max-w-3xl rounded-2xl bg-white p-6"><div className="flex justify-between"><h3 className="text-xl font-extrabold text-navy">Installation Details</h3><button onClick={onClose}>Close</button></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{fields.map(([key,label,type]) => <label key={key} className="text-xs font-semibold text-navy/70">{label}<input type={type || "text"} value={form[key] || ""} onChange={(e) => setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label>)}</div><div className="mt-4"><p className="text-sm font-bold text-navy">Documents</p><div className="mt-2 flex flex-wrap gap-2">{Object.entries(item.documents || {}).map(([name,url]) => <a key={name} href={url} target="_blank" rel="noreferrer" className="rounded bg-amber-soft px-3 py-2 text-xs font-semibold text-navy">{name}</a>)}{!Object.keys(item.documents || {}).length && <span className="text-xs text-muted">No saved documents.</span>}</div><p className="mt-3 text-xs text-muted">Choose a file only to replace that document.</p><div className="mt-2 grid grid-cols-2 gap-2">{["aadhaarPhoto","fullSetupPhoto","panelSerialPhoto1","panelSerialPhoto2","panelSerialPhoto3","panelSerialPhoto4","panelSerialPhoto5","panelSerialPhoto6","inverterSerialPhoto","earthingPhoto1","earthingPhoto2","earthingPhoto3","laCableConnectorPhoto","earthingArresterSpikePhoto","inverterAcdbDcdbPhoto","batteryPhoto1","batteryPhoto2","otherDocument"].map((name) => <label key={name} className="text-[10px] text-muted">{name}<input type="file" className="mt-1 block w-full text-xs" onChange={(e) => e.target.files?.[0] && setFiles({...files,[name]:e.target.files[0]})} /></label>)}</div></div><div className="mt-5 flex items-center gap-3"><select value={item.status} onChange={async (e) => { await updateInstallationStatus(id, e.target.value); const res = await getInstallation(id); setItem(res.data.installation); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="completed">Completed</option></select><button disabled={saving} onClick={async () => { setSaving(true); try { const uploaded = await uploadFilesToS3("installations", files); await updateInstallation(id, {...form, files: uploaded}); onSaved(); } finally { setSaving(false); } }} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy">{saving ? "Saving..." : "Save Changes"}</button></div></div></div>;
 }
 
 function OtherTab() {

@@ -156,6 +156,10 @@ export const deleteApplication = (id) =>
 
 export const listInstallations = (location = "") =>
   apiFetch(`/installations${location ? `?location=${location}` : ""}`);
+export const getInstallation = (id) => apiFetch(`/installations/${id}`);
+export const updateInstallation = (id, payload) => apiFetch(`/installations/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const updateInstallationStatus = (id, status) => apiFetch(`/installations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+export const deleteInstallation = (id) => apiFetch(`/installations/${id}`, { method: "DELETE" });
 
 export const getApplicationStats = (params = {}) => {
   const q = new URLSearchParams(params).toString();
