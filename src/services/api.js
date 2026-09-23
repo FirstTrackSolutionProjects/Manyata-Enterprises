@@ -139,6 +139,12 @@ export const updateApplicationStatus = (id, status, note = "") =>
     body: JSON.stringify({ status, note }),
   });
 
+export const updateApplication = (id, payload) =>
+  apiFetch(`/applications/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
 export const submitToGovt = (id, govtPortalRef, note = "") =>
   apiFetch(`/applications/${id}/submit-to-govt`, {
     method: "POST",

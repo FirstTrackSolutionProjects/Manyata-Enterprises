@@ -15,7 +15,9 @@ import {
   getApplication,
   getApplicationTimeline,
   updateApplicationStatus,
+  updateApplication,
   submitToGovt,
+  uploadFilesToS3,
   downloadApplicationPdf,
   fileUrl,
 } from "../services/api";
@@ -44,6 +46,7 @@ export default function ApplicationDetail() {
   const [govtNote, setGovtNote] = useState("");
   const [govtError, setGovtError] = useState("");
   const [showGovtModal, setShowGovtModal] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
 
   const load = async () => {
     try {
@@ -135,14 +138,13 @@ export default function ApplicationDetail() {
             {app.phone_number} · {app.email || "No email"}
           </p>
         </div>
-        <button
-          onClick={() => downloadApplicationPdf(app.id)}
-          className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"
-        >
-          <Download size={16} />
-          Download PDF
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setShowEditForm(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>
+          <button onClick={() => downloadApplicationPdf(app.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16} />Download PDF</button>
+        </div>
       </div>
+
+      {showEditForm && <ApplicationEditForm app={app} onClose={() => setShowEditForm(false)} onSaved={async () => { setShowEditForm(false); await load(); }} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -404,6 +406,36 @@ export default function ApplicationDetail() {
       )}
     </>
   );
+}
+
+function ApplicationEditForm({ app, onClose, onSaved }) {
+  const [form, setForm] = useState(() => ({
+    location: app.location, systemType: app.system_type, systemSize: app.system_size,
+    subVendorName: app.sub_vendor_name || "", salesExecutiveName: app.sales_executive_name || "", incomeSource: app.income_source || "",
+    fullName: app.full_name || "", phoneNumber: app.phone_number || "", gender: app.gender || "", dob: app.dob || "", email: app.email || "",
+    state: app.state || "", district: app.district || "", block: app.block || "", gramPanchayat: app.gram_panchayat || "", buildingPlot: app.building_plot || "", villageName: app.village_name || "", city: app.city || "", postOffice: app.post_office || "", pinCode: app.pin_code || "", landmark: app.landmark || "", municipality: app.municipality || "", wardNumber: app.ward_number || "", streetLocality: app.street_locality || "",
+    consumerNumber: app.consumer_number || "", subDivision: app.sub_division || "", tariff: app.tariff || "", bankName: app.bank_name || "", accountNumber: app.account_number || "", ifscCode: app.ifsc_code || "", remarks: app.remarks || "",
+  }));
+  const [files, setFiles] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const change = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+  const save = async (e) => {
+    e.preventDefault(); setSaving(true); setError("");
+    try {
+      const uploaded = await uploadFilesToS3("applications", files);
+      await updateApplication(app.id, { ...form, files: uploaded });
+      onSaved();
+    } catch (err) { setError(err.message || "Could not update application."); }
+    finally { setSaving(false); }
+  };
+  const fields = [
+    ["subVendorName", "Sub Vendor"], ["salesExecutiveName", "Sales Executive"], ["incomeSource", "Income Source"],
+    ["fullName", "Full Name"], ["phoneNumber", "Phone Number"], ["gender", "Gender"], ["dob", "Date of Birth", "date"], ["email", "Email", "email"],
+    ["state", "State"], ["district", "District"], ["block", "Block"], ["gramPanchayat", "Gram Panchayat"], ["buildingPlot", "Building / Plot"], ["villageName", "Village"], ["city", "City"], ["postOffice", "Post Office"], ["pinCode", "PIN Code"], ["landmark", "Landmark"], ["municipality", "Municipality"], ["wardNumber", "Ward Number"], ["streetLocality", "Street / Locality"],
+    ["consumerNumber", "Consumer Number"], ["subDivision", "Sub Division"], ["tariff", "Tariff"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
+  ];
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-6 max-w-4xl rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-navy">Edit Application</h3><p className="text-xs text-muted">All details can be updated. Upload a document only to replace its existing file.</p></div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">{fields.map(([name, label, type]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<input name={name} type={type || "text"} value={form[name]} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label>)}</div><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="odisha">Odisha</option><option value="kolkata">Kolkata / West Bengal</option></select></label><label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label><label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label></div><label className="mt-4 block text-xs font-semibold text-navy/70">Remarks<textarea name="remarks" value={form.remarks} onChange={change} rows={3} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><div className="mt-5"><p className="text-sm font-bold text-navy">Replace Documents (optional)</p><div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">{[["aadhaarFront","Aadhaar"],["panCard","PAN Card"],["photo","Photo"],["signature","Signature"],["electricityBill","Electricity Bill"],["chequePassbook","Cheque / Passbook"],["sitePhoto","Site Photo"]].map(([name,label]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(e) => e.target.files?.[0] && setFiles((p) => ({...p,[name]:e.target.files[0]}))} className="mt-1 block w-full text-xs" /></label>)}</div></div><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save All Changes"}</button></div></form></div>;
 }
 
 function InfoSection({ title, children }) {

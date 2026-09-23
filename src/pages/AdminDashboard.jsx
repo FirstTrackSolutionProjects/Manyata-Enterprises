@@ -546,13 +546,14 @@ function ApplicationsTab() {
               <thead>
                 <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
                   <th className="p-3 whitespace-nowrap">App No</th>
+                  <th className="p-3 whitespace-nowrap">Created</th>
                   <th className="p-3 whitespace-nowrap">Name</th>
                   <th className="p-3 whitespace-nowrap">Phone</th>
                   <th className="p-3 whitespace-nowrap">Location</th>
                   <th className="p-3 whitespace-nowrap">Branch</th>
                   <th className="p-3 whitespace-nowrap">System</th>
                   <th className="p-3 whitespace-nowrap">Status</th>
-                  <th className="p-3 whitespace-nowrap">Created</th>
+                  <th className="p-3 whitespace-nowrap">Updated</th>
                   <th className="p-3 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -561,6 +562,9 @@ function ApplicationsTab() {
                   <tr key={a.id} className="border-b border-navy/5">
                     <td className="p-3 font-mono text-xs text-navy whitespace-nowrap">
                       {a.application_no}
+                    </td>
+                    <td className="p-3 text-xs text-muted whitespace-nowrap">
+                      {formatDateTime(a.created_at)}
                     </td>
                     <td className="p-3 font-semibold text-navy whitespace-nowrap">
                       {a.full_name}
@@ -575,7 +579,7 @@ function ApplicationsTab() {
                       <StatusBadge status={a.status} />
                     </td>
                     <td className="p-3 text-xs text-muted whitespace-nowrap">
-                      {new Date(a.created_at).toLocaleDateString("en-IN")}
+                      {a.last_updated_by_name ? <><span className="block font-semibold text-navy">{a.last_updated_by_name}</span>{formatDateTime(a.last_updated_by_at)}</> : "Not edited"}
                     </td>
                     <td className="p-3 whitespace-nowrap">
                       <Link
@@ -675,6 +679,10 @@ function FilterSelect({ label, value, onChange, options, placeholder }) {
       </select>
     </label>
   );
+}
+
+function formatDateTime(value) {
+  return value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "medium" }) : "-";
 }
 
 function StatusBadge({ status }) {
