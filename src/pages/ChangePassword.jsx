@@ -18,6 +18,7 @@ export default function ChangePassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [showForgotHelp, setShowForgotHelp] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -68,7 +69,7 @@ export default function ChangePassword() {
         </h1>
         <p className="mt-1 text-center text-sm text-muted">
           {user?.mustChangePassword
-            ? "You must change your password before continuing."
+            ? "Enter the temporary password given by the Owner, then choose a new password."
             : "Update your login password."}
         </p>
 
@@ -113,6 +114,29 @@ export default function ChangePassword() {
             </button>
           </div>
         </label>
+
+        {user?.role === "employee" && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={() => setShowForgotHelp((value) => !value)}
+              className="text-xs font-semibold text-amber hover:text-amber-hover"
+            >
+              Forgot current password?
+            </button>
+
+            {showForgotHelp && (
+              <div className="mt-2 rounded-lg border border-amber/30 bg-amber-soft p-3 text-xs leading-5 text-navy/80">
+                <p className="font-semibold text-navy">Secure password reset</p>
+                <p className="mt-1">
+                  Contact the Owner. The Owner can reset your password from
+                  Employees. Use the temporary password they give you as the
+                  current password here, then set and confirm your new password.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
