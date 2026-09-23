@@ -1666,11 +1666,12 @@ function SubmissionList({ type }) {
 
   const isPartners = type === "partners";
   const isJoinUs = type === "join-us";
+  const isCareers = type === "careers";
 
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isJoinUs ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
+      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isJoinUs || isCareers ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
             <th className="p-3 whitespace-nowrap">ID</th>
@@ -1681,7 +1682,8 @@ function SubmissionList({ type }) {
             <th className="p-3 whitespace-nowrap">Created</th>
             {isPartners && <th className="p-3 whitespace-nowrap">Updated</th>}
             {isJoinUs && <th className="p-3 whitespace-nowrap">Updated</th>}
-            {(isPartners || isJoinUs) && <th className="p-3 whitespace-nowrap">Actions</th>}
+            {isCareers && <th className="p-3 whitespace-nowrap">Updated</th>}
+            {(isPartners || isJoinUs || isCareers) && <th className="p-3 whitespace-nowrap">Actions</th>}
           </tr>
         </thead>
         <tbody>
@@ -1707,6 +1709,8 @@ function SubmissionList({ type }) {
               </td>
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isJoinUs && <td className="p-3 whitespace-nowrap"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
+              {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
+              {isCareers && <td className="p-3 whitespace-nowrap"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
               {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isPartners && (
                 <td className="p-3 whitespace-nowrap">

@@ -240,6 +240,16 @@ export const updateJoinUsStatus = (id, status, note = "") => apiFetch(`/admin/jo
   body: JSON.stringify({ status, note }),
 });
 
+export const getCareerDetail = (id) => apiFetch(`/admin/careers/${id}`);
+export const updateCareer = (id, payload) => apiFetch(`/admin/careers/${id}`, {
+  method: "PUT",
+  body: JSON.stringify(payload),
+});
+export const updateCareerStatus = (id, status, note = "") => apiFetch(`/admin/careers/${id}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status, note }),
+});
+
 /* ── S3 presigned uploads ───────────────────────────── */
 
 /**
