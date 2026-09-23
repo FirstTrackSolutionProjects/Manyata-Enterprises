@@ -208,7 +208,7 @@ export const submitPartner = (payload) =>
 
 /**
  * Request presigned PUT URLs for a set of files.
- * @param {"applications"|"careers"|"join-us"|"partners"} folder
+ * @param {"applications"|"careers"|"join-us"|"partners"|"installations"|"employee-profiles"} folder
  * @param {{ inputName: string, filename: string, filetype: string }[]} files
  * @returns {Promise<Record<string, { uploadUrl: string, fileKey: string }>>}
  */

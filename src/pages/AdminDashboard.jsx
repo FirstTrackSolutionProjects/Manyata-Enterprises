@@ -897,7 +897,18 @@ function EmployeesTab() {
               {filteredUsers.map((u) => (
                 <tr key={u.id} className="border-b border-navy/5">
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{u.user_id}</td>
-                  <td className="p-3 font-semibold text-navy whitespace-nowrap">{u.name}</td>
+                  <td className="p-3 font-semibold text-navy whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber-soft text-xs font-bold text-navy">
+                        {u.profilePhoto ? (
+                          <img src={u.profilePhoto} alt={`${u.name} profile`} className="h-full w-full object-cover" />
+                        ) : (
+                          u.name?.charAt(0)?.toUpperCase() || "E"
+                        )}
+                      </div>
+                      <span>{u.name}</span>
+                    </div>
+                  </td>
                   <td className="p-3 text-xs whitespace-nowrap">{u.email}</td>
                   <td className="p-3 text-xs whitespace-nowrap">{u.designation || "-"}</td>
                   <td className="p-3 text-xs whitespace-nowrap">{u.department || "-"}</td>
@@ -1005,17 +1016,32 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
+      let profilePhotoKey = form.profilePhoto;
+      if (profilePhoto) {
+        if (!profilePhoto.type.startsWith("image/")) {
+          throw new Error("Profile photo must be an image file");
+        }
+        if (profilePhoto.size > 5 * 1024 * 1024) {
+          throw new Error("Profile photo must be 5 MB or smaller");
+        }
+        const uploaded = await uploadFilesToS3("employee-profiles", {
+          profilePhoto,
+        });
+        profilePhotoKey = uploaded.profilePhoto;
+      }
+      const payload = { ...form, ...(profilePhotoKey ? { profilePhoto: profilePhotoKey } : {}) };
       if (isEdit) {
-        await updateEmployee(employee.id, form);
+        await updateEmployee(employee.id, payload);
         onSaved(null);
       } else {
-        const res = await createEmployee(form);
+        const res = await createEmployee(payload);
         onSaved({
           userId: res.data.userId || res.data.user_id,
           email: res.data.email,
@@ -1072,6 +1098,30 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             onChange={(v) => setForm({ ...form, phone: v })}
             required
           />
+
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+              Profile Photo (optional)
+            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber-soft text-sm font-bold text-navy">
+                {profilePhoto ? (
+                  <img src={URL.createObjectURL(profilePhoto)} alt="Selected profile" className="h-full w-full object-cover" />
+                ) : employee?.profilePhoto ? (
+                  <img src={employee.profilePhoto} alt={`${employee.name} profile`} className="h-full w-full object-cover" />
+                ) : (
+                  (form.name || "E").charAt(0).toUpperCase()
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => setProfilePhoto(e.target.files?.[0] || null)}
+                className="block w-full text-xs text-muted file:mr-3 file:rounded-full file:border-0 file:bg-amber-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-navy"
+              />
+            </div>
+            <span className="mt-1 block text-[11px] text-muted">PNG, JPG, or WebP; maximum 5 MB.</span>
+          </label>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input
