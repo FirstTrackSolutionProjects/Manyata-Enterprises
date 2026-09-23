@@ -229,7 +229,7 @@ export default function DashboardLayout({
               className="inline-flex items-center gap-3 transition-opacity hover:opacity-80"
               title="Manyata Enterprises — Home"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy p-1">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white p-1 ring-1 ring-navy/10">
                 <img
                   src={assets.logoImg}
                   alt="Manyata Enterprises logo"
