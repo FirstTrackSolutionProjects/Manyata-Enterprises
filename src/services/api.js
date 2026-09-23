@@ -222,6 +222,14 @@ export const updatePartner = (id, payload) =>
     body: JSON.stringify(payload),
   });
 
+export const getPartnerDetail = (id) => apiFetch(`/admin/partners/${id}`);
+
+export const updatePartnerStatus = (id, status, note = "") =>
+  apiFetch(`/admin/partners/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, note }),
+  });
+
 /* ── S3 presigned uploads ───────────────────────────── */
 
 /**

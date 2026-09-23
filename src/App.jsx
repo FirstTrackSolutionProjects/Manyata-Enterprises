@@ -26,6 +26,7 @@ import Partner from "./pages/Partner";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ApplicationDetail from "./pages/ApplicationDetail";
+import PartnerDetail from "./pages/PartnerDetail";
 
 export default function App() {
   return (
@@ -91,6 +92,16 @@ export default function App() {
               <ProtectedRoute roles={["owner"]}>
                 <DashboardLayout title="Application Detail">
                   <ApplicationDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/partners/:id"
+            element={
+              <ProtectedRoute roles={["owner"]}>
+                <DashboardLayout title="Partner Detail">
+                  <PartnerDetail />
                 </DashboardLayout>
               </ProtectedRoute>
             }
