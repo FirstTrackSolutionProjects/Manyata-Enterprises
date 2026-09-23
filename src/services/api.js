@@ -154,6 +154,9 @@ export const submitToGovt = (id, govtPortalRef, note = "") =>
 export const deleteApplication = (id) =>
   apiFetch(`/applications/${id}`, { method: "DELETE" });
 
+export const listInstallations = (location = "") =>
+  apiFetch(`/installations${location ? `?location=${location}` : ""}`);
+
 export const getApplicationStats = (params = {}) => {
   const q = new URLSearchParams(params).toString();
   return apiFetch(`/applications/stats/overview${q ? `?${q}` : ""}`);

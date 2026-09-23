@@ -32,6 +32,7 @@ import {
   getBranchStats,
   listApplications,
   deleteApplication,
+  listInstallations,
   listUsers,
   listBranches,
   createEmployee,
@@ -57,6 +58,9 @@ export default function AdminDashboard() {
     >
       {tab === "overview" && <OverviewTab />}
       {tab === "applications" && <ApplicationsTab />}
+      {tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}
+      {tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
+      {tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {tab === "employees" && <EmployeesTab />}
       {tab === "branches" && <BranchesTab />}
       {tab === "other" && <OtherTab />}
@@ -305,11 +309,11 @@ const EMPTY_FILTERS = {
   sortOrder: "desc",
 };
 
-function ApplicationsTab() {
+function ApplicationsTab({ initialLocation = "" }) {
   const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -1486,6 +1490,27 @@ function BranchModal({ branch, onClose, onSaved }) {
 }
 
 /* ── Other Submissions ────────────────────────────── */
+
+function InstallationsTab({ location }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await listInstallations(location);
+        setItems(res.data.items || []);
+      } catch (err) {
+        alert(err.message || "Could not load installations.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [location]);
+
+  const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "Kolkata Installations" : "All Installations";
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
+  return <div className="space-y-4"><h2 className="text-xl font-extrabold text-navy">{title}</h2>{items.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">No installation submissions found.</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[850px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td></tr>)}</tbody></table></div>}</div>;
+}
 
 function OtherTab() {
   const [tab, setTab] = useState("careers");

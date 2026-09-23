@@ -12,6 +12,8 @@ import {
   Users,
   Building2,
   Briefcase,
+  Wrench,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
@@ -19,7 +21,8 @@ import { assets } from "../assets/assets";
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "applications", label: "Applications", icon: FileText },
+  { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "Kolkata" }] },
+  { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "Kolkata" }] },
   { id: "employees", label: "Employees", icon: Users },
   { id: "branches", label: "Branches", icon: Building2 },
   { id: "other", label: "Other Submissions", icon: Briefcase },
@@ -39,6 +42,7 @@ export default function DashboardLayout({
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openMenus, setOpenMenus] = useState({ applications: true, installations: true });
 
   const NAV_ITEMS = user?.role === "owner" ? OWNER_NAV : EMPLOYEE_NAV;
   const dashboardLink = user?.role === "owner" ? "/admin" : "/employee";
@@ -109,7 +113,7 @@ export default function DashboardLayout({
             <ul className="space-y-1">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
-                const active = activeSection === item.id;
+                const active = activeSection === item.id || item.children?.some((child) => child.id === activeSection);
                 return (
                   <li key={item.id}>
                     <button
@@ -122,7 +126,9 @@ export default function DashboardLayout({
                     >
                       <Icon size={16} />
                       {item.label}
+                      {item.children && <ChevronDown size={14} className={`ml-auto transition-transform ${openMenus[item.id] ? "rotate-180" : ""}`} />}
                     </button>
+                    {item.children && openMenus[item.id] && <div className="ml-8 mt-1 space-y-1">{item.children.map((child) => <button key={child.id} onClick={() => handleNavClick(child.id)} className={`w-full rounded-md px-3 py-2 text-left text-xs font-semibold ${activeSection === child.id ? "bg-white/15 text-amber" : "text-white/65 hover:text-white"}`}>{child.label}</button>)}</div>}
                   </li>
                 );
               })}
