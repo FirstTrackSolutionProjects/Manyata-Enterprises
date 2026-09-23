@@ -42,7 +42,7 @@ export default function DashboardLayout({
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [openMenus, setOpenMenus] = useState({ applications: true, installations: true });
+  const [openMenus, setOpenMenus] = useState({ applications: false, installations: false });
 
   const NAV_ITEMS = user?.role === "owner" ? OWNER_NAV : EMPLOYEE_NAV;
   const dashboardLink = user?.role === "owner" ? "/admin" : "/employee";
@@ -116,18 +116,19 @@ export default function DashboardLayout({
                 const active = activeSection === item.id || item.children?.some((child) => child.id === activeSection);
                 return (
                   <li key={item.id}>
-                    <button
-                      onClick={() => handleNavClick(item.id)}
+                    <div
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                         active
                           ? "bg-amber text-navy"
                           : "text-white/80 hover:bg-white/10 hover:text-white"
                       }`}
                     >
-                      <Icon size={16} />
-                      {item.label}
-                      {item.children && <ChevronDown size={14} className={`ml-auto transition-transform ${openMenus[item.id] ? "rotate-180" : ""}`} />}
-                    </button>
+                      <button onClick={() => handleNavClick(item.id)} className="flex flex-1 items-center gap-3 text-left">
+                        <Icon size={16} />
+                        {item.label}
+                      </button>
+                      {item.children && <button onClick={() => setOpenMenus((p) => ({ ...p, [item.id]: !p[item.id] }))} className="p-1" aria-label={`Toggle ${item.label} menu`}><ChevronDown size={14} className={`transition-transform ${openMenus[item.id] ? "rotate-180" : ""}`} /></button>}
+                    </div>
                     {item.children && openMenus[item.id] && <div className="ml-8 mt-1 space-y-1">{item.children.map((child) => <button key={child.id} onClick={() => handleNavClick(child.id)} className={`w-full rounded-md px-3 py-2 text-left text-xs font-semibold ${activeSection === child.id ? "bg-white/15 text-amber" : "text-white/65 hover:text-white"}`}>{child.label}</button>)}</div>}
                   </li>
                 );
