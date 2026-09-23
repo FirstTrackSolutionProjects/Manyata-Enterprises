@@ -68,7 +68,7 @@ export default function AdminDashboard() {
       {tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {tab === "employees" && <EmployeesTab />}
       {tab === "branches" && <BranchesTab />}
-      {tab === "other" && <OtherTab />}
+      {tab === "submissions" && <OtherTab />}
     </DashboardLayout>
   );
 }
