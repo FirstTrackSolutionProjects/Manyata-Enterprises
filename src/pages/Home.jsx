@@ -8,6 +8,7 @@ import SavingsInvestment from "../components/SavingsInvestment";
 import WhyActNow from "../components/WhyActNow";
 import Testimonials from "../components/Testimonials";
 import CTASection from "../components/CTASection";
+import SubsidyWestbengal from "../components/SubsidyWestbengal";
 
 // Navbar, Footer, and ChatBox are NOT imported here — your Layout.jsx
 // renders them once for every route via <Outlet />.
@@ -17,6 +18,7 @@ export default function Home() {
       <Hero />
       <WhyGoSolar />
       <SchemeSubsidy />
+      <SubsidyWestbengal/>
       <ProcessSteps />
       <ProductHighlight />
       <WhyChooseUs />

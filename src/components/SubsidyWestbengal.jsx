@@ -4,15 +4,15 @@ import { motion, useInView } from "framer-motion";
 
 const SCHEME_POINTS = [
   "Government of India flagship scheme for residential rooftop solar",
-  "Central + Odisha State financial support combined",
+  "Central + West Bengal State financial support combined",
   "Up to 3 kW subsidy for residential consumers",
   "Easy process — transparent and fully digital",
 ];
 
 const SUBSIDY_TIERS = [
-  { size: "1 kW", central: 30000, state: 25000, total: 55000 },
-  { size: "2 kW", central: 60000, state: 50000, total: 110000 },
-  { size: "3 kW", central: 78000, state: 60000, total: 138000, featured: true },
+  { size: "1 kW", central: 30000, total: 30000 },
+  { size: "2 kW", central: 60000, total: 60000 },
+  { size: "3 kW", central: 78000, state: 15000, stateNote: "State Subsidy Applicable only to SC/ST category", total: 93000, featured: true },
 ];
 
 // Counts up from 0 to `value` once it scrolls into view.
@@ -51,13 +51,13 @@ const fadeUp = {
 
 export default function SchemeSubsidy() {
   return (
-    <section id="scheme" className="bg-navy py-20 text-white lg:py-28">
+    <section id="scheme" className="bg-offwhite py-20 text-navy lg:py-28">
       <div className="mx-auto max-w-[1200px] px-5 lg:px-8">
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <div>
             <motion.div {...fadeUp} transition={{ duration: 0.5 }}>
-              <span className="text-2xl font-semibold text-amber">
-                PM Surya Ghar Yojana — Odisha
+              <span className="text-2xl font-semibold text-navy">
+                PM Surya Ghar Yojana — West Bengal
               </span>
               <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">
                 Government support, made simple
@@ -73,7 +73,7 @@ export default function SchemeSubsidy() {
                   className="flex items-start gap-3"
                 >
                   <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-amber" />
-                  <span className="text-white/80">{point}</span>
+                  <span className="text-navy/70">{point}</span>
                 </motion.li>
               ))}
             </ul>
@@ -81,23 +81,23 @@ export default function SchemeSubsidy() {
             <motion.div
               {...fadeUp}
               transition={{ duration: 0.5, delay: 0.35 }}
-              className="mt-10 grid grid-cols-2 gap-5 border-t border-white/10 pt-8"
+              className="mt-10 grid grid-cols-2 gap-5 border-t border-navy/10 pt-8"
             >
               <div>
                 <p className="text-3xl font-extrabold text-amber sm:text-4xl">
-                  <AnimatedNumber value={300000} suffix="+" />
+                  <AnimatedNumber value={200000} suffix="+" />
                 </p>
-                <p className="mt-1 text-sm text-white/60">
-                  Rooftop solar installations targeted across Odisha
+                <p className="mt-1 text-sm text-navy/60">
+                  Rooftop solar installations targeted across West Bengal
                 </p>
               </div>
               <div>
                 <p className="text-3xl font-extrabold text-amber sm:text-4xl">
-                  ₹<AnimatedNumber value={495} />
+                  ₹<AnimatedNumber value={100} />
                   Cr
                 </p>
-                <p className="mt-1 text-sm text-white/60">
-                  Odisha 2026–27 budget for state solar support
+                <p className="mt-1 text-sm text-navy/60">
+                  West Bengal 2026–27 budget for state solar support
                 </p>
               </div>
             </motion.div>
@@ -112,16 +112,16 @@ export default function SchemeSubsidy() {
                 transition={{ duration: 0.5, delay: i * 0.1 }}
                 className={`rounded-2xl border p-6 ${
                   tier.featured
-                    ? "border-amber bg-navy-light"
-                    : "border-white/10 bg-navy-light/50"
+                    ? "border-amber bg-white shadow-sm"
+                    : "border-navy/10 bg-white/70"
                 }`}
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold text-white/60">
+                    <p className="text-sm font-semibold text-navy/60">
                       {tier.size} System
                     </p>
-                    <p className="mt-1 text-2xl font-extrabold text-white sm:text-3xl">
+                    <p className="mt-1 text-2xl font-extrabold text-navy sm:text-3xl">
                       ₹<AnimatedNumber value={tier.total} /> total subsidy
                     </p>
                   </div>
@@ -131,9 +131,22 @@ export default function SchemeSubsidy() {
                     </span>
                   )}
                 </div>
-                <div className="mt-4 flex gap-6 text-sm text-white/60">
-                  <span>Central: ₹{tier.central.toLocaleString("en-IN")}</span>
-                  <span>Odisha State: ₹{tier.state.toLocaleString("en-IN")}</span>
+                <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-navy/60">
+                  <span>
+                    Central: ₹{tier.central.toLocaleString("en-IN")}
+                  </span>
+
+                  {tier.state && (
+                    <span>
+                      West Bengal State: ₹{tier.state.toLocaleString("en-IN")}
+                    </span>
+                  )}
+
+                  {tier.stateNote && (
+                    <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
+                      {tier.stateNote}
+                    </span>
+                  )}
                 </div>
               </motion.div>
             ))}
