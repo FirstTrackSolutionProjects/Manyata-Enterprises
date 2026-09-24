@@ -12,6 +12,7 @@ import {
   Users,
   Building2,
   Briefcase,
+  Handshake,
   Wrench,
   ChevronDown,
 } from "lucide-react";
@@ -24,6 +25,7 @@ const OWNER_NAV = [
   { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "West Bengal" }] },
   { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
   { id: "employees", label: "Employees", icon: Users },
+  { id: "partners", label: "Partners", icon: Handshake },
   { id: "branches", label: "Branches", icon: Building2 },
   { id: "submissions", label: "Submissions", icon: Briefcase },
 ];

@@ -23,6 +23,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
+import PartnerCreateModal from "../components/PartnerCreateModal";
 import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 import {
   getDashboardStats,
@@ -74,6 +75,7 @@ export default function AdminDashboard() {
       {tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
       {tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {tab === "employees" && <EmployeesTab />}
+      {tab === "partners" && <PartnersTab />}
       {tab === "branches" && <BranchesTab />}
       {tab === "submissions" && <OtherTab />}
     </DashboardLayout>
@@ -1606,7 +1608,7 @@ function OtherTab() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {["careers", "join-us", "contacts", "partners"].map((k) => (
+        {["careers", "join-us", "contacts"].map((k) => (
           <button
             key={k}
             onClick={() => setTab(k)}
@@ -1625,11 +1627,17 @@ function OtherTab() {
   );
 }
 
+function PartnersTab() {
+  return <SubmissionList type="partners" />;
+}
+
 function SubmissionList({ type }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
+  const [showPartnerCreate, setShowPartnerCreate] = useState(false);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -1704,6 +1712,14 @@ function SubmissionList({ type }) {
     }
   };
 
+  const isPartners = type === "partners";
+  const isJoinUs = type === "join-us";
+  const isCareers = type === "careers";
+  const isContacts = type === "contacts";
+  const filteredItems = isPartners && search.trim()
+    ? items.filter((item) => [item.company_name, item.contact_name, item.email, item.phone].some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())))
+    : items;
+
   if (loading)
     return (
       <div className="flex justify-center py-12">
@@ -1711,27 +1727,31 @@ function SubmissionList({ type }) {
       </div>
     );
 
-  if (items.length === 0)
+  if (items.length === 0 && !isPartners)
     return (
       <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
         No submissions.
       </p>
     );
 
-  const isPartners = type === "partners";
-  const isJoinUs = type === "join-us";
-  const isCareers = type === "careers";
-  const isContacts = type === "contacts";
-
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
+      {isPartners && <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-bold text-navy">Partners</h2>
+        <div className="flex flex-1 flex-wrap gap-3 sm:justify-end">
+          <div className="relative min-w-[200px] flex-1 sm:max-w-xs"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search partners..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
+          <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>
+        </div>
+      </div>}
+      {isPartners && filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching partners found." : "No partners found."}</p>}
+      {(!isPartners || filteredItems.length > 0) && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
+      <table className={`w-full ${isPartners ? "min-w-[1500px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
             <th className="p-3 whitespace-nowrap">ID</th>
             <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact" : "Name"}</th>
             <th className="p-3 whitespace-nowrap">Phone</th>
+            {isPartners && <><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Commission</th><th className="p-3 whitespace-nowrap">System Types</th></>}
             {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isPartners && <th className="p-3 whitespace-nowrap">Email</th>}
@@ -1745,7 +1765,7 @@ function SubmissionList({ type }) {
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => (
+          {filteredItems.map((it) => (
             <tr key={it.id} className="border-b border-navy/5">
               <td className="p-3 font-mono text-xs whitespace-nowrap">{it.id}</td>
               <td className="p-3 font-semibold text-navy whitespace-nowrap">
@@ -1758,6 +1778,11 @@ function SubmissionList({ type }) {
                   "-"}
               </td>
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
+              {isPartners && <>
+                <td className="p-3 whitespace-nowrap">{it.partner_type === "sub_vendor" || it.partner_type === "sub_vendor_commission" ? "Sub-vendor" : it.partner_type ? it.partner_type.charAt(0).toUpperCase() + it.partner_type.slice(1) : "-"}</td>
+                <td className="p-3 whitespace-nowrap">{it.commission_model === "per_completed_installation" || it.partner_type === "sub_vendor_commission" ? "Per completed installation" : "-"}</td>
+                <td className="p-3 whitespace-nowrap">{(Array.isArray(it.system_types) ? it.system_types : []).map((system) => system === "on_grid" ? "On-Grid" : system === "hybrid" ? "Hybrid" : system).join(", ") || "-"}</td>
+              </>}
               {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isPartners && <td className="p-3 whitespace-nowrap">{it.email || "-"}</td>}
@@ -1817,6 +1842,8 @@ function SubmissionList({ type }) {
         </tbody>
       </table>
       </div>
+      }
+      {isPartners && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
       {isPartners && selectedPartner && (
         <PartnerDetailsModal
           key={`${selectedPartner.partner.id}-${selectedPartner.editing ? "edit" : "view"}`}
