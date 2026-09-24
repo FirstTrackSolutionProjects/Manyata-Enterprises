@@ -711,7 +711,7 @@ function formatDateTime(value) {
   return value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "medium" }) : "-";
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, isPartner = false }) {
   const styles = {
     pending: "bg-amber-50 text-amber-700",
     under_review: "bg-blue-50 text-blue-700",
@@ -768,6 +768,8 @@ function StatusBadge({ status }) {
     converted: "Converted",
     closed: "Closed",
   };
+  if (isPartner && status === "new") labels.new = "Submitted";
+  if (isPartner && status === "reviewed") labels.reviewed = "Under Review";
   return (
     <span
       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
@@ -1760,7 +1762,7 @@ function SubmissionList({ type }) {
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isPartners && <td className="p-3 whitespace-nowrap">{it.email || "-"}</td>}
               <td className="p-3 whitespace-nowrap">
-                <StatusBadge status={it.status} />
+                <StatusBadge status={it.status} isPartner={isPartners} />
               </td>
               <td className="p-3 text-xs text-muted whitespace-nowrap">
                 {formatDateTime(it.created_at)}
@@ -1804,7 +1806,7 @@ function SubmissionList({ type }) {
                           onClick={() => updateStatus(it.id, "reviewed")}
                           className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200 disabled:opacity-50"
                         >
-                          Mark Reviewed
+                          Mark Under Review
                         </button>
                       )}
                   </div>

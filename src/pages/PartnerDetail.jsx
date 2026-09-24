@@ -5,8 +5,9 @@ import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { downloadSubmissionPdf, fileUrl, getPartnerDetail, resendPartnerAgreement, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
-  ["new", "New"], ["reviewed", "Reviewed"], ["approved", "Approved"], ["rejected", "Rejected"],
+  ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rejected", "Rejected"],
 ];
+const partnerStatusLabel = (status) => ({ new: "Submitted", reviewed: "Under Review" }[status] || titleCase(status));
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
 const titleCase = (value = "") => value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
@@ -148,7 +149,7 @@ export default function PartnerDetail() {
             <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock size={16} className="text-amber" />Status Timeline</h3>
             <div className="mt-4 space-y-3">
               {timeline.map((entry) => <div key={entry.id} className="border-l-2 border-amber/40 pl-3">
-                <p className="text-xs font-bold capitalize text-navy">{titleCase(entry.new_status)}</p>
+                <p className="text-xs font-bold capitalize text-navy">{partnerStatusLabel(entry.new_status)}</p>
                 <p className="text-xs text-muted">{formatDateTime(entry.created_at)}</p>
                 <p className="text-xs text-muted">by {entry.changed_by_name || "Partner"}</p>
                 {entry.note && <p className="mt-1 text-xs italic text-muted">{entry.note}</p>}
