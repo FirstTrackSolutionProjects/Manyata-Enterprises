@@ -46,6 +46,7 @@ const initialState = {
   description: "",
   qualification: "",
   jobrole:"",
+  location: "",
 };
 
 export default function Career() {
@@ -203,6 +204,9 @@ export default function Career() {
                   onChange={handleChange}
                 />
               ))}
+            </div>
+            <div className="mt-5">
+              <SelectField label="Preferred Location" name="location" value={form.location} onChange={handleChange} options={["Odisha", "West Bengal"]} />
             </div>
           </FormCard>
           {/* Upload CV */}
