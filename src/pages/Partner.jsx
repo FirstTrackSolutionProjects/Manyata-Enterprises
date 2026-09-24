@@ -17,7 +17,10 @@ import { submitPartner } from "../services/api";
 const PARTNER_TYPES = [
   { value: "vendor", label: "Vendor" },
   { value: "dealer", label: "Dealer" },
-  { value: "sub_vendor_commission", label: "Sub-vendor Commission" },
+  { value: "sub_vendor", label: "Sub-vendor" },
+];
+const COMMISSION_MODELS = [
+  { value: "per_completed_installation", label: "Per completed installation" },
 ];
 
 const PARTNER_SYSTEMS = [
@@ -27,6 +30,7 @@ const PARTNER_SYSTEMS = [
 
 const initialState = {
   partnerType: "vendor",
+  commissionModel: "",
   systemTypes: [],
   companyName: "",
   contactName: "",
@@ -54,7 +58,12 @@ export default function Partner() {
   const formRef = useRef(null);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "partnerType" ? { commissionModel: value === "sub_vendor" ? "per_completed_installation" : "" } : {}),
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -114,7 +123,7 @@ export default function Partner() {
               Become a Manyata Partner
             </h1>
             <p className="mt-3 max-w-xl text-sm text-white/70 sm:text-base">
-              Apply to become a vendor, dealer, or sub-vendor commission partner. Our team will
+              Apply to become a vendor, dealer, or sub-vendor partner. Our team will
               review your application and reach out.
             </p>
           </motion.div>
@@ -136,6 +145,15 @@ export default function Partner() {
                 onChange={handleChange}
                 options={PARTNER_TYPES}
               />
+              {form.partnerType === "sub_vendor" && (
+                <SelectField
+                  label="Commission"
+                  name="commissionModel"
+                  value={form.commissionModel}
+                  onChange={handleChange}
+                  options={COMMISSION_MODELS}
+                />
+              )}
               <Field
                 label="Company Name"
                 name="companyName"
@@ -174,8 +192,8 @@ export default function Partner() {
             </div>
           </FormCard>
 
-          <FormCard icon={Building2} title="Systems and Commission Agreement">
-            <p className="mb-4 text-sm text-muted">Choose the system types you work with. The agreement will be attached when the owner approves your application.</p>
+          <FormCard icon={Building2} title="System Types">
+            <p className="mb-4 text-sm text-muted">Choose the systems you work with. Sub-vendor commission rates are listed separately below.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {PARTNER_SYSTEMS.map((system) => {
                 const checked = form.systemTypes.includes(system.value);
@@ -194,7 +212,7 @@ export default function Partner() {
                     />
                     <span>
                       <span className="block text-sm font-semibold text-navy">{system.label}</span>
-                      {form.partnerType === "sub_vendor_commission" && <span className="mt-1 block text-xs text-muted">{system.commission}</span>}
+                      {form.partnerType === "sub_vendor" && <span className="mt-1 block text-xs text-muted">Commission: {system.commission}</span>}
                     </span>
                   </label>
                 );

@@ -4,14 +4,16 @@ import { fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
 const PARTNER_TYPES = [
   ["vendor", "Vendor"],
   ["dealer", "Dealer"],
-  ["sub_vendor_commission", "Sub-vendor Commission"],
+  ["sub_vendor", "Sub-vendor"],
 ];
+const COMMISSION_MODELS = [["per_completed_installation", "Per completed installation"]];
 const SYSTEM_TYPES = [
   ["on_grid", "On-Grid System"],
   ["hybrid", "Hybrid System"],
 ];
 const FIELDS = [
   ["partnerType", "Partner Type", "select"],
+  ["commissionModel", "Commission", "commission"],
   ["systemTypes", "System Types", "systems"],
   ["companyName", "Company Name"], ["contactName", "Contact Name"],
   ["phone", "Phone"], ["email", "Email", "email"],
@@ -34,7 +36,8 @@ const readSystemTypes = (value) => {
 
 export default function PartnerDetailsModal({ partner, editing, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
-    partnerType: PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
+    partnerType: partner.partner_type === "sub_vendor_commission" ? "sub_vendor" : PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
+    commissionModel: partner.commission_model || (partner.partner_type === "sub_vendor_commission" ? "per_completed_installation" : ""),
     systemTypes: readSystemTypes(partner.system_types),
     companyName: partner.company_name || "", contactName: partner.contact_name || "",
     phone: partner.phone || "", email: partner.email || "", gstNumber: partner.gst_number || "",
@@ -52,6 +55,10 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
     event.preventDefault();
     if (!form.systemTypes.length) {
       setError("Select at least one system type: On-Grid or Hybrid.");
+      return;
+    }
+    if (form.partnerType === "sub_vendor" && !form.commissionModel) {
+      setError("Select a commission model for the sub-vendor.");
       return;
     }
     setSaving(true);
@@ -88,7 +95,7 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
               {label}
               {!editing ? (
                 <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">
-                  {key === "systemTypes" ? systemLabels || "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : form[key] || "—"}
+                  {key === "systemTypes" ? systemLabels || "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : form[key] || "—"}
                 </span>
               ) : type === "select" ? (
                 <select required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
@@ -104,6 +111,13 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                     </label>
                   ))}
                 </span>
+              ) : type === "commission" ? (
+                form.partnerType === "sub_vendor" ? (
+                  <select required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
+                    <option value="" disabled>Select commission model</option>
+                    {COMMISSION_MODELS.map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}
+                  </select>
+                ) : <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">—</span>
               ) : type === "textarea" ? (
                 <textarea rows={3} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" />
               ) : (

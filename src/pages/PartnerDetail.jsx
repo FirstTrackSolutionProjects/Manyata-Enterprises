@@ -109,7 +109,8 @@ export default function PartnerDetail() {
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <InfoSection title="Partner Details" items={[
-            ["Partner Type", partner.partner_type === "sub_vendor_commission" ? "Sub-vendor Commission" : titleCase(partner.partner_type)], ["Company Name", partner.company_name],
+            ["Partner Type", ["sub_vendor", "sub_vendor_commission"].includes(partner.partner_type) ? "Sub-vendor" : titleCase(partner.partner_type)],
+            ["Commission", partner.commission_model === "per_completed_installation" || partner.partner_type === "sub_vendor_commission" ? "Per completed installation" : "—"], ["Company Name", partner.company_name],
             ["Contact Name", partner.contact_name], ["Phone", partner.phone], ["Email", partner.email],
             ["System Types", (Array.isArray(partner.system_types) ? partner.system_types : []).map((system) => system === "on_grid" ? "On-Grid System" : system === "hybrid" ? "Hybrid System" : system).join(", ")],
             ["Experience", partner.experience_years], ["Business Description", partner.description],
