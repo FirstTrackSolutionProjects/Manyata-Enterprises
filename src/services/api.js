@@ -245,6 +245,7 @@ export const updateCareer = (id, payload) => apiFetch(`/admin/careers/${id}`, {
   method: "PUT",
   body: JSON.stringify(payload),
 });
+export const deleteCareer = (id) => apiFetch(`/admin/careers/${id}`, { method: "DELETE" });
 export const updateCareerStatus = (id, status, note = "") => apiFetch(`/admin/careers/${id}/status`, {
   method: "PATCH",
   body: JSON.stringify({ status, note }),

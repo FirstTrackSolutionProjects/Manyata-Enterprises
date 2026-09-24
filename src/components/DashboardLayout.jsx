@@ -55,7 +55,13 @@ export default function DashboardLayout({
 
   const handleNavClick = (id) => {
     setSidebarOpen(false);
-    if (onSectionChange) onSectionChange(id);
+    if (onSectionChange) {
+      onSectionChange(id);
+    } else if (user?.role === "owner") {
+      navigate(`/admin?section=${encodeURIComponent(id)}`);
+    } else {
+      navigate("/employee");
+    }
   };
 
   return (

@@ -20,7 +20,7 @@ import {
   Filter,
   RotateCcw,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import {
@@ -47,18 +47,24 @@ import {
   createBranch,
   updateBranch,
   deleteBranch,
+  deleteCareer,
   apiFetch,
 } from "../services/api";
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("section") || "overview";
+
+  const handleSectionChange = (section) => {
+    setSearchParams({ section }, { replace: true });
+  };
 
   return (
     <DashboardLayout
       title="Owner Dashboard"
       subtitle="Full control over branches, employees, and applications"
       activeSection={tab}
-      onSectionChange={setTab}
+      onSectionChange={handleSectionChange}
     >
       {tab === "overview" && <OverviewTab />}
       {tab === "applications" && <ApplicationsTab />}
@@ -750,7 +756,7 @@ function StatusBadge({ status }) {
     interview: "Interview",
     interview_scheduled: "Interview Scheduled",
     review: "Review",
-    rehired: "Rehired",
+    rehired: "Re-Hired",
     hired: "Hired",
     contacted: "Contacted",
     converted: "Converted",
@@ -1662,6 +1668,20 @@ function SubmissionList({ type }) {
     }
   };
 
+  const deleteCareerApplication = async (career) => {
+    const name = `${career.first_name || ""} ${career.last_name || ""}`.trim() || `application #${career.id}`;
+    if (!window.confirm(`Delete career application for ${name}? This cannot be undone.`)) return;
+    setUpdating(true);
+    try {
+      await deleteCareer(career.id);
+      await load();
+    } catch (err) {
+      alert(err.message || "Could not delete career application.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="flex justify-center py-12">
@@ -1726,7 +1746,7 @@ function SubmissionList({ type }) {
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isJoinUs && <td className="p-3 whitespace-nowrap"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
               {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-              {isCareers && <td className="p-3 whitespace-nowrap"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
+              {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link><Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteCareerApplication(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></div></td>}
               {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
               {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
