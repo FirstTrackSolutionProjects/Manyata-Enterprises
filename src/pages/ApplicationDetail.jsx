@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -11,6 +11,8 @@ import {
   Send,
   AlertCircle,
   Upload,
+  ChevronDown,
+  Search,
 } from "lucide-react";
 import {
   getApplication,
@@ -39,6 +41,7 @@ export default function ApplicationDetail() {
   const [govtError, setGovtError] = useState("");
   const [showGovtModal, setShowGovtModal] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
 
   const load = async () => {
     try {
@@ -259,17 +262,13 @@ export default function ApplicationDetail() {
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <h3 className="text-sm font-bold text-navy">Update Status</h3>
             <div className="mt-4 space-y-3">
-              <select
+              <StatusDropdown
                 value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm"
-              >
-                {APPLICATION_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                options={APPLICATION_STATUSES}
+                open={statusMenuOpen}
+                onOpenChange={setStatusMenuOpen}
+                onChange={setNewStatus}
+              />
               <textarea
                 value={statusNote}
                 onChange={(e) => setStatusNote(e.target.value)}
@@ -458,6 +457,87 @@ function InfoSection({ title, children }) {
     <div className="rounded-2xl border border-navy/10 bg-white p-5">
       <h3 className="text-sm font-bold text-navy">{title}</h3>
       <div className="mt-4">{children}</div>
+    </div>
+  );
+}
+
+function StatusDropdown({ value, options, open, onOpenChange, onChange }) {
+  const [query, setQuery] = useState("");
+  const menuRef = useRef(null);
+  const selected = options.find((option) => option.value === value);
+  const filtered = options.filter((option) =>
+    option.label.toLowerCase().includes(query.trim().toLowerCase()),
+  );
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!menuRef.current?.contains(event.target)) onOpenChange(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onOpenChange(false);
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open, onOpenChange]);
+
+  useEffect(() => {
+    if (!open) setQuery("");
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-left text-sm text-navy hover:border-amber focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/20"
+      >
+        <span className="line-clamp-2">{selected?.label || "Select status"}</span>
+        <ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-40 mt-2 overflow-hidden rounded-xl border border-navy/15 bg-white shadow-xl">
+          <div className="sticky top-0 border-b border-navy/10 bg-white p-2">
+            <div className="flex items-center gap-2 rounded-lg border border-navy/15 px-3">
+              <Search size={15} className="shrink-0 text-muted" />
+              <input
+                autoFocus
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search statuses..."
+                aria-label="Search statuses"
+                className="h-9 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted"
+              />
+            </div>
+          </div>
+          <div role="listbox" aria-label="Application status" className="max-h-64 overflow-y-auto p-1">
+            {filtered.length ? filtered.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                onClick={() => {
+                  onChange(option.value);
+                  onOpenChange(false);
+                }}
+                className={`block w-full rounded-lg px-3 py-2 text-left text-sm leading-5 hover:bg-amber/10 ${option.value === value ? "bg-amber/15 font-semibold text-navy" : "text-navy/85"}`}
+              >
+                {option.label}
+              </button>
+            )) : (
+              <p className="px-3 py-5 text-center text-sm text-muted">No matching statuses.</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
