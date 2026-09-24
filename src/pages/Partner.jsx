@@ -24,13 +24,14 @@ const COMMISSION_MODELS = [
 ];
 
 const PARTNER_SYSTEMS = [
-  { value: "on_grid", label: "On-Grid System", commission: "₹20,000 per completed installation" },
-  { value: "hybrid", label: "Hybrid System", commission: "₹30,000 per completed installation" },
+  { value: "on_grid", label: "On-Grid System" },
+  { value: "hybrid", label: "Hybrid System" },
 ];
 
 const initialState = {
   partnerType: "vendor",
   commissionModel: "",
+  commissionRates: { on_grid: "20000", hybrid: "30000" },
   systemTypes: [],
   companyName: "",
   contactName: "",
@@ -193,7 +194,7 @@ export default function Partner() {
           </FormCard>
 
           <FormCard icon={Building2} title="System Types">
-            <p className="mb-4 text-sm text-muted">Choose the systems you work with. Sub-vendor commission rates are listed separately below.</p>
+            <p className="mb-4 text-sm text-muted">Choose the systems you work with.</p>
             <div className="grid gap-3 sm:grid-cols-2">
               {PARTNER_SYSTEMS.map((system) => {
                 const checked = form.systemTypes.includes(system.value);
@@ -212,13 +213,21 @@ export default function Partner() {
                     />
                     <span>
                       <span className="block text-sm font-semibold text-navy">{system.label}</span>
-                      {form.partnerType === "sub_vendor" && <span className="mt-1 block text-xs text-muted">Commission: {system.commission}</span>}
                     </span>
                   </label>
                 );
               })}
             </div>
             {!form.systemTypes.length && <p className="mt-2 text-xs text-muted">Select at least one system type to continue.</p>}
+            {form.partnerType === "sub_vendor" && <div className="mt-5 overflow-hidden rounded-xl border border-navy/10">
+              <h3 className="border-b border-navy/10 bg-slate-50 px-4 py-3 text-sm font-bold text-navy">Commission Chart (per completed installation)</h3>
+              <div className="divide-y divide-navy/10">
+                {PARTNER_SYSTEMS.map((system) => <label key={system.value} className="grid grid-cols-[1fr_minmax(150px,220px)] items-center gap-4 px-4 py-3 text-sm text-navy">
+                  <span>{system.label}</span>
+                  <span className="flex items-center gap-2"><span className="text-muted">₹</span><input type="number" min="0" step="1" required value={form.commissionRates[system.value]} onChange={(event) => setForm((current) => ({ ...current, commissionRates: { ...current.commissionRates, [system.value]: event.target.value } }))} className="w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" aria-label={`${system.label} commission amount`} /></span>
+                </label>)}
+              </div>
+            </div>}
           </FormCard>
 
           <FormCard icon={User} title="Contact Person">

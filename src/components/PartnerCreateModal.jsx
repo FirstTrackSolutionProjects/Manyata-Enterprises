@@ -3,12 +3,12 @@ import { Loader2, Upload, X } from "lucide-react";
 import { submitPartner, uploadFilesToS3 } from "../services/api";
 
 const SYSTEMS = [
-  ["on_grid", "On-Grid System", "\u20B920,000 per completed installation"],
-  ["hybrid", "Hybrid System", "\u20B930,000 per completed installation"],
+  ["on_grid", "On-Grid System"],
+  ["hybrid", "Hybrid System"],
 ];
 
 const INITIAL_FORM = {
-  partnerType: "vendor", commissionModel: "", systemTypes: [], companyName: "",
+  partnerType: "vendor", commissionModel: "", systemTypes: [], commissionRates: { on_grid: "20000", hybrid: "30000" }, companyName: "",
   contactName: "", email: "", phone: "", gstNumber: "", panNumber: "",
   msmeNumber: "", address: "", city: "", state: "", pincode: "",
   experienceYears: "", description: "", bankName: "", accountNumber: "", ifscCode: "",
@@ -81,11 +81,17 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
           <h3 className="text-sm font-bold text-navy">System Types</h3>
           <p className="mt-1 text-xs text-muted">Select all systems the partner will work with.</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
-            {SYSTEMS.map(([value, label, rate]) => <label key={value} className="flex items-start gap-2 rounded-lg border border-navy/10 p-3 text-sm text-navy">
+            {SYSTEMS.map(([value, label]) => <label key={value} className="flex items-start gap-2 rounded-lg border border-navy/10 p-3 text-sm text-navy">
               <input type="checkbox" checked={form.systemTypes.includes(value)} onChange={() => updateField("systemTypes", form.systemTypes.includes(value) ? form.systemTypes.filter((item) => item !== value) : [...form.systemTypes, value])} className="mt-0.5 accent-amber" />
-              <span>{label}{form.partnerType === "sub_vendor" && <span className="block text-xs font-normal text-muted">Commission: {rate}</span>}</span>
+              <span>{label}</span>
             </label>)}
           </div>
+          {form.partnerType === "sub_vendor" && <div className="mt-4 overflow-hidden rounded-lg border border-navy/10">
+            <h4 className="border-b border-navy/10 bg-slate-50 px-3 py-2.5 text-xs font-bold text-navy">Commission Chart (per completed installation)</h4>
+            {SYSTEMS.map(([value, label]) => <label key={value} className="grid grid-cols-[1fr_minmax(130px,200px)] items-center gap-3 border-b border-navy/5 px-3 py-2.5 text-sm text-navy last:border-0">
+              <span>{label}</span><span className="flex items-center gap-2"><span className="text-muted">₹</span><input type="number" min="0" step="1" required value={form.commissionRates[value]} onChange={(event) => updateField("commissionRates", { ...form.commissionRates, [value]: event.target.value })} className="w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></span>
+            </label>)}
+          </div>}
         </section>
 
         <section className="mt-5 rounded-xl border border-navy/10 p-4">

@@ -727,6 +727,7 @@ function StatusBadge({ status, isPartner = false }) {
     reviewed: "bg-blue-50 text-blue-700",
     shortlisted: "bg-indigo-50 text-indigo-700",
     onboarded: "bg-emerald-50 text-emerald-700",
+    rewarded: "bg-emerald-50 text-emerald-700",
     interview: "bg-indigo-50 text-indigo-700",
     interview_scheduled: "bg-indigo-50 text-indigo-700",
     review: "bg-blue-50 text-blue-700",
@@ -753,6 +754,7 @@ function StatusBadge({ status, isPartner = false }) {
     reviewed: "Reviewed",
     shortlisted: "Shortlisted",
     onboarded: "Onboarded",
+    rewarded: "Rewarded",
     terminated: "Terminated",
     resigned: "Resigned",
     on_leave: "On Leave",
@@ -903,7 +905,7 @@ function EmployeesTab() {
           <table className="w-full min-w-[1100px] text-sm">
             <thead>
               <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                <th className="p-3 whitespace-nowrap">User ID</th>
+                <th className="p-3 whitespace-nowrap">Employee ID</th>
                 <th className="p-3 whitespace-nowrap">Name</th>
                 <th className="p-3 whitespace-nowrap">Email</th>
                 <th className="p-3 whitespace-nowrap">Designation</th>
@@ -1036,6 +1038,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     branchId: employee?.branch_id || "",
     designation: employee?.designation || "",
     department: employee?.department || "",
+    userId: employee?.user_id || "",
     address: employee?.address || "",
     city: employee?.city || "",
     state: employee?.state || "",
@@ -1164,6 +1167,15 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
               placeholder="e.g. Sales / Field Ops"
             />
           </div>
+
+          <Input
+            label="Employee ID"
+            value={form.userId}
+            onChange={(v) => setForm({ ...form, userId: v })}
+            placeholder={isEdit ? "" : "Leave blank to generate automatically"}
+            readOnly={isEdit}
+            maxLength={30}
+          />
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -1306,7 +1318,7 @@ function CredentialsModal({ creds, onClose }) {
   );
 }
 
-function Input({ label, value, onChange, type = "text", required, placeholder }) {
+function Input({ label, value, onChange, type = "text", required, placeholder, readOnly = false, maxLength }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -1317,8 +1329,10 @@ function Input({ label, value, onChange, type = "text", required, placeholder })
         value={value}
         required={required}
         placeholder={placeholder}
+        readOnly={readOnly}
+        maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none"
+        className={`w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none ${readOnly ? "bg-slate-50 text-muted" : ""}`}
       />
     </label>
   );
@@ -1745,13 +1759,12 @@ function SubmissionList({ type }) {
       </div>}
       {isPartners && filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching partners found." : "No partners found."}</p>}
       {(!isPartners || filteredItems.length > 0) && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-      <table className={`w-full ${isPartners ? "min-w-[1500px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
+      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
             <th className="p-3 whitespace-nowrap">ID</th>
             <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact" : "Name"}</th>
             <th className="p-3 whitespace-nowrap">Phone</th>
-            {isPartners && <><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Commission</th><th className="p-3 whitespace-nowrap">System Types</th></>}
             {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isPartners && <th className="p-3 whitespace-nowrap">Email</th>}
@@ -1778,11 +1791,6 @@ function SubmissionList({ type }) {
                   "-"}
               </td>
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
-              {isPartners && <>
-                <td className="p-3 whitespace-nowrap">{it.partner_type === "sub_vendor" || it.partner_type === "sub_vendor_commission" ? "Sub-vendor" : it.partner_type ? it.partner_type.charAt(0).toUpperCase() + it.partner_type.slice(1) : "-"}</td>
-                <td className="p-3 whitespace-nowrap">{it.commission_model === "per_completed_installation" || it.partner_type === "sub_vendor_commission" ? "Per completed installation" : "-"}</td>
-                <td className="p-3 whitespace-nowrap">{(Array.isArray(it.system_types) ? it.system_types : []).map((system) => system === "on_grid" ? "On-Grid" : system === "hybrid" ? "Hybrid" : system).join(", ") || "-"}</td>
-              </>}
               {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isPartners && <td className="p-3 whitespace-nowrap">{it.email || "-"}</td>}

@@ -2,10 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
-import { downloadSubmissionPdf, fileUrl, getPartnerDetail, resendPartnerAgreement, updatePartnerStatus } from "../services/api";
+import { downloadPartnerAgreement, downloadSubmissionPdf, fileUrl, getPartnerDetail, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
-  ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rejected", "Rejected"],
+  ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
 ];
 const partnerStatusLabel = (status) => ({ new: "Submitted", reviewed: "Under Review" }[status] || titleCase(status));
 
@@ -23,7 +23,7 @@ export default function PartnerDetail() {
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const [sendingAgreement, setSendingAgreement] = useState(false);
+  const [downloadingAgreement, setDownloadingAgreement] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   const load = async () => {
@@ -59,17 +59,17 @@ export default function PartnerDetail() {
     }
   };
 
-  const sendAgreementAgain = async () => {
-    setSendingAgreement(true);
+  const downloadAgreement = async () => {
+    setDownloadingAgreement(true);
     setError("");
     setNotice("");
     try {
-      const response = await resendPartnerAgreement(id);
-      setNotice(response.message || "Agreement sent.");
+      await downloadPartnerAgreement(id);
+      setNotice("Sales commission agreement downloaded.");
     } catch (err) {
-      setError(err.message || "Could not send the agreement.");
+      setError(err.message || "Could not download the agreement.");
     } finally {
-      setSendingAgreement(false);
+      setDownloadingAgreement(false);
     }
   };
 
@@ -100,7 +100,7 @@ export default function PartnerDetail() {
           <p className="mt-1 text-sm text-muted">{partner.contact_name} · {partner.phone} · {partner.email}</p>
           <p className="mt-1 text-xs text-muted">Created: {formatDateTime(partner.created_at)} · Updated by {partner.updated_by_name || "—"}: {formatDateTime(partner.updated_at)}</p>
         </div>
-        <div className="flex gap-2"><button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button><button onClick={() => downloadSubmissionPdf("partners", partner.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16}/>Download PDF</button></div>
+        <div className="flex flex-wrap gap-2"><button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button><button onClick={() => downloadSubmissionPdf("partners", partner.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16}/>Download PDF</button><button onClick={downloadAgreement} disabled={downloadingAgreement} className="flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60"><Download size={16}/>{downloadingAgreement ? "Downloading..." : "Download Agreement"}</button></div>
       </div>
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -114,6 +114,7 @@ export default function PartnerDetail() {
             ["Commission", partner.commission_model === "per_completed_installation" || partner.partner_type === "sub_vendor_commission" ? "Per completed installation" : "—"], ["Company Name", partner.company_name],
             ["Contact Name", partner.contact_name], ["Phone", partner.phone], ["Email", partner.email],
             ["System Types", (Array.isArray(partner.system_types) ? partner.system_types : []).map((system) => system === "on_grid" ? "On-Grid System" : system === "hybrid" ? "Hybrid System" : system).join(", ")],
+            ["Commission Chart", partner.commission_model === "per_completed_installation" || partner.partner_type === "sub_vendor_commission" ? `On-Grid: ₹${Number(partner.commission_rates?.on_grid ?? 20000).toLocaleString("en-IN")} per completed installation · Hybrid: ₹${Number(partner.commission_rates?.hybrid ?? 30000).toLocaleString("en-IN")} per completed installation` : "—"],
             ["Experience", partner.experience_years], ["Business Description", partner.description],
           ]} />
           <InfoSection title="Registration Details" items={[
@@ -142,7 +143,6 @@ export default function PartnerDetail() {
               </select>
               <textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" />
               <button onClick={saveStatus} disabled={updating || newStatus === partner.status} className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60">{updating && <Loader2 size={16} className="animate-spin" />}Save Status</button>
-              {partner.status === "approved" && <button type="button" onClick={sendAgreementAgain} disabled={sendingAgreement} className="w-full rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{sendingAgreement ? "Sending Agreement..." : "Resend Agreement"}</button>}
             </div>
           </div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5">

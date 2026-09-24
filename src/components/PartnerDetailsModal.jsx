@@ -15,6 +15,7 @@ const FIELDS = [
   ["partnerType", "Partner Type", "select"],
   ["commissionModel", "Commission", "commission"],
   ["systemTypes", "System Types", "systems"],
+  ["commissionRates", "Commission Chart", "commission-chart"],
   ["companyName", "Company Name"], ["contactName", "Contact Name"],
   ["phone", "Phone"], ["email", "Email", "email"],
   ["gstNumber", "GST Number"], ["panNumber", "PAN Number"], ["msmeNumber", "MSME Number"],
@@ -33,12 +34,17 @@ const readSystemTypes = (value) => {
   if (Array.isArray(value)) return value;
   try { return JSON.parse(value || "[]"); } catch { return []; }
 };
+const readCommissionRates = (value) => {
+  if (typeof value === "string") { try { value = JSON.parse(value); } catch { value = {}; } }
+  return { on_grid: String(value?.on_grid ?? "20000"), hybrid: String(value?.hybrid ?? "30000") };
+};
 
 export default function PartnerDetailsModal({ partner, editing, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
     partnerType: partner.partner_type === "sub_vendor_commission" ? "sub_vendor" : PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
     commissionModel: partner.commission_model || (partner.partner_type === "sub_vendor_commission" ? "per_completed_installation" : ""),
     systemTypes: readSystemTypes(partner.system_types),
+    commissionRates: readCommissionRates(partner.commission_rates),
     companyName: partner.company_name || "", contactName: partner.contact_name || "",
     phone: partner.phone || "", email: partner.email || "", gstNumber: partner.gst_number || "",
     panNumber: partner.pan_number || "", msmeNumber: partner.msme_number || "",
@@ -89,13 +95,13 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {FIELDS.map(([key, label, type]) => {
-            const FieldWrapper = type === "systems" ? "div" : "label";
+            const FieldWrapper = type === "systems" || type === "commission-chart" ? "div" : "label";
             return (
-            <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" ? "sm:col-span-2" : ""}`}>
+            <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" || type === "commission-chart" ? "sm:col-span-2" : ""}`}>
               {label}
               {!editing ? (
                 <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">
-                  {key === "systemTypes" ? systemLabels || "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : form[key] || "—"}
+                  {key === "systemTypes" ? systemLabels || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : form[key] || "—"}
                 </span>
               ) : type === "select" ? (
                 <select required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
@@ -111,6 +117,12 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                     </label>
                   ))}
                 </span>
+              ) : type === "commission-chart" ? (
+                form.partnerType === "sub_vendor" ? <div className="mt-2 overflow-hidden rounded-lg border border-navy/10">
+                  {[ ["on_grid", "On-Grid System"], ["hybrid", "Hybrid System"] ].map(([system, optionLabel]) => <label key={system} className="grid grid-cols-[1fr_minmax(140px,220px)] items-center gap-3 border-b border-navy/5 px-3 py-2.5 text-sm font-normal text-navy last:border-0">
+                    <span>{optionLabel}</span><span className="flex items-center gap-2"><span className="text-muted">₹</span><input type="number" min="0" step="1" required={form.systemTypes.includes(system)} value={form.commissionRates[system]} onChange={(event) => setForm({ ...form, commissionRates: { ...form.commissionRates, [system]: event.target.value } })} className="w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></span>
+                  </label>)}
+                </div> : <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">—</span>
               ) : type === "commission" ? (
                 form.partnerType === "sub_vendor" ? (
                   <select required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">

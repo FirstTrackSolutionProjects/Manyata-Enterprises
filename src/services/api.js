@@ -230,6 +230,25 @@ export const updatePartnerStatus = (id, status, note = "") =>
     body: JSON.stringify({ status, note }),
   });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
+export const downloadPartnerAgreement = async (id) => {
+  const response = await fetch(`${API_URL}/admin/partners/${id}/agreement.docx`, { credentials: "include" });
+  if (!response.ok) {
+    let data = null;
+    try { data = await response.json(); } catch { /* use the HTTP status message */ }
+    throw new Error(data?.message || data?.errors?.[0]?.message || `Agreement download failed (${response.status}).`);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `Sales-Commission-Agreement-${id}.docx`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 
 export const getJoinUsDetail = (id) => apiFetch(`/admin/join-us/${id}`);
 export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {
