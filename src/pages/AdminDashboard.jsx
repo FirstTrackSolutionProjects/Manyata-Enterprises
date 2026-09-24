@@ -889,6 +889,7 @@ function EmployeesTab() {
                 <th className="p-3 whitespace-nowrap">Branch</th>
                 <th className="p-3 whitespace-nowrap">Status</th>
                 <th className="p-3 whitespace-nowrap">Last Login</th>
+                <th className="p-3 whitespace-nowrap">Last Logout</th>
                 <th className="p-3 whitespace-nowrap">Actions</th>
               </tr>
             </thead>
@@ -928,6 +929,11 @@ function EmployeesTab() {
                   <td className="p-3 text-xs text-muted whitespace-nowrap">
                     {u.last_login_at
                       ? new Date(u.last_login_at).toLocaleString("en-IN")
+                      : "Never"}
+                  </td>
+                  <td className="p-3 text-xs text-muted whitespace-nowrap">
+                    {u.last_logout_at
+                      ? new Date(u.last_logout_at).toLocaleString("en-IN")
                       : "Never"}
                   </td>
                   <td className="p-3">
