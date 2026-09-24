@@ -235,6 +235,8 @@ export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {
   method: "PUT",
   body: JSON.stringify(payload),
 });
+export const deleteJoinUs = (id) => apiFetch(`/admin/join-us/${id}`, { method: "DELETE" });
+export const downloadJoinUsLOA = (id) => window.open(`${API_URL}/admin/join-us/${id}/loa.pdf`, "_blank", "noopener,noreferrer");
 export const updateJoinUsStatus = (id, status, note = "") => apiFetch(`/admin/join-us/${id}/status`, {
   method: "PATCH",
   body: JSON.stringify({ status, note }),

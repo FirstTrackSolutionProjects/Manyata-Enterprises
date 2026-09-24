@@ -4,10 +4,10 @@ import { fileUrl, updateJoinUs, uploadFilesToS3 } from "../services/api";
 const FIELDS = [
   ["firstName", "First Name"], ["lastName", "Last Name"], ["email", "Email", "email"], ["phone", "Phone"],
   ["dob", "Date of Birth"], ["gender", "Gender"], ["guardianName", "Father's / Husband's Name"], ["maritalStatus", "Marital Status"],
-  ["streetAddress", "Street Address"], ["city", "City"], ["state", "State"], ["postalCode", "Postal Code"], ["country", "Country"],
+  ["streetAddress", "Street Address"], ["city", "City"], ["district", "District"], ["state", "State"], ["location", "Location / Posting Preference"], ["postalCode", "Postal Code"], ["country", "Country"],
   ["permanentAddress", "Permanent Address"], ["permanentCity", "Permanent City"], ["permanentState", "Permanent State"], ["permanentPostalCode", "Permanent Postal Code"],
   ["aadhaarNumber", "Aadhaar Number"], ["panNumber", "PAN Number"], ["qualification", "Qualification"], ["institutionName", "Institution"], ["yearOfPassing", "Year of Passing"],
-  ["experience", "Experience"], ["companyName", "Company"], ["designation", "Designation"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"], ["description", "About", "textarea"],
+  ["experience", "Experience"], ["companyName", "Company"], ["designation", "Current / Last Designation"], ["appointmentDesignation", "Appointment Designation"], ["joiningDate", "Date of Joining"], ["officeLocation", "Place of Posting"], ["referenceNumber", "LOA Reference Number"], ["grossSalary", "Monthly Gross Salary"], ["netSalary", "Monthly Net Salary"], ["allowance", "Monthly Allowance (optional)"], ["annualCtc", "Annual CTC"], ["probationPeriod", "Probation Period"], ["noticePeriod", "Notice Period"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"], ["description", "About", "textarea"],
 ];
 const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"]];
 

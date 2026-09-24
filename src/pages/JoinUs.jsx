@@ -42,7 +42,9 @@ const initialState = {
   maritalStatus: "",
   streetAddress: "",
   city: "",
+  district: "",
   state: "",
+  location: "",
   postalCode: "",
   country: "India",
   sameAsAbove: false,
@@ -181,9 +183,11 @@ export default function JoinUs() {
           <FormCard icon={MapPin} title="Address Details">
             <div className="grid grid-cols-1 gap-4">
               <Field label="Street Address" name="streetAddress" value={form.streetAddress} onChange={handleChange} placeholder="Eg: 24 Wallaby Way" />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="City" name="city" value={form.city} onChange={handleChange} placeholder="Eg: Bhubaneswar" />
+                <Field label="District" name="district" value={form.district} onChange={handleChange} placeholder="Eg: Khordha" />
                 <Field label="State" name="state" value={form.state} onChange={handleChange} placeholder="Eg: Odisha" />
+                <Field label="Location / Posting Preference" name="location" value={form.location} onChange={handleChange} placeholder="Eg: Soro, Balasore" />
                 <Field label="Postal Code" name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="Eg: 751001" />
               </div>
               <SelectField label="Country" name="country" value={form.country} onChange={handleChange} options={["India"]} />

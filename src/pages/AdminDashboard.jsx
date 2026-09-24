@@ -48,6 +48,7 @@ import {
   updateBranch,
   deleteBranch,
   deleteCareer,
+  deleteJoinUs,
   apiFetch,
 } from "../services/api";
 
@@ -735,6 +736,10 @@ function StatusBadge({ status }) {
     interview_scheduled: "bg-indigo-50 text-indigo-700",
     review: "bg-blue-50 text-blue-700",
     rehired: "bg-emerald-50 text-emerald-700",
+    terminated: "bg-red-50 text-red-700",
+    resigned: "bg-orange-50 text-orange-700",
+    on_leave: "bg-amber-50 text-amber-700",
+    salary_success: "bg-emerald-50 text-emerald-700",
     hired: "bg-emerald-50 text-emerald-700",
     contacted: "bg-blue-50 text-blue-700",
     converted: "bg-emerald-50 text-emerald-700",
@@ -753,6 +758,14 @@ function StatusBadge({ status }) {
     reviewed: "Reviewed",
     shortlisted: "Shortlisted",
     onboarded: "Onboarded",
+    terminated: "Terminated",
+    resigned: "Resigned",
+    on_leave: "On Leave",
+    salary_success: "Salary Success",
+    terminated: "Terminated",
+    resigned: "Resigned",
+    on_leave: "On Leave",
+    salary_success: "Salary Success",
     interview: "Interview",
     interview_scheduled: "Interview Scheduled",
     review: "Review",
@@ -1682,6 +1695,20 @@ function SubmissionList({ type }) {
     }
   };
 
+  const deleteJoinUsSubmission = async (submission) => {
+    const name = `${submission.first_name || ""} ${submission.last_name || ""}`.trim() || `submission #${submission.id}`;
+    if (!window.confirm(`Delete Join Us submission for ${name}? This cannot be undone.`)) return;
+    setUpdating(true);
+    try {
+      await deleteJoinUs(submission.id);
+      await load();
+    } catch (err) {
+      alert(err.message || "Could not delete Join Us submission.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="flex justify-center py-12">
@@ -1704,12 +1731,13 @@ function SubmissionList({ type }) {
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs || isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
+      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
             <th className="p-3 whitespace-nowrap">ID</th>
             <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact" : "Name"}</th>
             <th className="p-3 whitespace-nowrap">Phone</th>
+            {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isPartners && <th className="p-3 whitespace-nowrap">Email</th>}
             <th className="p-3 whitespace-nowrap">Status</th>
@@ -1735,6 +1763,7 @@ function SubmissionList({ type }) {
                   "-"}
               </td>
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
+              {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isPartners && <td className="p-3 whitespace-nowrap">{it.email || "-"}</td>}
               <td className="p-3 whitespace-nowrap">
@@ -1744,7 +1773,7 @@ function SubmissionList({ type }) {
                 {formatDateTime(it.created_at)}
               </td>
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-              {isJoinUs && <td className="p-3 whitespace-nowrap"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
+              {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link><Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteJoinUsSubmission(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></div></td>}
               {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link><Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteCareerApplication(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></div></td>}
               {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
