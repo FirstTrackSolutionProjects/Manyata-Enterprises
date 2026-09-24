@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { fileUrl, updateCareer, uploadFilesToS3 } from "../services/api";
 
-const FIELDS=[["firstName","First Name"],["lastName","Last Name"],["email","Email","email"],["phone","Phone"],["dob","Date of Birth"],["gender","Gender","gender"],["streetAddress","Street Address"],["city","City"],["state","State"],["postalCode","Postal Code"],["country","Country"],["jobrole","Job Role"],["location","Preferred Location","location"],["qualification","Qualification"],["description","Description","textarea"]];
+const FIELDS=[["firstName","First Name"],["lastName","Last Name"],["email","Email","email"],["phone","Phone"],["dob","Date of Birth"],["gender","Gender","gender"],["streetAddress","Street Address"],["city","City"],["district","District"],["state","State"],["postalCode","Postal Code"],["country","Country"],["jobrole","Job Role"],["location","Location","location"],["qualification","Qualification"],["description","Description","textarea"]];
 export default function CareerDetailsModal({application,onClose,onSaved}){
  const [form,setForm]=useState(()=>Object.fromEntries(FIELDS.map(([key])=>[key,application[key]||""]))),[cv,setCv]=useState(null),[saving,setSaving]=useState(false),[error,setError]=useState("");
  const save=async e=>{e.preventDefault();setSaving(true);setError("");try{const files=await uploadFilesToS3("careers",cv?{cv}:{});await updateCareer(application.id,{...form,files});await onSaved();}catch(err){setError(err.message||"Could not update career application.");}finally{setSaving(false);}};

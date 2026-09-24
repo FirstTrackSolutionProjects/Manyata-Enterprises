@@ -40,6 +40,7 @@ const initialState = {
   gender: "Male",
   streetAddress: "",
   city: "",
+  district: "",
   state: "",
   postalCode: "",
   country: "India",
@@ -151,8 +152,9 @@ export default function Career() {
           <FormCard icon={MapPin} title="Address Details">
             <div className="grid grid-cols-1 gap-4">
               <Field label="Street Address" name="streetAddress" value={form.streetAddress} onChange={handleChange} placeholder="Eg: 24 Wallaby Way" />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="City" name="city" value={form.city} onChange={handleChange} placeholder="Eg: Bhubaneswar" />
+                <Field label="District" name="district" value={form.district} onChange={handleChange} placeholder="Eg: Khordha" />
                 <Field label="State" name="state" value={form.state} onChange={handleChange} placeholder="Eg: Odisha" />
                 <Field label="Postal Code" name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="Eg: 751001" />
               </div>
@@ -206,7 +208,7 @@ export default function Career() {
               ))}
             </div>
             <div className="mt-5">
-              <SelectField label="Preferred Location" name="location" value={form.location} onChange={handleChange} options={["Odisha", "West Bengal"]} />
+              <SelectField label="Location" name="location" value={form.location} onChange={handleChange} options={["Odisha", "West Bengal"]} />
             </div>
           </FormCard>
           {/* Upload CV */}

@@ -1684,12 +1684,13 @@ function SubmissionList({ type }) {
   return (
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isJoinUs || isCareers || isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
+      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs || isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
             <th className="p-3 whitespace-nowrap">ID</th>
             <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact" : "Name"}</th>
             <th className="p-3 whitespace-nowrap">Phone</th>
+            {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isPartners && <th className="p-3 whitespace-nowrap">Email</th>}
             <th className="p-3 whitespace-nowrap">Status</th>
             <th className="p-3 whitespace-nowrap">Created</th>
@@ -1714,6 +1715,7 @@ function SubmissionList({ type }) {
                   "-"}
               </td>
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
+              {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isPartners && <td className="p-3 whitespace-nowrap">{it.email || "-"}</td>}
               <td className="p-3 whitespace-nowrap">
                 <StatusBadge status={it.status} />
