@@ -236,7 +236,25 @@ export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {
   body: JSON.stringify(payload),
 });
 export const deleteJoinUs = (id) => apiFetch(`/admin/join-us/${id}`, { method: "DELETE" });
-export const downloadJoinUsLOA = (id) => window.open(`${API_URL}/admin/join-us/${id}/loa.pdf`, "_blank", "noopener,noreferrer");
+export const downloadJoinUsLOA = async (id) => {
+  const response = await fetch(`${API_URL}/admin/join-us/${id}/loa.pdf`, { credentials: "include" });
+  if (!response.ok) {
+    let data = null;
+    try { data = await response.json(); } catch { /* use the HTTP status message */ }
+    throw new Error(data?.message || data?.errors?.[0]?.message || `LOA download failed (${response.status}).`);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `loa-join-us-${id}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
 export const updateJoinUsStatus = (id, status, note = "") => apiFetch(`/admin/join-us/${id}/status`, {
   method: "PATCH",
   body: JSON.stringify({ status, note }),

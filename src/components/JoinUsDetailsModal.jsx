@@ -7,15 +7,22 @@ const FIELDS = [
   ["streetAddress", "Street Address"], ["city", "City"], ["district", "District"], ["state", "State"], ["location", "Location / Posting Preference"], ["postalCode", "Postal Code"], ["country", "Country"],
   ["permanentAddress", "Permanent Address"], ["permanentCity", "Permanent City"], ["permanentState", "Permanent State"], ["permanentPostalCode", "Permanent Postal Code"],
   ["aadhaarNumber", "Aadhaar Number"], ["panNumber", "PAN Number"], ["qualification", "Qualification"], ["institutionName", "Institution"], ["yearOfPassing", "Year of Passing"],
-  ["experience", "Experience"], ["companyName", "Company"], ["designation", "Current / Last Designation"], ["appointmentDesignation", "Appointment Designation"], ["joiningDate", "Date of Joining"], ["officeLocation", "Place of Posting"], ["referenceNumber", "LOA Reference Number"], ["grossSalary", "Monthly Gross Salary"], ["netSalary", "Monthly Net Salary"], ["allowance", "Monthly Allowance (optional)"], ["annualCtc", "Annual CTC"], ["probationPeriod", "Probation Period"], ["noticePeriod", "Notice Period"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"], ["description", "About", "textarea"],
+  ["experience", "Experience"], ["companyName", "Company"], ["designation", "Current / Last Designation"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"], ["description", "About", "textarea"],
+];
+const LOA_FIELDS = [
+  ["appointmentDesignation", "Appointment Designation", true], ["joiningDate", "Date of Joining", true],
+  ["officeLocation", "Place of Posting"], ["referenceNumber", "LOA Reference Number"],
+  ["grossSalary", "Monthly Gross Salary", true], ["netSalary", "Monthly Net Salary", true],
+  ["allowance", "Monthly Allowance (optional)"], ["annualCtc", "Annual CTC", true],
+  ["probationPeriod", "Probation Period"], ["noticePeriod", "Notice Period"],
 ];
 const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"]];
 
-export default function JoinUsDetailsModal({ submission, onClose, onSaved }) {
+export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNotice = "" }) {
   const [form, setForm] = useState(() => Object.fromEntries(FIELDS.map(([key]) => [key, submission[key] ?? ""]).concat([["sameAsAbove", Boolean(submission.same_as_above)]])));
   const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(loaNotice);
   const save = async (event) => {
     event.preventDefault(); setSaving(true); setError("");
     try { const uploaded = await uploadFilesToS3("join-us", files); await updateJoinUs(submission.id, { ...form, files: uploaded }); await onSaved(); }
@@ -28,6 +35,9 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved }) {
     <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">{FIELDS.map(([key,label,type]) => <label key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" ? "sm:col-span-2" : ""}`}>{label}{type === "textarea" ? <textarea rows={3} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/> : <input type={type || "text"} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/>}</label>)}
       <label className="flex items-center gap-2 text-xs font-semibold text-navy/70"><input type="checkbox" checked={form.sameAsAbove} onChange={e=>setForm({...form,sameAsAbove:e.target.checked})}/>Permanent address same as current</label>
     </div>
+    <h4 className="mt-5 border-t border-navy/10 pt-4 text-sm font-bold text-navy">Appointment / LOA Details</h4>
+    <p className="mt-1 text-xs text-muted">Complete the fields marked required to create the appointment letter.</p>
+    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">{LOA_FIELDS.map(([key,label,required])=><label key={key} className="text-xs font-semibold text-navy/70">{label}{required&&<span className="ml-1 text-red-600">*</span>}<input required={required} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/></label>)}</div>
     <h4 className="mt-5 border-t border-navy/10 pt-4 text-sm font-bold text-navy">Documents (choose a file to replace)</h4><div className="mt-3 grid gap-3 sm:grid-cols-2">{DOCUMENTS.map(([key,label,urlKey])=><label key={key} className="rounded-lg border border-navy/10 p-3 text-xs font-semibold text-navy">{label}{submission.documentUrls?.[urlKey] && <a href={fileUrl(submission.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="ml-2 text-amber">View current</a>}<input type="file" onChange={e=>setFiles({...files,[key]:e.target.files?.[0] || null})} className="mt-2 block w-full text-xs"/></label>)}</div>
     <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button></div>
   </form></div>;
