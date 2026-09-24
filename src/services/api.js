@@ -20,7 +20,7 @@ export const apiFetch = async (endpoint, options = {}) => {
   try {
     data = await res.json();
   } catch {
-    data = null;
+    // Keep the initial null value when a response body is not JSON.
   }
 
   if (!res.ok) {
@@ -229,6 +229,7 @@ export const updatePartnerStatus = (id, status, note = "") =>
     method: "PATCH",
     body: JSON.stringify({ status, note }),
   });
+export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 
 export const getJoinUsDetail = (id) => apiFetch(`/admin/join-us/${id}`);
 export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {

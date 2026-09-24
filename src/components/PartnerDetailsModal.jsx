@@ -1,8 +1,18 @@
 import { useState } from "react";
 import { fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
 
+const PARTNER_TYPES = [
+  ["vendor", "Vendor"],
+  ["dealer", "Dealer"],
+  ["sub_vendor_commission", "Sub-vendor Commission"],
+];
+const SYSTEM_TYPES = [
+  ["on_grid", "On-Grid System"],
+  ["hybrid", "Hybrid System"],
+];
 const FIELDS = [
   ["partnerType", "Partner Type", "select"],
+  ["systemTypes", "System Types", "systems"],
   ["companyName", "Company Name"], ["contactName", "Contact Name"],
   ["phone", "Phone"], ["email", "Email", "email"],
   ["gstNumber", "GST Number"], ["panNumber", "PAN Number"], ["msmeNumber", "MSME Number"],
@@ -10,19 +20,22 @@ const FIELDS = [
   ["experienceYears", "Experience"], ["description", "Business Description", "textarea"],
   ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
 ];
-
 const DOCUMENTS = [
   ["gstFile", "GST Certificate", "GST"], ["panFile", "PAN Card", "PAN"],
   ["aadhaarFile", "Aadhaar", "Aadhaar"], ["msmeFile", "MSME Certificate", "MSME"],
   ["businessDocFile", "Business Document", "Business Document"],
   ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"],
 ];
-
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
+const readSystemTypes = (value) => {
+  if (Array.isArray(value)) return value;
+  try { return JSON.parse(value || "[]"); } catch { return []; }
+};
 
 export default function PartnerDetailsModal({ partner, editing, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
-    partnerType: partner.partner_type || "vendor",
+    partnerType: PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
+    systemTypes: readSystemTypes(partner.system_types),
     companyName: partner.company_name || "", contactName: partner.contact_name || "",
     phone: partner.phone || "", email: partner.email || "", gstNumber: partner.gst_number || "",
     panNumber: partner.pan_number || "", msmeNumber: partner.msme_number || "",
@@ -37,6 +50,10 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
 
   const save = async (event) => {
     event.preventDefault();
+    if (!form.systemTypes.length) {
+      setError("Select at least one system type: On-Grid or Hybrid.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -50,6 +67,10 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
     }
   };
 
+  const systemLabels = form.systemTypes
+    .map((value) => SYSTEM_TYPES.find(([system]) => system === value)?.[1] || value)
+    .join(", ");
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4">
       <form onSubmit={save} className="mx-auto my-5 max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
@@ -60,18 +81,37 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted"><span>Created: {formatDateTime(partner.created_at)}</span><span>Updated by: {partner.updated_by_name || "—"} · {formatDateTime(partner.updated_at)}</span></div>
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {FIELDS.map(([key, label, type]) => (
-            <label key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" ? "sm:col-span-2" : ""}`}>
+          {FIELDS.map(([key, label, type]) => {
+            const FieldWrapper = type === "systems" ? "div" : "label";
+            return (
+            <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" ? "sm:col-span-2" : ""}`}>
               {label}
-              {!editing ? <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">{form[key] || "—"}</span> : type === "select" ? (
-                <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="vendor">Vendor</option><option value="dealer">Dealer</option><option value="other">Other</option></select>
+              {!editing ? (
+                <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">
+                  {key === "systemTypes" ? systemLabels || "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : form[key] || "—"}
+                </span>
+              ) : type === "select" ? (
+                <select required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
+                  <option value="" disabled>Select partner type</option>
+                  {PARTNER_TYPES.map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}
+                </select>
+              ) : type === "systems" ? (
+                <span className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {SYSTEM_TYPES.map(([value, optionLabel]) => (
+                    <label key={value} className="flex items-center gap-2 rounded-lg border border-navy/10 p-3 text-sm font-normal text-navy">
+                      <input type="checkbox" checked={form.systemTypes.includes(value)} onChange={() => setForm({ ...form, systemTypes: form.systemTypes.includes(value) ? form.systemTypes.filter((item) => item !== value) : [...form.systemTypes, value] })} className="accent-amber" />
+                      {optionLabel}
+                    </label>
+                  ))}
+                </span>
               ) : type === "textarea" ? (
                 <textarea rows={3} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" />
               ) : (
                 <input type={type || "text"} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" />
               )}
-            </label>
-          ))}
+            </FieldWrapper>
+            );
+          })}
         </div>
         <div className="mt-5 border-t border-navy/10 pt-4">
           <h4 className="text-sm font-bold text-navy">Partner Documents</h4>

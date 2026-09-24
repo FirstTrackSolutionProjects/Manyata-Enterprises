@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
-import { downloadSubmissionPdf, fileUrl, getPartnerDetail, updatePartnerStatus } from "../services/api";
+import { downloadSubmissionPdf, fileUrl, getPartnerDetail, resendPartnerAgreement, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
   ["new", "New"], ["reviewed", "Reviewed"], ["approved", "Approved"], ["rejected", "Rejected"],
@@ -21,6 +21,8 @@ export default function PartnerDetail() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [sendingAgreement, setSendingAgreement] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   const load = async () => {
@@ -43,14 +45,30 @@ export default function PartnerDetail() {
     if (!partner || newStatus === partner.status) return;
     setUpdating(true);
     setError("");
+    setNotice("");
     try {
-      await updatePartnerStatus(id, newStatus, statusNote.trim());
+      const response = await updatePartnerStatus(id, newStatus, statusNote.trim());
       setStatusNote("");
+      setNotice(response.message || "Status updated.");
       await load();
     } catch (err) {
       setError(err.message || "Could not update partner status.");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const sendAgreementAgain = async () => {
+    setSendingAgreement(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await resendPartnerAgreement(id);
+      setNotice(response.message || "Agreement sent.");
+    } catch (err) {
+      setError(err.message || "Could not send the agreement.");
+    } finally {
+      setSendingAgreement(false);
     }
   };
 
@@ -85,13 +103,15 @@ export default function PartnerDetail() {
       </div>
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {notice && <p role="status" className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
       {editOpen && <PartnerDetailsModal partner={partner} editing onClose={() => setEditOpen(false)} onEdit={() => {}} onSaved={async () => { setEditOpen(false); await load(); }} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           <InfoSection title="Partner Details" items={[
-            ["Partner Type", titleCase(partner.partner_type)], ["Company Name", partner.company_name],
+            ["Partner Type", partner.partner_type === "sub_vendor_commission" ? "Sub-vendor Commission" : titleCase(partner.partner_type)], ["Company Name", partner.company_name],
             ["Contact Name", partner.contact_name], ["Phone", partner.phone], ["Email", partner.email],
+            ["System Types", (Array.isArray(partner.system_types) ? partner.system_types : []).map((system) => system === "on_grid" ? "On-Grid System" : system === "hybrid" ? "Hybrid System" : system).join(", ")],
             ["Experience", partner.experience_years], ["Business Description", partner.description],
           ]} />
           <InfoSection title="Registration Details" items={[
@@ -120,6 +140,7 @@ export default function PartnerDetail() {
               </select>
               <textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" />
               <button onClick={saveStatus} disabled={updating || newStatus === partner.status} className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60">{updating && <Loader2 size={16} className="animate-spin" />}Save Status</button>
+              {partner.status === "approved" && <button type="button" onClick={sendAgreementAgain} disabled={sendingAgreement} className="w-full rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{sendingAgreement ? "Sending Agreement..." : "Resend Agreement"}</button>}
             </div>
           </div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5">

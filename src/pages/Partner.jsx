@@ -17,11 +17,17 @@ import { submitPartner } from "../services/api";
 const PARTNER_TYPES = [
   { value: "vendor", label: "Vendor" },
   { value: "dealer", label: "Dealer" },
-  { value: "other", label: "Other" },
+  { value: "sub_vendor_commission", label: "Sub-vendor Commission" },
+];
+
+const PARTNER_SYSTEMS = [
+  { value: "on_grid", label: "On-Grid System", commission: "₹20,000 per completed installation" },
+  { value: "hybrid", label: "Hybrid System", commission: "₹30,000 per completed installation" },
 ];
 
 const initialState = {
   partnerType: "vendor",
+  systemTypes: [],
   companyName: "",
   contactName: "",
   email: "",
@@ -57,6 +63,12 @@ export default function Partner() {
 
     setSubmitting(true);
     setSubmitError("");
+
+    if (!form.systemTypes.length) {
+      setSubmitError("Select at least one system type: On-Grid or Hybrid.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       // 1. Collect files from the form
@@ -102,7 +114,7 @@ export default function Partner() {
               Become a Manyata Partner
             </h1>
             <p className="mt-3 max-w-xl text-sm text-white/70 sm:text-base">
-              Apply to become a vendor, installer, or dealer. Our team will
+              Apply to become a vendor, dealer, or sub-vendor commission partner. Our team will
               review your application and reach out.
             </p>
           </motion.div>
@@ -160,6 +172,35 @@ export default function Partner() {
                 placeholder="e.g. 5"
               />
             </div>
+          </FormCard>
+
+          <FormCard icon={Building2} title="Systems and Commission Agreement">
+            <p className="mb-4 text-sm text-muted">Choose the system types you work with. The agreement will be attached when the owner approves your application.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {PARTNER_SYSTEMS.map((system) => {
+                const checked = form.systemTypes.includes(system.value);
+                return (
+                  <label key={system.value} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${checked ? "border-amber bg-amber-soft" : "border-navy/15 hover:border-amber/60"}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setForm((current) => ({
+                        ...current,
+                        systemTypes: checked
+                          ? current.systemTypes.filter((value) => value !== system.value)
+                          : [...current.systemTypes, system.value],
+                      }))}
+                      className="mt-1 accent-amber"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-navy">{system.label}</span>
+                      {form.partnerType === "sub_vendor_commission" && <span className="mt-1 block text-xs text-muted">{system.commission}</span>}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            {!form.systemTypes.length && <p className="mt-2 text-xs text-muted">Select at least one system type to continue.</p>}
           </FormCard>
 
           <FormCard icon={User} title="Contact Person">
