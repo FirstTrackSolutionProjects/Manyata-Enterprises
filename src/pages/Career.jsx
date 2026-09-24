@@ -208,7 +208,7 @@ export default function Career() {
               ))}
             </div>
             <div className="mt-5">
-              <SelectField label="Location" name="location" value={form.location} onChange={handleChange} options={["Odisha", "West Bengal"]} />
+              <SelectField label="Location" name="location" value={form.location} onChange={handleChange} options={["Odisha", "West Bengal"]} required />
             </div>
           </FormCard>
           {/* Upload CV */}
@@ -292,7 +292,7 @@ function Field({ label, name, value, onChange, placeholder, type = "text" }) {
   );
 }
 
-function SelectField({ label, name, value, onChange, options }) {
+function SelectField({ label, name, value, onChange, options, required = false }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">{label}</span>
@@ -300,8 +300,10 @@ function SelectField({ label, name, value, onChange, options }) {
         name={name}
         value={value}
         onChange={onChange}
+        required={required}
         className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
       >
+        {required && <option value="" disabled>Select location</option>}
         {options.map((opt) => (
           <option key={opt} value={opt}>
             {opt}
