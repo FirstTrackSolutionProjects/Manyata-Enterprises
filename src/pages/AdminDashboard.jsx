@@ -23,6 +23,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
+import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 import {
   getDashboardStats,
   getEmployeeStats,
@@ -456,15 +457,7 @@ function ApplicationsTab({ initialLocation = "" }) {
               label="Status"
               value={filters.status}
               onChange={(v) => updateFilter("status", v)}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "under_review", label: "Under Review" },
-                { value: "verified", label: "Verified" },
-                { value: "submitted_to_govt", label: "Submitted to Govt" },
-                { value: "approved", label: "Approved" },
-                { value: "installed", label: "Installed" },
-                { value: "rejected", label: "Rejected" },
-              ]}
+              options={APPLICATION_STATUSES}
               placeholder="All statuses"
             />
 
@@ -485,7 +478,7 @@ function ApplicationsTab({ initialLocation = "" }) {
               onChange={(v) => updateFilter("location", v)}
               options={[
                 { value: "odisha", label: "Odisha" },
-                { value: "kolkata", label: "Kolkata / West Bengal" },
+                { value: "kolkata", label: "West Bengal" },
               ]}
               placeholder="All locations"
             />
@@ -781,7 +774,7 @@ function StatusBadge({ status }) {
         styles[status] || "bg-slate-100 text-slate-700"
       }`}
     >
-      {labels[status] || status}
+      {labels[status] || applicationStatusLabel(status)}
     </span>
   );
 }

@@ -22,16 +22,7 @@ import {
   downloadApplicationPdf,
   fileUrl,
 } from "../services/api";
-
-const STATUS_OPTIONS = [
-  { value: "pending", label: "Pending" },
-  { value: "under_review", label: "Under Review" },
-  { value: "verified", label: "Verified" },
-  { value: "submitted_to_govt", label: "Submitted to Govt" },
-  { value: "approved", label: "Approved" },
-  { value: "installed", label: "Installed" },
-  { value: "rejected", label: "Rejected" },
-];
+import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 
 export default function ApplicationDetail() {
   const { id } = useParams();
@@ -154,7 +145,7 @@ export default function ApplicationDetail() {
               items={[
                 [
                   "Location",
-                  app.location === "odisha" ? "Odisha" : "Kolkata / West Bengal",
+                  app.location === "odisha" ? "Odisha" : "West Bengal",
                 ],
                 ["System Type", app.system_type],
                 ["System Size", app.system_size],
@@ -273,7 +264,7 @@ export default function ApplicationDetail() {
                 onChange={(e) => setNewStatus(e.target.value)}
                 className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm"
               >
-                {STATUS_OPTIONS.map((s) => (
+                {APPLICATION_STATUSES.map((s) => (
                   <option key={s.value} value={s.value}>
                     {s.label}
                   </option>
@@ -282,13 +273,14 @@ export default function ApplicationDetail() {
               <textarea
                 value={statusNote}
                 onChange={(e) => setStatusNote(e.target.value)}
-                placeholder="Note (optional)"
+                placeholder={newStatus === "other" ? "Describe the other status (required)" : "Note (optional)"}
                 rows={3}
+                required={newStatus === "other"}
                 className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none"
               />
               <button
                 onClick={handleUpdateStatus}
-                disabled={updating || newStatus === app.status}
+                disabled={updating || newStatus === app.status || (newStatus === "other" && !statusNote.trim())}
                 className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {updating ? (
@@ -321,7 +313,7 @@ export default function ApplicationDetail() {
               {history.map((h) => (
                 <div key={h.id} className="border-l-2 border-amber/40 pl-3">
                   <p className="text-xs font-bold capitalize text-navy">
-                    {h.new_status?.replace(/_/g, " ")}
+                    {applicationStatusLabel(h.new_status)}
                   </p>
                   <p className="text-xs text-muted">
                     {new Date(h.created_at).toLocaleString("en-IN")}
@@ -436,7 +428,7 @@ function ApplicationEditForm({ app, onClose, onSaved }) {
     ["state", "State"], ["district", "District"], ["block", "Block"], ["gramPanchayat", "Gram Panchayat"], ["buildingPlot", "Building / Plot"], ["villageName", "Village"], ["city", "City"], ["postOffice", "Post Office"], ["pinCode", "PIN Code"], ["landmark", "Landmark"], ["municipality", "Municipality"], ["wardNumber", "Ward Number"], ["streetLocality", "Street / Locality"],
     ["consumerNumber", "Consumer Number"], ["subDivision", "Sub Division"], ["tariff", "Tariff"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
   ];
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-6 max-w-4xl rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-navy">Edit Application</h3><p className="text-xs text-muted">All details can be updated. Upload a document only to replace its existing file.</p></div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">{fields.map(([name, label, type]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<input name={name} type={type || "text"} value={form[name]} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label>)}</div><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="odisha">Odisha</option><option value="kolkata">Kolkata / West Bengal</option></select></label><label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label><label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label></div><label className="mt-4 block text-xs font-semibold text-navy/70">Remarks<textarea name="remarks" value={form.remarks} onChange={change} rows={3} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><div className="mt-5">
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-6 max-w-4xl rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-navy">Edit Application</h3><p className="text-xs text-muted">All details can be updated. Upload a document only to replace its existing file.</p></div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">{fields.map(([name, label, type]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<input name={name} type={type || "text"} value={form[name]} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label>)}</div><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="odisha">Odisha</option><option value="kolkata">West Bengal</option></select></label><label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label><label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label></div><label className="mt-4 block text-xs font-semibold text-navy/70">Remarks<textarea name="remarks" value={form.remarks} onChange={change} rows={3} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><div className="mt-5">
   <p className="text-sm font-bold text-navy">Replace Documents (optional)</p>
   <p className="mt-1 text-xs text-muted">Only choose a file for documents you want to replace — others stay unchanged.</p>
   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">

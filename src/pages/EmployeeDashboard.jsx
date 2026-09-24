@@ -9,6 +9,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
+import { APPLICATION_STATUSES } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import { listApplications } from "../services/api";
 
@@ -200,15 +201,7 @@ export default function EmployeeDashboard() {
               label="Status"
               value={filters.status}
               onChange={(v) => updateFilter("status", v)}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "under_review", label: "Under Review" },
-                { value: "verified", label: "Verified" },
-                { value: "submitted_to_govt", label: "Submitted to Govt" },
-                { value: "approved", label: "Approved" },
-                { value: "installed", label: "Installed" },
-                { value: "rejected", label: "Rejected" },
-              ]}
+              options={APPLICATION_STATUSES}
               placeholder="All statuses"
             />
             <FilterSelect
@@ -217,7 +210,7 @@ export default function EmployeeDashboard() {
               onChange={(v) => updateFilter("location", v)}
               options={[
                 { value: "odisha", label: "Odisha" },
-                { value: "kolkata", label: "Kolkata / West Bengal" },
+                { value: "kolkata", label: "West Bengal" },
               ]}
               placeholder="All locations"
             />

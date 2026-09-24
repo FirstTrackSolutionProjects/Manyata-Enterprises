@@ -8,28 +8,8 @@ import {
   Clock,
 } from "lucide-react";
 import { trackApplication, downloadApplicationPdf } from "../services/api";
+import { applicationStatusLabel } from "../constants/applicationStatuses";
 
-const STATUS_LABELS = {
-  draft: "Draft",
-  pending: "Pending Review",
-  under_review: "Under Review",
-  verified: "Verified",
-  submitted_to_govt: "Submitted to Govt",
-  approved: "Approved",
-  installed: "Installed",
-  rejected: "Rejected",
-};
-
-const STATUS_STYLES = {
-  draft: "bg-slate-100 text-slate-700",
-  pending: "bg-amber-50 text-amber-700",
-  under_review: "bg-blue-50 text-blue-700",
-  verified: "bg-green-50 text-green-700",
-  submitted_to_govt: "bg-indigo-50 text-indigo-700",
-  approved: "bg-emerald-50 text-emerald-700",
-  installed: "bg-emerald-100 text-emerald-800",
-  rejected: "bg-red-50 text-red-700",
-};
 
 export default function TrackApplication() {
   const [applicationNo, setApplicationNo] = useState("");
@@ -164,12 +144,14 @@ export default function TrackApplication() {
                 </div>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-bold ${
-                    STATUS_STYLES[result.application.status] ||
-                    "bg-slate-100 text-slate-700"
+                    result.application.status === "rejected"
+                      ? "bg-red-50 text-red-700"
+                      : result.application.status === "pending"
+                        ? "bg-amber-50 text-amber-700"
+                        : "bg-blue-50 text-blue-700"
                   }`}
                 >
-                  {STATUS_LABELS[result.application.status] ||
-                    result.application.status}
+                  {applicationStatusLabel(result.application.status)}
                 </span>
               </div>
 
@@ -179,7 +161,7 @@ export default function TrackApplication() {
                   value={
                     result.application.location === "odisha"
                       ? "Odisha"
-                      : "Kolkata / West Bengal"
+                      : "West Bengal"
                   }
                 />
                 <InfoRow
@@ -229,7 +211,7 @@ export default function TrackApplication() {
                     >
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-navy">
-                          {STATUS_LABELS[h.new_status] || h.new_status}
+                          {applicationStatusLabel(h.new_status)}
                         </p>
                         <p className="mt-0.5 text-xs text-muted">
                           {new Date(h.created_at).toLocaleString("en-IN")}
