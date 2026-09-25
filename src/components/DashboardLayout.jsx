@@ -205,7 +205,7 @@ export default function DashboardLayout({
         {/* Top bar for mobile (with hamburger) */}
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-navy/10 bg-white px-4 py-3 lg:hidden">
           <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy p-1">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white p-1 ring-1 ring-navy/10">
               <img
                 src={assets.logoImg}
                 alt="Manyata Enterprises"
