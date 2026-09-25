@@ -178,11 +178,13 @@ function OverviewTab() {
                 <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
                 <th className="py-2 px-3 whitespace-nowrap">Approved</th>
                 <th className="py-2 px-3 whitespace-nowrap">Rejected</th>
+                <th className="py-2 px-3 whitespace-nowrap">Loan Disbursed</th>
+                <th className="py-2 px-3 whitespace-nowrap">Loan Disbursed - Phase 1</th>
               </tr>
             </thead>
             <tbody>
               {branchStats.length === 0 && (
-                <tr><td colSpan={7} className="py-4 text-center text-muted">No branch data yet.</td></tr>
+                <tr><td colSpan={9} className="py-4 text-center text-muted">No branch data yet.</td></tr>
               )}
               {branchStats.map((branch) => (
                 <tr key={branch.branch_id} className="border-b border-navy/5">
@@ -193,6 +195,8 @@ function OverviewTab() {
                   <td className="py-2 px-3 whitespace-nowrap">{branch.submitted || 0}</td>
                   <td className="py-2 px-3 whitespace-nowrap">{branch.approved || 0}</td>
                   <td className="py-2 px-3 whitespace-nowrap">{branch.rejected || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.loan_disbursed || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.loan_disbursed_phase_1 || 0}</td>
                 </tr>
               ))}
             </tbody>
