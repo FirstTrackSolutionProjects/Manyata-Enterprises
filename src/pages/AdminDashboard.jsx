@@ -782,10 +782,9 @@ function EmployeesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-navy">Employees</h2>
-        <div className="flex flex-1 flex-wrap gap-3 sm:justify-end">
-          <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+      <h2 className="text-sm font-bold text-navy">Employees</h2>
+      <div className="flex w-full flex-wrap gap-3">
+          <div className="relative min-w-[240px] flex-1">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
@@ -810,7 +809,6 @@ function EmployeesTab() {
           >
             <Plus size={14} /> Add Employee
           </button>}
-        </div>
       </div>
 
       {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2">
@@ -1319,10 +1317,9 @@ function BranchesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-navy">Branches</h2>
-        <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
-        <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+      <h2 className="text-sm font-bold text-navy">Branches</h2>
+      <div className="flex w-full flex-wrap gap-3">
+        <div className="relative min-w-[240px] flex-1">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search branches..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
         </div>
@@ -1337,7 +1334,6 @@ function BranchesTab() {
         >
           <Plus size={14} /> Add Branch
         </button>}
-        </div>
       </div>
 
       {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2">
@@ -1578,9 +1574,9 @@ function InstallationsTab({ location }) {
   const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter));
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <h2 className="text-xl font-extrabold text-navy">{title}</h2>
-      <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+    <h2 className="text-xl font-extrabold text-navy">{title}</h2>
+    <div className="flex w-full flex-wrap gap-3">
+      <div className="relative min-w-[240px] flex-1">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
       </div>
@@ -1707,14 +1703,12 @@ function SubmissionList({ type }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-navy">{isPartners ? "Partners" : isJoinUs ? "Join Us Submissions" : isCareers ? "Career Applications" : "Contact Submissions"}</h2>
-        <div className="flex flex-1 flex-wrap gap-3 sm:justify-end">
-          <div className="relative min-w-[200px] flex-1 sm:max-w-xs"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
+      <h2 className="text-sm font-bold text-navy">{isPartners ? "Partners" : isJoinUs ? "Join Us Submissions" : isCareers ? "Career Applications" : "Contact Submissions"}</h2>
+      <div className="flex w-full flex-wrap gap-3">
+          <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
           <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
           <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
           {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
-        </div>
       </div>
 
       {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
