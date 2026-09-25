@@ -81,7 +81,7 @@ export default function Login() {
 
         <label className="mt-6 block">
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
-            Email
+            Employee ID or Email
           </span>
           <div className="relative">
             <Mail
