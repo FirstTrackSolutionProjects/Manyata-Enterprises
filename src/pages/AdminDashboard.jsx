@@ -34,12 +34,10 @@ import {
   clearRecentActivity,
   getBranchStats,
   listApplications,
-  deleteApplication,
   listInstallations,
   getInstallation,
   updateInstallation,
   updateInstallationStatus,
-  deleteInstallation,
   uploadFilesToS3,
   listUsers,
   listBranches,
@@ -47,12 +45,8 @@ import {
   updateEmployee,
   resetEmployeePassword,
   setUserStatus,
-  deleteEmployee,
   createBranch,
   updateBranch,
-  deleteBranch,
-  deleteCareer,
-  deleteJoinUs,
   apiFetch,
 } from "../services/api";
 
@@ -382,20 +376,6 @@ function ApplicationsTab({ initialLocation = "" }) {
     setFilters(EMPTY_FILTERS);
   };
 
-  const handleDeleteApplication = async (application) => {
-    const confirmed = window.confirm(
-      `Delete application ${application.application_no} for ${application.full_name}? This cannot be undone.`
-    );
-    if (!confirmed) return;
-
-    try {
-      await deleteApplication(application.id);
-      await load(page);
-    } catch (err) {
-      alert(err.message || "Could not delete the application.");
-    }
-  };
-
   const activeFilterCount = Object.entries(filters).filter(
     ([k, v]) =>
       v !== "" &&
@@ -619,14 +599,6 @@ function ApplicationsTab({ initialLocation = "" }) {
                       >
                         <Pencil size={14} /> Edit
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteApplication(a)}
-                        className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:underline"
-                        title={`Delete ${a.application_no}`}
-                      >
-                        <Trash2 size={14} /> Delete
-                      </button>
                     </td>
                   </tr>
                 ))}
@@ -813,16 +785,6 @@ function EmployeesTab() {
     load();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this employee? This cannot be undone.")) return;
-    try {
-      await deleteEmployee(id);
-      load();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
-
   const handleResetPassword = async (u) => {
     if (!confirm(`Reset password for ${u.name}?`)) return;
     try {
@@ -991,12 +953,6 @@ function EmployeesTab() {
                         ) : (
                           <UserCheck size={12} />
                         )}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(u.id)}
-                        className="rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
-                      >
-                        <Trash2 size={12} />
                       </button>
                     </div>
                   </td>}
@@ -1364,6 +1320,7 @@ function BranchesTab() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [search, setSearch] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -1381,20 +1338,20 @@ function BranchesTab() {
     load();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this branch?")) return;
-    try {
-      await deleteBranch(id);
-      load();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  const filteredBranches = branches.filter((branch) =>
+    [branch.name, branch.code, branch.state, branch.district, branch.phone]
+      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase()))
+  );
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-sm font-bold text-navy">Branches</h2>
+        <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
+        <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search branches..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
+        </div>
         {isOwner && <button
           onClick={() => {
             setEditing(null);
@@ -1404,19 +1361,20 @@ function BranchesTab() {
         >
           <Plus size={14} /> Add Branch
         </button>}
+        </div>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="animate-spin text-amber" />
         </div>
-      ) : branches.length === 0 ? (
+      ) : filteredBranches.length === 0 ? (
         <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
-          No branches yet.
+          {search ? "No matching branches found." : "No branches yet."}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {branches.map((b) => (
+          {filteredBranches.map((b) => (
             <div
               key={b.id}
               className="rounded-2xl border border-navy/10 bg-white p-5"
@@ -1464,12 +1422,6 @@ function BranchesTab() {
                   className="flex-1 rounded-lg bg-navy/10 px-3 py-2 text-xs font-semibold text-navy hover:bg-navy/20"
                 >
                   Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(b.id)}
-                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
-                >
-                  <Trash2 size={14} />
                 </button>
               </div>}
             </div>
@@ -1612,6 +1564,7 @@ function InstallationsTab({ location }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
+  const [search, setSearch] = useState("");
   const load = async () => { const res = await listInstallations(location); setItems(res.data.items || []); };
   useEffect(() => {
     (async () => {
@@ -1626,8 +1579,22 @@ function InstallationsTab({ location }) {
   }, [location]);
 
   const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "Kolkata Installations" : "All Installations";
+  const filteredItems = items.filter((item) =>
+    [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status]
+      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase()))
+  );
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
-  return <div className="space-y-4"><h2 className="text-xl font-extrabold text-navy">{title}</h2>{items.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">No installation submissions found.</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th>{isOwner && <th className="p-3">Actions</th>}</tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td>{isOwner && <td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button><button onClick={async () => { if (confirm(`Delete installation for ${item.customer_name}?`)) { await deleteInstallation(item.id); await load(); } }} className="ml-3 text-xs font-semibold text-red-600">Delete</button></td>}</tr>)}</tbody></table></div>}{isOwner && selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}</div>;
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h2 className="text-xl font-extrabold text-navy">{title}</h2>
+      <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
+      </div>
+    </div>
+    {filteredItems.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching installations found." : "No installation submissions found."}</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th>{isOwner && <th className="p-3">Actions</th>}</tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td>{isOwner && <td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button></td>}</tr>)}</tbody></table></div>}
+    {isOwner && selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}
+  </div>;
 }
 
 function InstallationModal({ id, onClose, onSaved }) {
@@ -1708,53 +1675,17 @@ function SubmissionList({ type }) {
     }
   };
 
-  const deletePartner = async (partner) => {
-    if (!confirm(`Delete partner application for ${partner.company_name || partner.contact_name}?`)) return;
-    setUpdating(true);
-    try {
-      await apiFetch(`/admin/partners/${partner.id}`, { method: "DELETE" });
-      await load();
-    } catch (err) {
-      alert(err.message || "Could not delete partner.");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const deleteCareerApplication = async (career) => {
-    const name = `${career.first_name || ""} ${career.last_name || ""}`.trim() || `application #${career.id}`;
-    if (!window.confirm(`Delete career application for ${name}? This cannot be undone.`)) return;
-    setUpdating(true);
-    try {
-      await deleteCareer(career.id);
-      await load();
-    } catch (err) {
-      alert(err.message || "Could not delete career application.");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const deleteJoinUsSubmission = async (submission) => {
-    const name = `${submission.first_name || ""} ${submission.last_name || ""}`.trim() || `submission #${submission.id}`;
-    if (!window.confirm(`Delete Join Us submission for ${name}? This cannot be undone.`)) return;
-    setUpdating(true);
-    try {
-      await deleteJoinUs(submission.id);
-      await load();
-    } catch (err) {
-      alert(err.message || "Could not delete Join Us submission.");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
   const isPartners = type === "partners";
   const isJoinUs = type === "join-us";
   const isCareers = type === "careers";
   const isContacts = type === "contacts";
-  const filteredItems = isPartners && search.trim()
-    ? items.filter((item) => [item.company_name, item.contact_name, item.email, item.phone].some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())))
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredItems = normalizedSearch
+    ? items.filter((item) => {
+        const name = `${item.first_name || ""} ${item.last_name || ""}`;
+        return [item.id, item.name, item.full_name, item.company_name, item.contact_name, name, item.email, item.phone, item.phone_number, item.location, item.state, item.district, item.subject, item.message, item.status]
+          .some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
+      })
     : items;
 
   if (loading)
@@ -1764,24 +1695,17 @@ function SubmissionList({ type }) {
       </div>
     );
 
-  if (items.length === 0 && !isPartners)
-    return (
-      <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
-        No submissions.
-      </p>
-    );
-
   return (
     <div className="space-y-4">
-      {isPartners && <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-navy">Partners</h2>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-bold text-navy">{isPartners ? "Partners" : isJoinUs ? "Join Us Submissions" : isCareers ? "Career Applications" : "Contact Submissions"}</h2>
         <div className="flex flex-1 flex-wrap gap-3 sm:justify-end">
-          <div className="relative min-w-[200px] flex-1 sm:max-w-xs"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search partners..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
-          {isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
+          <div className="relative min-w-[200px] flex-1 sm:max-w-xs"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
+          {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
         </div>
-      </div>}
-      {isPartners && filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching partners found." : "No partners found."}</p>}
-      {(!isPartners || filteredItems.length > 0) && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
+      </div>
+      {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
+      {filteredItems.length > 0 && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
       <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
@@ -1824,9 +1748,9 @@ function SubmissionList({ type }) {
                 {formatDateTime(it.created_at)}
               </td>
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <><Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteJoinUsSubmission(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></>}</div></td>}
+               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
               {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <><Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteCareerApplication(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></>}</div></td>}
+               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
               {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
               {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
@@ -1835,7 +1759,7 @@ function SubmissionList({ type }) {
                   <div className="flex flex-wrap gap-1.5">
                     <Link to={`/admin/partners/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13} /> View</Link>
                      {isOwner && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
-                     <button disabled={updating} onClick={() => deletePartner(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13} /> Delete</button></>}
+                    </>}
                     {it.status !== "approved" && (
                       <button
                         disabled={updating}
