@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Download, FileText, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { useAuth } from "../contexts/AuthContext";
 import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, sendPartnerAgreement, updatePartnerStatus } from "../services/api";
@@ -8,6 +8,7 @@ import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissi
 const STATUS_OPTIONS = [
   ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
 ];
+const SEND_AGREEMENT_ACTION = "__send_agreement_mail__";
 const partnerStatusLabel = (status) => ({ new: "Submitted", reviewed: "Under Review" }[status] || titleCase(status));
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
@@ -48,11 +49,26 @@ export default function PartnerDetail() {
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect */ }, [id]);
 
   const saveStatus = async () => {
-    if (!partner || newStatus === partner.status) return;
+    if (!partner) return;
+    const shouldSendAgreement = newStatus === SEND_AGREEMENT_ACTION;
+    if (!shouldSendAgreement && newStatus === partner.status) return;
+    if (shouldSendAgreement && partner.status !== "approved") {
+      setError("Approve and save this partner before sending the agreement.");
+      return;
+    }
+    if (shouldSendAgreement && !partner.email) {
+      setError("Add the partner email address before sending the agreement.");
+      return;
+    }
     setUpdating(true);
     setError("");
     setNotice("");
     try {
+      if (shouldSendAgreement) {
+        const sent = await sendAgreement();
+        if (sent) setNewStatus(partner.status);
+        return;
+      }
       const response = await updatePartnerStatus(id, newStatus, statusNote.trim());
       setStatusNote("");
       setNotice(response.message || "Status updated.");
@@ -93,14 +109,25 @@ export default function PartnerDetail() {
   };
 
   const sendAgreement = async () => {
+    if (!partner) return false;
+    if (partner.status !== "approved") {
+      setError("Approve the partner before sending the agreement.");
+      return false;
+    }
+    if (!partner.email) {
+      setError("Add the partner email address before sending the agreement.");
+      return false;
+    }
     setSendingAgreement(true);
     setError("");
     setNotice("");
     try {
       const response = await sendPartnerAgreement(id);
       setNotice(response.message || "Agreement PDF sent to the partner's email.");
+      return true;
     } catch (err) {
       setError(err.message || "Could not send the agreement.");
+      return false;
     } finally {
       setSendingAgreement(false);
     }
@@ -175,10 +202,12 @@ export default function PartnerDetail() {
             <div className="mt-4 space-y-3">
               <select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm">
                 {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                {isOwner && <option value={SEND_AGREEMENT_ACTION}>Send Agreement Mail</option>}
               </select>
+              {isOwner && newStatus === SEND_AGREEMENT_ACTION && <p className="text-xs text-muted">{partner.status !== "approved" ? "Approve and save this partner first, then send the agreement." : !partner.email ? "Add the partner email before sending." : "Save this action to email the agreement PDF. Partner status will remain Approved."}</p>}
               <textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" />
-              <button onClick={saveStatus} disabled={updating || newStatus === partner.status} className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60">{updating && <Loader2 size={16} className="animate-spin" />}Save Status</button>
-              {isOwner && <button onClick={sendAgreement} disabled={sendingAgreement || partner.status !== "approved" || !partner.email} title={partner.status !== "approved" ? "Approve and save this partner before sending the agreement." : !partner.email ? "Add the partner email first." : "Send the PDF agreement to the partner email."} className="flex w-full items-center justify-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:cursor-not-allowed disabled:opacity-60">{sendingAgreement ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}{sendingAgreement ? "Sending..." : "Send Agreement Mail"}</button>}
+              <button onClick={saveStatus} disabled={updating || sendingAgreement || (newStatus === partner.status)} className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60">{(updating || sendingAgreement) && <Loader2 size={16} className="animate-spin" />}{newStatus === SEND_AGREEMENT_ACTION ? "Send Agreement Mail" : "Save Status"}</button>
+              {isOwner && <button onClick={sendAgreement} disabled={sendingAgreement || partner.status !== "approved" || !partner.email} className="flex w-full items-center justify-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:cursor-not-allowed disabled:opacity-60"><FileText size={16} />{sendingAgreement ? "Sending Agreement..." : "Send Agreement Mail"}</button>}
             </div>
           </div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
