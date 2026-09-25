@@ -1621,7 +1621,46 @@ function InstallationsTab({ location }) {
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
       <button onClick={() => { setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
     </div>}
-    {filteredItems.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching installations found." : "No installation submissions found."}</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[1100px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Updated</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th>{isOwner && <th className="p-3">Actions</th>}</tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td><td className="p-3 text-xs whitespace-nowrap">{item.updated_at ? formatDateTime(item.updated_at) : "—"}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td>{isOwner && <td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button></td>}</tr>)}</tbody></table></div>}
+    {filteredItems.length === 0 ? (
+      <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
+        {search ? "No matching installations found." : "No installation submissions found."}
+      </p>
+    ) : (
+      <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
+        <table className="w-full min-w-[1100px] text-sm">
+          <thead>
+            <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
+              <th className="p-3">Created</th>
+              <th className="p-3">Updated</th>
+              <th className="p-3">Customer</th>
+              <th className="p-3">Phone</th>
+              <th className="p-3">Location</th>
+              <th className="p-3">Installation</th>
+              <th className="p-3">City</th>
+              <th className="p-3">Status</th>
+              {isOwner && <th className="p-3">Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.map((item) => {
+              return (
+                <tr key={item.id} className="border-b border-navy/5">
+                  <td className="p-3 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
+                  <td className="p-3 text-xs whitespace-nowrap">{item.updated_at ? formatDateTime(item.updated_at) : "—"}</td>
+                  <td className="p-3 font-semibold text-navy">{item.customer_name}</td>
+                  <td className="p-3 whitespace-nowrap">{item.phone}</td>
+                  <td className="p-3 capitalize">{item.location}</td>
+                  <td className="p-3">{item.installation_type || "—"}</td>
+                  <td className="p-3">{item.city || "—"}</td>
+                  <td className="p-3"><StatusBadge status={item.status} /></td>
+                  {isOwner && <td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button></td>}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
     {isOwner && selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}
   </div>;
 }
