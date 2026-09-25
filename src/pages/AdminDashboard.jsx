@@ -167,43 +167,71 @@ function OverviewTab() {
 
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
         <h2 className="text-sm font-bold text-navy">Branch-wise Applications</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {branchStats.length === 0 && <p className="text-sm text-muted">No branch data yet.</p>}
-          {branchStats.map((branch) => (
-            <div key={branch.branch_id} className="rounded-xl border border-navy/10 bg-offwhite p-4">
-              <h3 className="font-bold text-navy">{branch.branch_name} <span className="text-xs font-normal text-muted">({branch.branch_code})</span></h3>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {[["Total", branch.total], ["Pending", branch.pending], ["Verified", branch.verified], ["Submitted", branch.submitted], ["Approved", branch.approved], ["Rejected", branch.rejected]].map(([label, value]) => (
-                  <div key={label} className="rounded-lg border border-navy/5 bg-white p-2">
-                    <p className="text-[11px] text-muted">{label}</p>
-                    <p className="mt-1 font-bold text-navy">{value || 0}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
+                <th className="py-2 pr-4 whitespace-nowrap">Branch</th>
+                <th className="py-2 px-3 whitespace-nowrap">Total</th>
+                <th className="py-2 px-3 whitespace-nowrap">Pending</th>
+                <th className="py-2 px-3 whitespace-nowrap">Verified</th>
+                <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
+                <th className="py-2 px-3 whitespace-nowrap">Approved</th>
+                <th className="py-2 px-3 whitespace-nowrap">Rejected</th>
+              </tr>
+            </thead>
+            <tbody>
+              {branchStats.length === 0 && (
+                <tr><td colSpan={7} className="py-4 text-center text-muted">No branch data yet.</td></tr>
+              )}
+              {branchStats.map((branch) => (
+                <tr key={branch.branch_id} className="border-b border-navy/5">
+                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">{branch.branch_name} ({branch.branch_code})</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.total || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.pending || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.verified || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.submitted || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.approved || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.rejected || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
         <h2 className="text-sm font-bold text-navy">Employee Performance</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {(empStats?.byEmployee || []).length === 0 && <p className="text-sm text-muted">No employees yet.</p>}
-          {(empStats?.byEmployee || []).map((employee) => (
-            <div key={employee.user_id} className="rounded-xl border border-navy/10 bg-offwhite p-4">
-              <h3 className="font-bold text-navy">{employee.name}</h3>
-              <p className="text-xs text-muted">{employee.login_id} · {employee.designation || "-"} · {employee.department || "-"}</p>
-              <p className="mt-2 text-xs text-muted">Branch: {employee.branch_name || "-"}</p>
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {[["Handled", employee.total_handled], ["Verified", employee.verified_count], ["Submitted", employee.submitted_count]].map(([label, value]) => (
-                  <div key={label} className="rounded-lg border border-navy/5 bg-white p-2">
-                    <p className="text-[11px] text-muted">{label}</p>
-                    <p className="mt-1 font-bold text-navy">{value || 0}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div className="mt-4 overflow-x-auto">
+          <table className="w-full min-w-[820px] text-sm">
+            <thead>
+              <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
+                <th className="py-2 pr-4 whitespace-nowrap">Employee</th>
+                <th className="py-2 px-3 whitespace-nowrap">Designation</th>
+                <th className="py-2 px-3 whitespace-nowrap">Department</th>
+                <th className="py-2 px-3 whitespace-nowrap">Branch</th>
+                <th className="py-2 px-3 whitespace-nowrap">Handled</th>
+                <th className="py-2 px-3 whitespace-nowrap">Verified</th>
+                <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(empStats?.byEmployee || []).length === 0 && (
+                <tr><td colSpan={7} className="py-4 text-center text-muted">No employees yet.</td></tr>
+              )}
+              {(empStats?.byEmployee || []).map((employee) => (
+                <tr key={employee.user_id} className="border-b border-navy/5">
+                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">{employee.name}<span className="ml-1 text-xs text-muted">({employee.login_id})</span></td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">{employee.designation || "-"}</td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">{employee.department || "-"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.branch_name || "-"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.total_handled || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.verified_count || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.submitted_count || 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
