@@ -18,6 +18,7 @@ const FIELDS = [
   ["commissionRates", "Commission Chart", "commission-chart"],
   ["companyName", "Company Name"], ["contactName", "Contact Name"],
   ["phone", "Phone"], ["email", "Email", "email"],
+  ["aadhaarNumber", "Aadhaar Number"], ["gender", "Gender", "gender"], ["dob", "Date of Birth", "date"],
   ["gstNumber", "GST Number"], ["panNumber", "PAN Number"], ["msmeNumber", "MSME Number"],
   ["address", "Address"], ["city", "City"], ["state", "State"], ["pincode", "PIN Code"],
   ["experienceYears", "Experience"], ["description", "Business Description", "textarea"],
@@ -25,7 +26,7 @@ const FIELDS = [
 ];
 const DOCUMENTS = [
   ["gstFile", "GST Certificate", "GST"], ["panFile", "PAN Card", "PAN"],
-  ["aadhaarFile", "Aadhaar", "Aadhaar"], ["msmeFile", "MSME Certificate", "MSME"],
+  ["aadhaarFile", "Aadhaar", "Aadhaar"], ["photoFile", "Partner Photo", "Photo"], ["msmeFile", "MSME Certificate", "MSME"],
   ["businessDocFile", "Business Document", "Business Document"],
   ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"],
 ];
@@ -46,7 +47,8 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
     systemTypes: readSystemTypes(partner.system_types),
     commissionRates: readCommissionRates(partner.commission_rates),
     companyName: partner.company_name || "", contactName: partner.contact_name || "",
-    phone: partner.phone || "", email: partner.email || "", gstNumber: partner.gst_number || "",
+    phone: partner.phone || "", email: partner.email || "", aadhaarNumber: partner.aadhaar_number || "",
+    gender: partner.gender || "", dob: partner.dob ? String(partner.dob).slice(0, 10) : "", gstNumber: partner.gst_number || "",
     panNumber: partner.pan_number || "", msmeNumber: partner.msme_number || "",
     address: partner.address || "", city: partner.city || "", state: partner.state || "",
     pincode: partner.pincode || "", experienceYears: partner.experience_years || "",
@@ -101,12 +103,16 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
               {label}
               {!editing ? (
                 <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">
-                  {key === "systemTypes" ? systemLabels || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : form[key] || "—"}
+                  {key === "systemTypes" ? systemLabels || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : key === "gender" ? ({ male: "Male", female: "Female", other: "Other" }[form[key]] || "—") : form[key] || "—"}
                 </span>
               ) : type === "select" ? (
                 <select required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
                   <option value="" disabled>Select partner type</option>
                   {PARTNER_TYPES.map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}
+                </select>
+              ) : type === "gender" ? (
+                <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
+                  <option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
                 </select>
               ) : type === "systems" ? (
                 <span className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -147,7 +153,7 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
               <div key={key} className="rounded-lg border border-navy/10 p-3">
                 <p className="text-xs font-semibold text-navy">{label}</p>
                 {partner.documentUrls?.[urlKey] ? <a href={fileUrl(partner.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-amber hover:underline">View uploaded document</a> : <p className="mt-1 text-xs text-muted">No document uploaded</p>}
-                {editing && <input type="file" onChange={(event) => setFiles({ ...files, [key]: event.target.files?.[0] || null })} className="mt-2 block w-full text-xs" />}
+                {editing && <input type="file" accept={key === "photoFile" ? "image/jpeg,image/png,image/webp" : undefined} onChange={(event) => setFiles({ ...files, [key]: event.target.files?.[0] || null })} className="mt-2 block w-full text-xs" />}
               </div>
             ))}
           </div>

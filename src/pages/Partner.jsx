@@ -37,6 +37,9 @@ const initialState = {
   contactName: "",
   email: "",
   phone: "",
+  aadhaarNumber: "",
+  gender: "",
+  dob: "",
   gstNumber: "",
   panNumber: "",
   msmeNumber: "",
@@ -255,6 +258,28 @@ export default function Partner() {
                 placeholder="Enter phone number"
                 type="tel"
               />
+              <Field
+                label="Aadhaar Number"
+                name="aadhaarNumber"
+                value={form.aadhaarNumber}
+                onChange={handleChange}
+                placeholder="Enter 12-digit Aadhaar number (optional)"
+                type="text"
+              />
+              <SelectField
+                label="Gender"
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                options={[{ value: "", label: "Select gender (optional)" }, { value: "male", label: "Male" }, { value: "female", label: "Female" }, { value: "other", label: "Other" }]}
+              />
+              <Field
+                label="Date of Birth"
+                name="dob"
+                value={form.dob}
+                onChange={handleChange}
+                type="date"
+              />
             </div>
           </FormCard>
 
@@ -298,6 +323,7 @@ export default function Partner() {
               <FileUpload label="GST Certificate" name="gstFile" />
               <FileUpload label="PAN Card" name="panFile" />
               <FileUpload label="Aadhaar Card" name="aadhaarFile" />
+              <FileUpload label="Partner Photo" name="photoFile" accept="image/jpeg,image/png,image/webp" />
               <FileUpload label="MSME Certificate" name="msmeFile" />
               <FileUpload label="Business Documents" name="businessDocFile" />
             </div>
@@ -445,7 +471,7 @@ function SelectField({ label, name, value, onChange, options }) {
   );
 }
 
-function FileUpload({ label, name }) {
+function FileUpload({ label, name, accept }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -454,7 +480,7 @@ function FileUpload({ label, name }) {
       <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-xs text-muted transition-colors hover:border-amber hover:text-navy">
         <Upload size={16} />
         Choose File
-        <input type="file" name={name} className="hidden" />
+        <input type="file" name={name} accept={accept} className="hidden" />
       </div>
     </label>
   );
