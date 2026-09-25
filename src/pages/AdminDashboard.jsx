@@ -65,8 +65,6 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout
-      title="Owner Dashboard"
-      subtitle="Full control over branches, employees, and applications"
       activeSection={tab}
       onSectionChange={handleSectionChange}
     >
