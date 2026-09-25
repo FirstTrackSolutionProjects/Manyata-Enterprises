@@ -5,6 +5,7 @@ import {
   Building2,
   FileText,
   Handshake,
+  Wrench,
   Loader2,
   Plus,
   Search,
@@ -158,90 +159,51 @@ function OverviewTab() {
         <StatCard label="Employees" value={stats.employees} icon={Users} />
         <StatCard label="Branches" value={stats.branches.total} icon={Building2} />
         <StatCard label="Partners" value={stats.partners} icon={Handshake} />
+        <StatCard label="Installations" value={stats.installations.total} icon={Wrench} />
+        <StatCard label="Careers" value={stats.careers} icon={FileText} />
+        <StatCard label="Join Us" value={stats.joinUs} icon={Users} />
+        <StatCard label="Contacts" value={stats.contacts} icon={FileText} />
       </div>
 
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
         <h2 className="text-sm font-bold text-navy">Branch-wise Applications</h2>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                <th className="py-2 pr-4 whitespace-nowrap">Branch</th>
-                <th className="py-2 px-3 whitespace-nowrap">Total</th>
-                <th className="py-2 px-3 whitespace-nowrap">Pending</th>
-                <th className="py-2 px-3 whitespace-nowrap">Verified</th>
-                <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
-                <th className="py-2 px-3 whitespace-nowrap">Approved</th>
-                <th className="py-2 px-3 whitespace-nowrap">Rejected</th>
-              </tr>
-            </thead>
-            <tbody>
-              {branchStats.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-4 text-center text-muted">
-                    No branch data yet.
-                  </td>
-                </tr>
-              )}
-              {branchStats.map((b) => (
-                <tr key={b.branch_id} className="border-b border-navy/5">
-                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">
-                    {b.branch_name} ({b.branch_code})
-                  </td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.total || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.pending || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.verified || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.submitted || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.approved || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.rejected || 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {branchStats.length === 0 && <p className="text-sm text-muted">No branch data yet.</p>}
+          {branchStats.map((branch) => (
+            <div key={branch.branch_id} className="rounded-xl border border-navy/10 bg-offwhite p-4">
+              <h3 className="font-bold text-navy">{branch.branch_name} <span className="text-xs font-normal text-muted">({branch.branch_code})</span></h3>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[["Total", branch.total], ["Pending", branch.pending], ["Verified", branch.verified], ["Submitted", branch.submitted], ["Approved", branch.approved], ["Rejected", branch.rejected]].map(([label, value]) => (
+                  <div key={label} className="rounded-lg border border-navy/5 bg-white p-2">
+                    <p className="text-[11px] text-muted">{label}</p>
+                    <p className="mt-1 font-bold text-navy">{value || 0}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
         <h2 className="text-sm font-bold text-navy">Employee Performance</h2>
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[820px] text-sm">
-            <thead>
-              <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                <th className="py-2 pr-4 whitespace-nowrap">Employee</th>
-                <th className="py-2 px-3 whitespace-nowrap">Designation</th>
-                <th className="py-2 px-3 whitespace-nowrap">Department</th>
-                <th className="py-2 px-3 whitespace-nowrap">Branch</th>
-                <th className="py-2 px-3 whitespace-nowrap">Handled</th>
-                <th className="py-2 px-3 whitespace-nowrap">Verified</th>
-                <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(empStats?.byEmployee || []).length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-4 text-center text-muted">
-                    No employees yet.
-                  </td>
-                </tr>
-              )}
-              {(empStats?.byEmployee || []).map((e) => (
-                <tr key={e.user_id} className="border-b border-navy/5">
-                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">
-                    {e.name}
-                    <span className="ml-1 text-xs text-muted">
-                      ({e.login_id})
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 text-xs whitespace-nowrap">{e.designation || "-"}</td>
-                  <td className="py-2 px-3 text-xs whitespace-nowrap">{e.department || "-"}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.branch_name || "-"}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.total_handled || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.verified_count || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.submitted_count || 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {(empStats?.byEmployee || []).length === 0 && <p className="text-sm text-muted">No employees yet.</p>}
+          {(empStats?.byEmployee || []).map((employee) => (
+            <div key={employee.user_id} className="rounded-xl border border-navy/10 bg-offwhite p-4">
+              <h3 className="font-bold text-navy">{employee.name}</h3>
+              <p className="text-xs text-muted">{employee.login_id} · {employee.designation || "-"} · {employee.department || "-"}</p>
+              <p className="mt-2 text-xs text-muted">Branch: {employee.branch_name || "-"}</p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[["Handled", employee.total_handled], ["Verified", employee.verified_count], ["Submitted", employee.submitted_count]].map(([label, value]) => (
+                  <div key={label} className="rounded-lg border border-navy/5 bg-white p-2">
+                    <p className="text-[11px] text-muted">{label}</p>
+                    <p className="mt-1 font-bold text-navy">{value || 0}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -262,10 +224,7 @@ function OverviewTab() {
           )}
           <div className="space-y-3">
             {activity.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-start gap-3 border-l-2 border-amber/40 pl-4"
-              >
+              <div key={a.id} className="rounded-xl border border-navy/10 bg-offwhite p-3">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-navy">{a.action}</p>
                   <p className="text-xs text-muted">
@@ -766,6 +725,9 @@ function EmployeesTab() {
   const [editing, setEditing] = useState(null);
   const [credentials, setCredentials] = useState(null);
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [branchFilter, setBranchFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -811,16 +773,12 @@ function EmployeesTab() {
   };
 
   const filteredUsers = users.filter((u) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      u.name.toLowerCase().includes(s) ||
-      u.email.toLowerCase().includes(s) ||
-      (u.user_id || "").toLowerCase().includes(s) ||
-      (u.designation || "").toLowerCase().includes(s) ||
-      (u.department || "").toLowerCase().includes(s)
-    );
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || [u.name, u.email, u.user_id, u.designation, u.department, u.branch_name, u.branch_code]
+      .some((value) => String(value || "").toLowerCase().includes(term));
+    return matchesSearch && (!branchFilter || String(u.branch_id) === branchFilter) && (!statusFilter || u.status === statusFilter);
   });
+  const activeFilterCount = Number(Boolean(branchFilter)) + Number(Boolean(statusFilter));
 
   return (
     <div className="space-y-4">
@@ -839,6 +797,10 @@ function EmployeesTab() {
               className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none"
             />
           </div>
+          <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}>
+            <Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}
+          </button>
+          <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
           {isOwner && <button
             onClick={() => {
               setEditing(null);
@@ -850,6 +812,12 @@ function EmployeesTab() {
           </button>}
         </div>
       </div>
+
+      {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2">
+        <FilterSelect label="Branch" value={branchFilter} onChange={setBranchFilter} options={branches.map((branch) => ({ value: String(branch.id), label: `${branch.name} (${branch.code})` }))} placeholder="All branches" />
+        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }]} placeholder="All statuses" />
+        <button onClick={() => { setBranchFilter(""); setStatusFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      </div>}
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -1321,6 +1289,9 @@ function BranchesTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -1340,8 +1311,11 @@ function BranchesTab() {
 
   const filteredBranches = branches.filter((branch) =>
     [branch.name, branch.code, branch.state, branch.district, branch.phone]
-      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase()))
+      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
+    (!statusFilter || branch.status === statusFilter) &&
+    (!stateFilter || branch.state === stateFilter)
   );
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(stateFilter));
 
   return (
     <div className="space-y-4">
@@ -1352,6 +1326,8 @@ function BranchesTab() {
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search branches..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
         </div>
+        <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
+        <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
         {isOwner && <button
           onClick={() => {
             setEditing(null);
@@ -1363,6 +1339,12 @@ function BranchesTab() {
         </button>}
         </div>
       </div>
+
+      {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2">
+        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} placeholder="All statuses" />
+        <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={[...new Set(branches.map((branch) => branch.state).filter(Boolean))].sort().map((state) => ({ value: state, label: state }))} placeholder="All states" />
+        <button onClick={() => { setStatusFilter(""); setStateFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      </div>}
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -1565,24 +1547,35 @@ function InstallationsTab({ location }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
-  const load = async () => { const res = await listInstallations(location); setItems(res.data.items || []); };
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await listInstallations(location);
+      setItems(res.data.items || []);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Could not load installations.");
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => {
-    (async () => {
-      try {
-        await load();
-      } catch (err) {
-        alert(err.message || "Could not load installations.");
-      } finally {
-        setLoading(false);
-      }
-    })();
+    load();
   }, [location]);
 
   const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "Kolkata Installations" : "All Installations";
   const filteredItems = items.filter((item) =>
     [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status]
-      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase()))
+      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
+    (!statusFilter || item.status === statusFilter) &&
+    (!typeFilter || item.installation_type === typeFilter) &&
+    (!locationFilter || item.location === locationFilter)
   );
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter));
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1591,7 +1584,15 @@ function InstallationsTab({ location }) {
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
       </div>
+      <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
+      <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
     </div>
+    {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
+      <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "pending", label: "Pending" }, { value: "reviewed", label: "Reviewed" }, { value: "completed", label: "Completed" }]} placeholder="All statuses" />
+      <FilterSelect label="Installation Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
+      <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
+      <button onClick={() => { setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+    </div>}
     {filteredItems.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching installations found." : "No installation submissions found."}</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th>{isOwner && <th className="p-3">Actions</th>}</tr></thead><tbody>{filteredItems.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td>{isOwner && <td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button></td>}</tr>)}</tbody></table></div>}
     {isOwner && selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}
   </div>;
@@ -1642,6 +1643,10 @@ function SubmissionList({ type }) {
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [showPartnerCreate, setShowPartnerCreate] = useState(false);
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -1679,14 +1684,19 @@ function SubmissionList({ type }) {
   const isJoinUs = type === "join-us";
   const isCareers = type === "careers";
   const isContacts = type === "contacts";
+  const availableStatuses = [...new Set(items.map((item) => item.status).filter(Boolean))].sort();
+  const availableLocations = [...new Set(items.map((item) => item.location || item.city).filter(Boolean))].sort();
+  const availableStates = [...new Set(items.map((item) => item.state).filter(Boolean))].sort();
   const normalizedSearch = search.trim().toLowerCase();
   const filteredItems = normalizedSearch
     ? items.filter((item) => {
         const name = `${item.first_name || ""} ${item.last_name || ""}`;
-        return [item.id, item.name, item.full_name, item.company_name, item.contact_name, name, item.email, item.phone, item.phone_number, item.location, item.state, item.district, item.subject, item.message, item.status]
+        const matchesSearch = [item.id, item.name, item.full_name, item.company_name, item.contact_name, name, item.email, item.phone, item.phone_number, item.location, item.state, item.district, item.subject, item.message, item.status]
           .some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
+        return matchesSearch && (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || item.state === stateFilter);
       })
-    : items;
+    : items.filter((item) => (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || item.state === stateFilter));
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter));
 
   if (loading)
     return (
@@ -1701,10 +1711,19 @@ function SubmissionList({ type }) {
         <h2 className="text-sm font-bold text-navy">{isPartners ? "Partners" : isJoinUs ? "Join Us Submissions" : isCareers ? "Career Applications" : "Contact Submissions"}</h2>
         <div className="flex flex-1 flex-wrap gap-3 sm:justify-end">
           <div className="relative min-w-[200px] flex-1 sm:max-w-xs"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
+          <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
+          <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
           {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
         </div>
       </div>
-      {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
+
+      {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={availableStatuses.map((value) => ({ value, label: isPartners && value === "new" ? "Submitted" : isPartners && value === "reviewed" ? "Under Review" : value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) }))} placeholder="All statuses" />
+        {(isJoinUs || isCareers || isContacts) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
+        {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
+        <button onClick={() => { setStatusFilter(""); setLocationFilter(""); setStateFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      </div>}
+      {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search || activeFilterCount ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
       {filteredItems.length > 0 && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
       <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
