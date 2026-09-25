@@ -275,7 +275,7 @@ export default function DashboardLayout({
         </main>
 
         <footer className="border-t border-navy/10 bg-white py-4 text-center text-xs text-muted">
-          © {new Date().getFullYear()} Manyata Enterprises · Internal Panel
+          &copy; {new Date().getFullYear()} Manyata Enterprises &middot; First Track Solution Technologies
         </footer>
       </div>
     </div>

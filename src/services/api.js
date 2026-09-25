@@ -230,8 +230,9 @@ export const updatePartnerStatus = (id, status, note = "") =>
     body: JSON.stringify({ status, note }),
   });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
-export const downloadPartnerAgreement = async (id) => {
-  const response = await fetch(`${API_URL}/admin/partners/${id}/agreement.docx`, { credentials: "include" });
+export const sendPartnerAgreement = resendPartnerAgreement;
+const downloadPartnerAgreementFile = async (id, extension) => {
+  const response = await fetch(`${API_URL}/admin/partners/${id}/agreement.${extension}`, { credentials: "include" });
   if (!response.ok) {
     let data = null;
     try { data = await response.json(); } catch { /* use the HTTP status message */ }
@@ -239,7 +240,7 @@ export const downloadPartnerAgreement = async (id) => {
   }
   const blob = await response.blob();
   const disposition = response.headers.get("content-disposition") || "";
-  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `Sales-Commission-Agreement-${id}.docx`;
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `Sales-Commission-Agreement-${id}.${extension}`;
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -249,6 +250,10 @@ export const downloadPartnerAgreement = async (id) => {
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+export const downloadPartnerAgreement = async (id) => {
+  return downloadPartnerAgreementFile(id, "docx");
+};
+export const downloadPartnerAgreementPdf = (id) => downloadPartnerAgreementFile(id, "pdf");
 
 export const getJoinUsDetail = (id) => apiFetch(`/admin/join-us/${id}`);
 export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {

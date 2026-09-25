@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, Download, FileText, Loader2, Mail } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { useAuth } from "../contexts/AuthContext";
-import { downloadPartnerAgreement, downloadSubmissionPdf, fileUrl, getPartnerDetail, updatePartnerStatus } from "../services/api";
+import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, sendPartnerAgreement, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
   ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
@@ -27,6 +27,8 @@ export default function PartnerDetail() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [downloadingAgreement, setDownloadingAgreement] = useState(false);
+  const [downloadingAgreementPdf, setDownloadingAgreementPdf] = useState(false);
+  const [sendingAgreement, setSendingAgreement] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
 
   const load = async () => {
@@ -76,6 +78,34 @@ export default function PartnerDetail() {
     }
   };
 
+  const downloadAgreementPdf = async () => {
+    setDownloadingAgreementPdf(true);
+    setError("");
+    setNotice("");
+    try {
+      await downloadPartnerAgreementPdf(id);
+      setNotice("Sales commission agreement PDF downloaded.");
+    } catch (err) {
+      setError(err.message || "Could not download the agreement PDF.");
+    } finally {
+      setDownloadingAgreementPdf(false);
+    }
+  };
+
+  const sendAgreement = async () => {
+    setSendingAgreement(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await sendPartnerAgreement(id);
+      setNotice(response.message || "Agreement PDF sent to the partner's email.");
+    } catch (err) {
+      setError(err.message || "Could not send the agreement.");
+    } finally {
+      setSendingAgreement(false);
+    }
+  };
+
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center"><Loader2 className="animate-spin text-amber" /></div>;
   if (error && !partner) return <div className="rounded-xl border border-red-300 bg-red-50 p-6 text-sm text-red-700">{error}</div>;
   if (!partner) return null;
@@ -104,7 +134,7 @@ export default function PartnerDetail() {
           <p className="mt-1 text-sm text-muted">{partner.contact_name} · {partner.phone} · {partner.email}</p>
           <p className="mt-1 text-xs text-muted">Created: {formatDateTime(partner.created_at)} · Updated by {partner.updated_by_name || "—"}: {formatDateTime(partner.updated_at)}</p>
         </div>
-        <div className="flex flex-wrap gap-2">{isOwner && <button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>}<button onClick={() => downloadSubmissionPdf("partners", partner.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16}/>Download PDF</button>{isOwner && <button onClick={downloadAgreement} disabled={downloadingAgreement} className="flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60"><Download size={16}/>{downloadingAgreement ? "Downloading..." : "Download Agreement"}</button>}</div>
+        <div className="flex flex-wrap gap-2">{isOwner && <button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>}<button onClick={() => downloadSubmissionPdf("partners", partner.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16}/>Download PDF</button>{isOwner && <><button onClick={downloadAgreement} disabled={downloadingAgreement} className="flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60"><Download size={16}/>{downloadingAgreement ? "Downloading..." : "Download Agreement (Word)"}</button><button onClick={downloadAgreementPdf} disabled={downloadingAgreementPdf} className="flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60"><Download size={16}/>{downloadingAgreementPdf ? "Downloading..." : "Download Agreement PDF"}</button><button onClick={sendAgreement} disabled={sendingAgreement || partner.status !== "approved" || !partner.email} title={partner.status !== "approved" ? "Approve this partner before sending the agreement." : !partner.email ? "Add the partner email first." : "Send the PDF agreement to the partner email."} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60">{sendingAgreement ? <Loader2 size={16} className="animate-spin" /> : <Mail size={16} />}{sendingAgreement ? "Sending..." : "Send Agreement"}</button></>}</div>
       </div>
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
