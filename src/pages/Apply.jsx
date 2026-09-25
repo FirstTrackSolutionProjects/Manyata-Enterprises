@@ -897,20 +897,6 @@ function ElectricityStep({ form, onChange }) {
           onChange={onChange}
           placeholder="Enter your consumer number"
         />
-        <Field
-          label="Sub Division"
-          name="subDivision"
-          value={form.subDivision}
-          onChange={onChange}
-          placeholder="Enter sub division"
-        />
-        <Field
-          label="Tariff"
-          name="tariff"
-          value={form.tariff}
-          onChange={onChange}
-          placeholder="Enter tariff category"
-        />
         <FileUpload
           label="Latest Electricity Bill"
           name="electricityBill"
@@ -1103,8 +1089,6 @@ function PreviewStep({ form, location, onEdit }) {
       title: "Electricity",
       rows: [
         ["Consumer Number", form.consumerNumber],
-        ["Sub Division", form.subDivision],
-        ["Tariff", form.tariff],
       ],
     },
     {
