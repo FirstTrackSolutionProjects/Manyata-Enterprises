@@ -939,7 +939,7 @@ function EmployeesTab() {
                   </td>
                   <td className="p-3 text-xs">
                     {(u.permissions || []).length
-                      ? u.permissions.map((permission) => ({ applications: "Applications", installations: "Installation", employees: "Employees", partners: "Partners", branches: "Branches", submissions: "Submissions" }[permission] || permission).join(", ")
+                      ? u.permissions.map((permission) => ({ applications: "Applications", installations: "Installation", employees: "Employees", partners: "Partners", branches: "Branches", submissions: "Submissions" }[permission] || permission)).join(", ")
                       : "No dashboard access"}
                   </td>
                   <td className="p-3 whitespace-nowrap">
