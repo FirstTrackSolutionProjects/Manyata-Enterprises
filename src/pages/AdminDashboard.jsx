@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
+import DashboardWelcome from "../components/DashboardWelcome";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
 import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
@@ -144,21 +145,10 @@ function OverviewTab() {
   return (
     <div className="space-y-6">
       {/* ── Welcome banner ── */}
-      <div className="rounded-2xl border border-amber/30 bg-gradient-to-r from-amber-soft to-white p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber">
-              Welcome back
-            </p>
-            <h2 className="mt-1 text-xl font-extrabold text-navy sm:text-2xl">
-              Welcome, Manyata Enterprises
-            </h2>
-            <p className="mt-1 text-sm text-muted">
-              Here's a quick overview of your business at a glance.
-            </p>
-          </div>
-        </div>
-      </div>
+      <DashboardWelcome
+        name="Manyata Enterprises"
+        description="Here's a quick overview of your business at a glance."
+      />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard

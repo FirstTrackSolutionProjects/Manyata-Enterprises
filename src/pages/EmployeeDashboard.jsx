@@ -9,6 +9,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
+import DashboardWelcome from "../components/DashboardWelcome";
 import { APPLICATION_STATUSES } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import { listApplications } from "../services/api";
@@ -111,16 +112,11 @@ export default function EmployeeDashboard() {
       onSectionChange={setTab}
     >
       {/* ── Welcome banner ── */}
-      <div className="mb-6 rounded-2xl border border-amber/30 bg-gradient-to-r from-amber-soft to-white p-5 sm:p-6">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber">
-          Welcome back
-        </p>
-        <h2 className="mt-1 text-xl font-extrabold text-navy sm:text-2xl">
-          Welcome, {user?.name || "Employee"}
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          Here's a quick overview of your branch and applications.
-        </p>
+      <div className="mb-6">
+        <DashboardWelcome
+          name={user?.name || "Employee"}
+          description="Here's a quick overview of your branch and applications."
+        />
       </div>
 
       {/* Employee info cards */}
