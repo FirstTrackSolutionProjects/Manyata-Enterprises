@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
+import { useAuth } from "../contexts/AuthContext";
 import { downloadPartnerAgreement, downloadSubmissionPdf, fileUrl, getPartnerDetail, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
@@ -13,6 +14,8 @@ const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN"
 const titleCase = (value = "") => value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
 export default function PartnerDetail() {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const { id } = useParams();
   const navigate = useNavigate();
   const [partner, setPartner] = useState(null);
@@ -100,7 +103,7 @@ export default function PartnerDetail() {
           <p className="mt-1 text-sm text-muted">{partner.contact_name} · {partner.phone} · {partner.email}</p>
           <p className="mt-1 text-xs text-muted">Created: {formatDateTime(partner.created_at)} · Updated by {partner.updated_by_name || "—"}: {formatDateTime(partner.updated_at)}</p>
         </div>
-        <div className="flex flex-wrap gap-2"><button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button><button onClick={() => downloadSubmissionPdf("partners", partner.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16}/>Download PDF</button><button onClick={downloadAgreement} disabled={downloadingAgreement} className="flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60"><Download size={16}/>{downloadingAgreement ? "Downloading..." : "Download Agreement"}</button></div>
+        <div className="flex flex-wrap gap-2">{isOwner && <button onClick={() => setEditOpen(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>}<button onClick={() => downloadSubmissionPdf("partners", partner.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16}/>Download PDF</button>{isOwner && <button onClick={downloadAgreement} disabled={downloadingAgreement} className="flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60"><Download size={16}/>{downloadingAgreement ? "Downloading..." : "Download Agreement"}</button>}</div>
       </div>
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}

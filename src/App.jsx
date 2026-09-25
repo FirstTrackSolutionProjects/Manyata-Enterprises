@@ -92,7 +92,7 @@ export default function App() {
           <Route
             path="/admin/applications/:id"
             element={
-              <ProtectedRoute roles={["owner"]}>
+              <ProtectedRoute permission="applications">
                 <DashboardLayout title="Application Detail">
                   <ApplicationDetail />
                 </DashboardLayout>
@@ -102,7 +102,7 @@ export default function App() {
           <Route
             path="/admin/partners/:id"
             element={
-              <ProtectedRoute roles={["owner"]}>
+              <ProtectedRoute permission="partners">
                 <DashboardLayout title="Partner Detail">
                   <PartnerDetail />
                 </DashboardLayout>
@@ -112,7 +112,7 @@ export default function App() {
           <Route
             path="/admin/join-us/:id"
             element={
-              <ProtectedRoute roles={["owner"]}>
+              <ProtectedRoute permission="submissions">
                 <DashboardLayout title="Join Us Detail">
                   <JoinUsDetail />
                 </DashboardLayout>
@@ -122,7 +122,7 @@ export default function App() {
           <Route
             path="/admin/careers/:id"
             element={
-              <ProtectedRoute roles={["owner"]}>
+              <ProtectedRoute permission="submissions">
                 <DashboardLayout title="Career Application Detail">
                   <CareerDetail />
                 </DashboardLayout>
@@ -132,7 +132,7 @@ export default function App() {
           <Route
             path="/admin/contacts/:id"
             element={
-              <ProtectedRoute roles={["owner"]}>
+              <ProtectedRoute permission="submissions">
                 <DashboardLayout title="Contact Enquiry Detail">
                   <ContactDetail />
                 </DashboardLayout>
@@ -145,14 +145,14 @@ export default function App() {
             path="/employee"
             element={
               <ProtectedRoute roles={["employee"]}>
-                <EmployeeDashboard />
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />
           <Route
             path="/employee/applications/:id"
             element={
-              <ProtectedRoute roles={["employee"]}>
+              <ProtectedRoute roles={["employee"]} permission="applications">
                 <DashboardLayout title="Application Detail">
                   <ApplicationDetail />
                 </DashboardLayout>

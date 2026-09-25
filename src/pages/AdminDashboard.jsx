@@ -26,6 +26,7 @@ import DashboardWelcome from "../components/DashboardWelcome";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
 import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
+import { useAuth } from "../contexts/AuthContext";
 import {
   getDashboardStats,
   getEmployeeStats,
@@ -56,8 +57,13 @@ import {
 } from "../services/api";
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get("section") || "overview";
+  const permissions = user?.permissions || ["applications"];
+  const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
+  const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || "no-access");
+  const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
+  const hasAccess = user?.role === "owner" || permissions.includes(requiredModule);
 
   const handleSectionChange = (section) => {
     setSearchParams({ section }, { replace: true });
@@ -68,15 +74,16 @@ export default function AdminDashboard() {
       activeSection={tab}
       onSectionChange={handleSectionChange}
     >
-      {tab === "overview" && <OverviewTab />}
-      {tab === "applications" && <ApplicationsTab />}
-      {tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}
-      {tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
-      {tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
-      {tab === "employees" && <EmployeesTab />}
-      {tab === "partners" && <PartnersTab />}
-      {tab === "branches" && <BranchesTab />}
-      {tab === "submissions" && <OtherTab />}
+      {!hasAccess || (tab === "overview" && user?.role !== "owner") ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">Owner ne abhi tak aapko kisi dashboard section ka access nahi diya hai.</div> : null}
+      {hasAccess && tab === "overview" && <OverviewTab />}
+      {hasAccess && tab === "applications" && <ApplicationsTab />}
+      {hasAccess && tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}
+      {hasAccess && tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
+      {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
+      {hasAccess && tab === "employees" && <EmployeesTab />}
+      {hasAccess && tab === "partners" && <PartnersTab />}
+      {hasAccess && tab === "branches" && <BranchesTab />}
+      {hasAccess && tab === "submissions" && <OtherTab />}
     </DashboardLayout>
   );
 }
@@ -312,6 +319,7 @@ const EMPTY_FILTERS = {
 };
 
 function ApplicationsTab({ initialLocation = "" }) {
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -323,6 +331,7 @@ function ApplicationsTab({ initialLocation = "" }) {
 
   // Load branches once for the branch filter dropdown
   useEffect(() => {
+    if (user?.role !== "owner" && !(user?.permissions || []).includes("branches")) return;
     (async () => {
       try {
         const res = await listBranches();
@@ -331,7 +340,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         console.error(err);
       }
     })();
-  }, []);
+  }, [user?.role, user?.permissions]);
 
   const load = async (p = page, overrideFilters) => {
     setLoading(true);
@@ -451,7 +460,7 @@ function ApplicationsTab({ initialLocation = "" }) {
               placeholder="All statuses"
             />
 
-            <FilterSelect
+            {user?.role === "owner" && <FilterSelect
               label="Branch"
               value={filters.branchId}
               onChange={(v) => updateFilter("branchId", v)}
@@ -460,7 +469,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                 label: `${b.name} (${b.code})`,
               }))}
               placeholder="All branches"
-            />
+            />}
 
             <FilterSelect
               label="Location"
@@ -776,6 +785,8 @@ function StatusBadge({ status, isPartner = false }) {
 /* ── Employees ────────────────────────────────────── */
 
 function EmployeesTab() {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -787,12 +798,10 @@ function EmployeesTab() {
   const load = async () => {
     setLoading(true);
     try {
-      const [u, b] = await Promise.all([
-        listUsers({ role: "employee" }),
-        listBranches(),
-      ]);
-      setUsers(u.data.items || []);
-      setBranches(b.data.items || []);
+      const [u, b] = await Promise.allSettled([listUsers({ role: "employee" }), listBranches()]);
+      if (u.status === "fulfilled") setUsers(u.value.data.items || []);
+      else throw u.reason;
+      setBranches(b.status === "fulfilled" ? b.value.data.items || [] : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -868,7 +877,7 @@ function EmployeesTab() {
               className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none"
             />
           </div>
-          <button
+          {isOwner && <button
             onClick={() => {
               setEditing(null);
               setShowModal(true);
@@ -876,7 +885,7 @@ function EmployeesTab() {
             className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"
           >
             <Plus size={14} /> Add Employee
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -899,10 +908,11 @@ function EmployeesTab() {
                 <th className="p-3 whitespace-nowrap">Designation</th>
                 <th className="p-3 whitespace-nowrap">Department</th>
                 <th className="p-3 whitespace-nowrap">Branch</th>
+                <th className="p-3 whitespace-nowrap">Dashboard Access</th>
                 <th className="p-3 whitespace-nowrap">Status</th>
                 <th className="p-3 whitespace-nowrap">Last Login</th>
                 <th className="p-3 whitespace-nowrap">Last Logout</th>
-                <th className="p-3 whitespace-nowrap">Actions</th>
+                {isOwner && <th className="p-3 whitespace-nowrap">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -927,6 +937,11 @@ function EmployeesTab() {
                   <td className="p-3 text-xs whitespace-nowrap">
                     {u.branch_name} ({u.branch_code})
                   </td>
+                  <td className="p-3 text-xs">
+                    {(u.permissions || []).length
+                      ? u.permissions.map((permission) => ({ applications: "Applications", installations: "Installation", employees: "Employees", partners: "Partners", branches: "Branches", submissions: "Submissions" }[permission] || permission).join(", ")
+                      : "No dashboard access"}
+                  </td>
                   <td className="p-3 whitespace-nowrap">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
@@ -948,7 +963,7 @@ function EmployeesTab() {
                       ? new Date(u.last_logout_at).toLocaleString("en-IN")
                       : "Never"}
                   </td>
-                  <td className="p-3">
+                  {isOwner && <td className="p-3">
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() => {
@@ -984,7 +999,7 @@ function EmployeesTab() {
                         <Trash2 size={12} />
                       </button>
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>
@@ -1026,6 +1041,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     branchId: employee?.branch_id || "",
     designation: employee?.designation || "",
     department: employee?.department || "",
+    permissions: Array.isArray(employee?.permissions) ? employee.permissions : ["applications"],
     userId: employee?.user_id || "",
     address: employee?.address || "",
     city: employee?.city || "",
@@ -1164,6 +1180,19 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             readOnly={isEdit}
             maxLength={30}
           />
+
+          <fieldset className="rounded-xl border border-navy/10 p-4">
+            <legend className="px-1 text-sm font-bold text-navy">Dashboard access</legend>
+            <p className="mb-3 text-xs text-muted">Choose which dashboard sections this employee can access.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {[["applications", "Applications"], ["installations", "Installation"], ["employees", "Employees"], ["partners", "Partners"], ["branches", "Branches"], ["submissions", "Submissions"]].map(([value, label]) => (
+                <label key={value} className="flex items-center gap-2 rounded-lg bg-offwhite px-3 py-2 text-sm text-navy">
+                  <input type="checkbox" checked={form.permissions.includes(value)} onChange={(event) => setForm((current) => ({ ...current, permissions: event.target.checked ? [...current.permissions, value] : current.permissions.filter((permission) => permission !== value) }))} className="accent-amber" />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -1329,6 +1358,8 @@ function Input({ label, value, onChange, type = "text", required, placeholder, r
 /* ── Branches ─────────────────────────────────────── */
 
 function BranchesTab() {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -1364,7 +1395,7 @@ function BranchesTab() {
     <div className="space-y-4">
       <div className="flex justify-between">
         <h2 className="text-sm font-bold text-navy">Branches</h2>
-        <button
+        {isOwner && <button
           onClick={() => {
             setEditing(null);
             setShowModal(true);
@@ -1372,7 +1403,7 @@ function BranchesTab() {
           className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"
         >
           <Plus size={14} /> Add Branch
-        </button>
+        </button>}
       </div>
 
       {loading ? (
@@ -1424,7 +1455,7 @@ function BranchesTab() {
                   <p className="text-muted">Applications</p>
                 </div>
               </div>
-              <div className="mt-4 flex gap-2">
+              {isOwner && <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => {
                     setEditing(b);
@@ -1440,7 +1471,7 @@ function BranchesTab() {
                 >
                   <Trash2 size={14} />
                 </button>
-              </div>
+              </div>}
             </div>
           ))}
         </div>
@@ -1576,6 +1607,8 @@ function BranchModal({ branch, onClose, onSaved }) {
 /* ── Other Submissions ────────────────────────────── */
 
 function InstallationsTab({ location }) {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -1594,7 +1627,7 @@ function InstallationsTab({ location }) {
 
   const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "Kolkata Installations" : "All Installations";
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
-  return <div className="space-y-4"><h2 className="text-xl font-extrabold text-navy">{title}</h2>{items.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">No installation submissions found.</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td><td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button><button onClick={async () => { if (confirm(`Delete installation for ${item.customer_name}?`)) { await deleteInstallation(item.id); await load(); } }} className="ml-3 text-xs font-semibold text-red-600">Delete</button></td></tr>)}</tbody></table></div>}{selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}</div>;
+  return <div className="space-y-4"><h2 className="text-xl font-extrabold text-navy">{title}</h2>{items.length === 0 ? <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">No installation submissions found.</p> : <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">Installation</th><th className="p-3">City</th><th className="p-3">Status</th>{isOwner && <th className="p-3">Actions</th>}</tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5"><td className="p-3 text-xs">{formatDateTime(item.created_at)}</td><td className="p-3 font-semibold text-navy">{item.customer_name}</td><td className="p-3">{item.phone}</td><td className="p-3 capitalize">{item.location}</td><td className="p-3">{item.installation_type}</td><td className="p-3">{item.city}</td><td className="p-3"><StatusBadge status={item.status} /></td>{isOwner && <td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button><button onClick={async () => { if (confirm(`Delete installation for ${item.customer_name}?`)) { await deleteInstallation(item.id); await load(); } }} className="ml-3 text-xs font-semibold text-red-600">Delete</button></td>}</tr>)}</tbody></table></div>}{isOwner && selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}</div>;
 }
 
 function InstallationModal({ id, onClose, onSaved }) {
@@ -1634,6 +1667,8 @@ function PartnersTab() {
 }
 
 function SubmissionList({ type }) {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -1742,7 +1777,7 @@ function SubmissionList({ type }) {
         <h2 className="text-sm font-bold text-navy">Partners</h2>
         <div className="flex flex-1 flex-wrap gap-3 sm:justify-end">
           <div className="relative min-w-[200px] flex-1 sm:max-w-xs"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search partners..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
-          <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>
+          {isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
         </div>
       </div>}
       {isPartners && filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search ? "No matching partners found." : "No partners found."}</p>}
@@ -1789,9 +1824,9 @@ function SubmissionList({ type }) {
                 {formatDateTime(it.created_at)}
               </td>
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-              {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link><Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteJoinUsSubmission(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></div></td>}
+               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <><Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteJoinUsSubmission(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></>}</div></td>}
               {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-              {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link><Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteCareerApplication(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></div></td>}
+               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <><Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link><button disabled={updating} onClick={() => deleteCareerApplication(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>Delete</button></>}</div></td>}
               {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
               {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
@@ -1799,8 +1834,8 @@ function SubmissionList({ type }) {
                 <td className="p-3 whitespace-nowrap">
                   <div className="flex flex-wrap gap-1.5">
                     <Link to={`/admin/partners/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13} /> View</Link>
-                    <button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
-                    <button disabled={updating} onClick={() => deletePartner(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13} /> Delete</button>
+                     {isOwner && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
+                     <button disabled={updating} onClick={() => deletePartner(it)} className="inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13} /> Delete</button></>}
                     {it.status !== "approved" && (
                       <button
                         disabled={updating}
@@ -1839,7 +1874,7 @@ function SubmissionList({ type }) {
       </table>
       </div>
       }
-      {isPartners && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
+      {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
       {isPartners && selectedPartner && (
         <PartnerDetailsModal
           key={`${selectedPartner.partner.id}-${selectedPartner.editing ? "edit" : "view"}`}

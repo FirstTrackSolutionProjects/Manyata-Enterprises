@@ -30,10 +30,6 @@ const OWNER_NAV = [
   { id: "submissions", label: "Submissions", icon: Briefcase },
 ];
 
-const EMPLOYEE_NAV = [
-  { id: "applications", label: "Applications", icon: FileText },
-];
-
 export default function DashboardLayout({
   children,
   title,
@@ -46,7 +42,9 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState({ applications: false, installations: false });
 
-  const NAV_ITEMS = user?.role === "owner" ? OWNER_NAV : EMPLOYEE_NAV;
+  const NAV_ITEMS = user?.role === "owner"
+    ? OWNER_NAV
+    : OWNER_NAV.filter((item) => item.id !== "overview" && (user?.permissions || ["applications"]).includes(item.id));
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
 
@@ -62,7 +60,7 @@ export default function DashboardLayout({
     } else if (user?.role === "owner") {
       navigate(`/admin?section=${encodeURIComponent(id)}`);
     } else {
-      navigate("/employee");
+      navigate(`/employee?section=${encodeURIComponent(id)}`);
     }
   };
 
