@@ -306,6 +306,9 @@ const EMPTY_FILTERS = {
   toDate: "",
   sortBy: "created_at",
   sortOrder: "desc",
+  name: "",
+  email: "",
+  phone: "",
 };
 
 function ApplicationsTab({ initialLocation = "" }) {
@@ -341,6 +344,9 @@ function ApplicationsTab({ initialLocation = "" }) {
     try {
       const params = { page: p, limit };
       if (f.search) params.search = f.search;
+      if (f.name) params.name = f.name;
+      if (f.email) params.email = f.email;
+      if (f.phone) params.phone = f.phone;
       if (f.status) params.status = f.status;
       if (f.branchId) params.branchId = f.branchId;
       if (f.location) params.location = f.location;
@@ -431,6 +437,9 @@ function ApplicationsTab({ initialLocation = "" }) {
           className="rounded-2xl border border-navy/10 bg-white p-4"
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
+            <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
+            <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <FilterSelect
               label="Status"
               value={filters.status}
@@ -769,6 +778,9 @@ function EmployeesTab() {
   const [showFilters, setShowFilters] = useState(false);
   const [branchFilter, setBranchFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -817,9 +829,9 @@ function EmployeesTab() {
     const term = search.trim().toLowerCase();
     const matchesSearch = !term || [u.name, u.email, u.user_id, u.designation, u.department, u.branch_name, u.branch_code]
       .some((value) => String(value || "").toLowerCase().includes(term));
-    return matchesSearch && (!branchFilter || String(u.branch_id) === branchFilter) && (!statusFilter || u.status === statusFilter);
+    return matchesSearch && (!nameFilter || String(u.name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(u.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(u.phone || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!branchFilter || String(u.branch_id) === branchFilter) && (!statusFilter || u.status === statusFilter);
   });
-  const activeFilterCount = Number(Boolean(branchFilter)) + Number(Boolean(statusFilter));
+  const activeFilterCount = Number(Boolean(branchFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter));
 
   return (
     <div className="space-y-4">
@@ -853,9 +865,12 @@ function EmployeesTab() {
       </div>
 
       {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2">
+        <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
+        <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
+        <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
         <FilterSelect label="Branch" value={branchFilter} onChange={setBranchFilter} options={branches.map((branch) => ({ value: String(branch.id), label: `${branch.name} (${branch.code})` }))} placeholder="All branches" />
         <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }]} placeholder="All statuses" />
-        <button onClick={() => { setBranchFilter(""); setStatusFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setBranchFilter(""); setStatusFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
       </div>}
 
       {loading ? (
@@ -1625,6 +1640,9 @@ function InstallationsTab({ location }) {
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
   const load = async () => {
     setLoading(true);
     try {
@@ -1645,11 +1663,14 @@ function InstallationsTab({ location }) {
   const filteredItems = items.filter((item) =>
     [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status]
       .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
+    (!nameFilter || String(item.customer_name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) &&
+    (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) &&
+    (!phoneFilter || String(item.phone || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) &&
     (!statusFilter || item.status === statusFilter) &&
     (!typeFilter || item.installation_type === typeFilter) &&
     (!locationFilter || item.location === locationFilter)
   );
-  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter));
+  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter));
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
@@ -1662,10 +1683,13 @@ function InstallationsTab({ location }) {
       <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
     </div>
     {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
+      <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
+      <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
+      <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
       <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "pending", label: "Pending" }, { value: "reviewed", label: "Reviewed" }, { value: "completed", label: "Completed" }]} placeholder="All statuses" />
       <FilterSelect label="Installation Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
-      <button onClick={() => { setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
     </div>}
     {filteredItems.length === 0 ? (
       <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
@@ -1761,11 +1785,18 @@ function SubmissionList({ type }) {
   const [statusFilter, setStatusFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`/admin/${type}?limit=100`);
+      const query = new URLSearchParams({ limit: "100" });
+      if (nameFilter.trim()) query.set("name", nameFilter.trim());
+      if (emailFilter.trim()) query.set("email", emailFilter.trim());
+      if (phoneFilter.trim()) query.set("phone", phoneFilter.trim());
+      const res = await apiFetch(`/admin/${type}?${query.toString()}`);
       setItems(res.data.items || []);
     } catch (err) {
       console.error(err);
@@ -1775,9 +1806,10 @@ function SubmissionList({ type }) {
   };
 
   useEffect(() => {
-    load();
+    const timer = setTimeout(() => load(), 250);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line
-  }, [type]);
+  }, [type, nameFilter, emailFilter, phoneFilter]);
 
   const updateStatus = async (id, status) => {
     setUpdating(true);
@@ -1802,15 +1834,14 @@ function SubmissionList({ type }) {
   const availableLocations = [...new Set(items.map((item) => item.location || item.city).filter(Boolean))].sort();
   const availableStates = [...new Set(items.map((item) => item.state).filter(Boolean))].sort();
   const normalizedSearch = search.trim().toLowerCase();
-  const filteredItems = normalizedSearch
-    ? items.filter((item) => {
-        const name = `${item.first_name || ""} ${item.last_name || ""}`;
-        const matchesSearch = [item.id, item.name, item.full_name, item.company_name, item.contact_name, name, item.email, item.phone, item.phone_number, item.location, item.state, item.district, item.subject, item.message, item.status]
-          .some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
-        return matchesSearch && (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || item.state === stateFilter);
-      })
-    : items.filter((item) => (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || item.state === stateFilter));
-  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter));
+  const filteredItems = items.filter((item) => {
+    const fullName = `${item.first_name || ""} ${item.last_name || ""}`;
+    const matchesSearch = !normalizedSearch || [item.id, item.name, item.full_name, item.company_name, item.contact_name, fullName, item.email, item.phone, item.phone_number, item.location, item.state, item.district, item.subject, item.message, item.status]
+      .some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
+    const recordName = [item.name, item.full_name, item.company_name, item.contact_name, fullName].filter(Boolean).join(" ").toLowerCase();
+    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || item.state === stateFilter);
+  });
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter));
 
   if (loading)
     return (
@@ -1830,10 +1861,13 @@ function SubmissionList({ type }) {
       </div>
 
       {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
+        <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
+        <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
         <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={availableStatuses.map((value) => ({ value, label: isPartners && value === "new" ? "Submitted" : isPartners && value === "reviewed" ? "Under Review" : value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) }))} placeholder="All statuses" />
         {(isJoinUs || isCareers || isContacts) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
         {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
-        <button onClick={() => { setStatusFilter(""); setLocationFilter(""); setStateFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
       </div>}
       {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search || activeFilterCount ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
       {filteredItems.length > 0 && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
