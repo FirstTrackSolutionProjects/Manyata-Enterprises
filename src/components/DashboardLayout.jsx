@@ -45,9 +45,14 @@ export default function DashboardLayout({
 
   const NAV_ITEMS = user?.role === "owner"
     ? OWNER_NAV
-    : OWNER_NAV.filter((item) => item.id !== "overview" && (item.id === "applications" || item.id === "installations"
-      ? hasActionPermission(user, item.id, "view")
-      : (user?.permissions || ["applications"]).includes(item.id)));
+    : user?.role === "partner"
+      ? [
+          { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          ...(hasActionPermission(user, "applications", "view") ? [{ id: "applications", label: "Applications", icon: FileText }] : []),
+        ]
+      : OWNER_NAV.filter((item) => item.id !== "overview" && (item.id === "applications" || item.id === "installations"
+        ? hasActionPermission(user, item.id, "view")
+        : (user?.permissions || ["applications"]).includes(item.id)));
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
 
@@ -111,7 +116,7 @@ export default function DashboardLayout({
           {/* Role badge */}
           <div className="px-5 py-4">
             <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
-              {user?.role === "owner" ? "Owner Panel" : "Employee Panel"}
+              {user?.role === "owner" ? "Owner Panel" : user?.role === "partner" ? "Partner Panel" : "Employee Panel"}
             </span>
           </div>
 
