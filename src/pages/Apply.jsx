@@ -23,7 +23,7 @@ import {
   Eye,
   Trash2,
 } from "lucide-react";
-import { submitApplication, downloadApplicationPdf, uploadFilesToS3 } from "../services/api";
+import { submitApplication, downloadApplicationPdf, uploadFilesToS3, getApprovedSubVendors } from "../services/api";
 
 /* ── Constants ────────────────────────────────────────── */
 
@@ -669,8 +669,26 @@ function SystemSizeStep({ form, onChange }) {
 /* ── Step 4: Vendor ──────────────────────────────────── */
 
 function VendorStep({ form, location, onChange }) {
-  const vendors =
+  const [approvedVendors, setApprovedVendors] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    getApprovedSubVendors(location)
+      .then((response) => {
+        if (!active) return;
+        const items = response?.data?.items || response?.items || [];
+        setApprovedVendors(items.map((item) => item.name).filter(Boolean));
+      })
+      .catch((error) => {
+        console.error("Could not load approved sub-vendors:", error);
+        if (active) setApprovedVendors([]);
+      });
+    return () => { active = false; };
+  }, [location]);
+
+  const existingVendors =
     location === "odisha" ? ODISHA_SUB_VENDORS : KOLKATA_SUB_VENDORS;
+  const vendors = [...new Set([...existingVendors, ...approvedVendors])];
   return (
     <FormCard icon={User} title="Vendor & Sales Details">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

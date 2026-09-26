@@ -221,6 +221,9 @@ export const submitPartner = (payload) =>
     body: payload instanceof FormData ? payload : JSON.stringify(payload),
   });
 
+export const getApprovedSubVendors = (location) =>
+  apiFetch(`/partners/approved-sub-vendors?location=${encodeURIComponent(location)}`);
+
 export const createPartnerRecord = (payload) =>
   apiFetch("/admin/partners", {
     method: "POST",
