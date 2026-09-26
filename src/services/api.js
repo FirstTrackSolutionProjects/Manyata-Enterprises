@@ -254,6 +254,7 @@ export const getMyPartnerApplications = (params = {}) => {
   const query = new URLSearchParams(params);
   return apiFetch(`/partners/my-applications?${query.toString()}`);
 };
+export const getMyPartnerHierarchy = () => apiFetch("/partners/my-hierarchy");
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {

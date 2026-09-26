@@ -70,7 +70,7 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
         {error && <p role="alert" className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Select label="Partner Type" value={form.partnerType} onChange={(value) => updateField("partnerType", value)} options={[["vendor", "Vendor"], ["dealer", "Dealer"], ["sub_vendor", "Sub-vendor"]]} />
+          <Select label="Partner Type" value={form.partnerType} onChange={(value) => updateField("partnerType", value)} options={[["super_vendor", "Super-vendor"], ["vendor", "Vendor"], ["sub_vendor", "Sub-vendor"], ["dealer", "Dealer"]]} />
           {form.partnerType === "sub_vendor" && <Select label="Commission (optional)" value={form.commissionModel} required={false} onChange={(value) => updateField("commissionModel", value)} options={[["", "Set later"], ["per_completed_installation", "Per completed installation"]]} />}
           {INPUTS.map(([name, label, required, type]) => <Field key={name} label={label} value={form[name]} required={required} type={type || "text"} onChange={(value) => updateField(name, value)} />)}
           <Select label="State" value={form.state} onChange={(value) => updateField("state", value)} options={[["", "Select state"], ["Odisha", "Odisha"], ["West Bengal", "West Bengal"]]} />

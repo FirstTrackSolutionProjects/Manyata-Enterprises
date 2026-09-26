@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Building2, FileText, Search, Loader2 } from "lucide-react";
+import { Building2, FileText, Search, Loader2, Network } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import { useAuth } from "../contexts/AuthContext";
-import { getMyPartnerApplications } from "../services/api";
+import { getMyPartnerApplications, getMyPartnerHierarchy } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : "—";
@@ -11,9 +11,10 @@ const titleCase = (value = "") => String(value).replace(/_/g, " ").replace(/\b\w
 
 export default function PartnerDashboard() {
   const { user } = useAuth();
-  const partnerType = user?.partnerType === "dealer" ? "Dealer" : "Sub-vendor";
+  const partnerType = ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[user?.partnerType] || "Partner";
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const [section, setSection] = useState("dashboard");
+  const [hierarchy, setHierarchy] = useState([]);
   const [applications, setApplications] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -21,6 +22,16 @@ export default function PartnerDashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getMyPartnerHierarchy().then((response) => {
+      if (active) setHierarchy(response.data.children || []);
+    }).catch(() => {
+      if (active) setHierarchy([]);
+    });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (!canViewApplications) return;
@@ -62,6 +73,7 @@ export default function PartnerDashboard() {
           {canViewApplications && <button onClick={() => setSection("applications")} className="rounded-2xl border border-navy/10 bg-white p-5 text-left hover:border-amber"><p className="flex items-center gap-2 text-xs font-semibold text-muted"><FileText size={15} /> Your Applications</p><p className="mt-1 text-2xl font-extrabold text-navy">{total}</p></button>}
         </div>
         {canViewApplications && <div className="rounded-2xl border border-navy/10 bg-white p-5"><h2 className="text-sm font-bold text-navy">Your Applications</h2><p className="mt-1 text-sm text-muted">{total} applications assigned to your partner account.</p><button onClick={() => setSection("applications")} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber hover:underline"><FileText size={15} /> Open applications</button></div>}
+        <div className="mt-6 rounded-2xl border border-navy/10 bg-white p-5"><h2 className="flex items-center gap-2 text-sm font-bold text-navy"><Network size={16} /> Referral Chain</h2><p className="mt-1 text-sm text-muted">Partners referred through your account and their levels are shown here.</p><div className="mt-3 divide-y divide-navy/5">{hierarchy.length ? hierarchy.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span className="font-semibold text-navy" style={{ paddingLeft: `${Math.min(Number(item.depth || 1) - 1, 3) * 18}px` }}>{item.company_name || item.contact_name}</span><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" })[item.partner_type] || item.partner_type}</span></div>) : <p className="py-3 text-sm text-muted">No referrals in your chain yet.</p>}</div></div>
       </> : canViewApplications ? <>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm text-muted">Only applications assigned to your partner account are listed here.</p></div><div className="rounded-xl border border-navy/10 bg-white px-4 py-2"><span className="text-xs text-muted">Total </span><strong className="text-navy">{total}</strong></div></div>
         <div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search by name, phone, email, or application no." className="w-full rounded-lg border border-navy/15 bg-white py-3 pl-9 pr-4 text-sm focus:border-amber focus:outline-none" /></div>

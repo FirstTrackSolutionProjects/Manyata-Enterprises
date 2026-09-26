@@ -2,6 +2,7 @@ import { useState } from "react";
 import { fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
 
 const PARTNER_TYPES = [
+  ["super_vendor", "Super-vendor"],
   ["vendor", "Vendor"],
   ["dealer", "Dealer"],
   ["sub_vendor", "Sub-vendor"],

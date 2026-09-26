@@ -1850,8 +1850,9 @@ function SubmissionList({ type }) {
   const [showPartnerOnboard, setShowPartnerOnboard] = useState(false);
   const [onboardItems, setOnboardItems] = useState([]);
   const [onboardLoading, setOnboardLoading] = useState(false);
-  const [onboardType, setOnboardType] = useState("sub_vendor");
+  const [onboardType, setOnboardType] = useState("super_vendor");
   const [onboardPartnerId, setOnboardPartnerId] = useState("");
+  const [onboardParentId, setOnboardParentId] = useState("");
   const [onboardCredentials, setOnboardCredentials] = useState(null);
   const [onboardError, setOnboardError] = useState("");
   const [onboardSaving, setOnboardSaving] = useState(false);
@@ -1935,6 +1936,12 @@ function SubmissionList({ type }) {
     const normalizedType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
     return normalizedType === onboardType && item.status === "approved";
   });
+  const parentTypeByChildType = { super_vendor: null, vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
+  const onboardParentType = parentTypeByChildType[onboardType];
+  const onboardParents = onboardItems.filter((item) => {
+    const normalizedType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
+    return normalizedType === onboardParentType && item.status === "approved";
+  });
   const selectedOnboardPartner = onboardPartners.find((item) => String(item.id) === onboardPartnerId) || null;
 
   const handlePartnerOnboard = async () => {
@@ -1944,6 +1951,10 @@ function SubmissionList({ type }) {
     setOnboardCredentials(null);
     try {
       let credentials;
+      await apiFetch(`/admin/partners/${selectedOnboardPartner.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ referredByPartnerId: onboardParentId || null }),
+      });
       if (selectedOnboardPartner.partner_login_id) {
         const response = await resetPartnerPassword(selectedOnboardPartner.id);
         credentials = response.data;
@@ -2005,7 +2016,7 @@ function SubmissionList({ type }) {
         {(isJoinUs || isCareers || isContacts) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
         {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
         {isPartners && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={[{ value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]} placeholder="All states" />}
-        {isPartners && <FilterSelect label="Partner Type" value={partnerTypeFilter} onChange={setPartnerTypeFilter} options={[{ value: "vendor", label: "Vendor" }, { value: "sub_vendor", label: "Sub-vendor" }, { value: "dealer", label: "Dealer" }]} placeholder="All partner types" />}
+        {isPartners && <FilterSelect label="Partner Type" value={partnerTypeFilter} onChange={setPartnerTypeFilter} options={[{ value: "super_vendor", label: "Super-vendor" }, { value: "vendor", label: "Vendor" }, { value: "sub_vendor", label: "Sub-vendor" }, { value: "dealer", label: "Dealer" }]} placeholder="All partner types" />}
         {isPartners && <FilterSelect label="System Type" value={systemTypeFilter} onChange={setSystemTypeFilter} options={[{ value: "on_grid", label: "On-Grid" }, { value: "hybrid", label: "Hybrid" }]} placeholder="All types" />}
         {isContacts && <FilterSelect label="System Size" value={systemSizeFilter} onChange={setSystemSizeFilter} options={[...new Set(items.map((item) => item.system_size).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All sizes" />}
         <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
@@ -2024,7 +2035,7 @@ function SubmissionList({ type }) {
             <th className="p-3 whitespace-nowrap">Phone</th>
             {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
-            {isPartners && <th className="p-3 whitespace-nowrap">Email</th>}
+            {isPartners && <><th className="p-3 whitespace-nowrap">Email</th><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Referred By</th></>}
             <th className="p-3 whitespace-nowrap">Status</th>
             <th className="p-3 whitespace-nowrap">Created</th>
             {isPartners && <th className="p-3 whitespace-nowrap">Updated</th>}
@@ -2050,7 +2061,7 @@ function SubmissionList({ type }) {
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
               {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
-              {isPartners && <td className="p-3 whitespace-nowrap">{it.email || "-"}</td>}
+              {isPartners && <><td className="p-3 whitespace-nowrap">{it.email || "-"}</td><td className="p-3 whitespace-nowrap">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[it.partner_type] || it.partner_type || "-"}</td><td className="p-3 whitespace-nowrap">{it.referrer_company_name || it.referrer_contact_name || "Owner / Not assigned"}</td></>}
               <td className="p-3 whitespace-nowrap">
                 <StatusBadge status={it.status} isPartner={isPartners} />
               </td>
@@ -2109,15 +2120,16 @@ function SubmissionList({ type }) {
       </div>
       }
       {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
-      {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Create or reset a separate login for an approved sub-vendor or dealer.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
+      {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Create a login for the next partner level in the referral chain.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
         {onboardError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{onboardError}</p>}
-        <label className="mt-5 block text-xs font-semibold text-navy/70">Partner Type<select value={onboardType} onChange={(event) => { setOnboardType(event.target.value); setOnboardPartnerId(""); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select></label>
-        <label className="mt-4 block text-xs font-semibold text-navy/70">Approved Partner<select value={onboardPartnerId} onChange={(event) => { setOnboardPartnerId(event.target.value); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose a partner</option>{onboardPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id}</option>)}</select></label>
+        <label className="mt-5 block text-xs font-semibold text-navy/70">New Partner Type<select value={onboardType} onChange={(event) => { setOnboardType(event.target.value); setOnboardPartnerId(""); setOnboardParentId(""); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select></label>
+        {onboardParentType && <label className="mt-4 block text-xs font-semibold text-navy/70">Referred by ({onboardParentType.replace("_", "-")})<select value={onboardParentId} onChange={(event) => setOnboardParentId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose referring partner</option>{onboardParents.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id}</option>)}</select></label>}
+        <label className="mt-4 block text-xs font-semibold text-navy/70">Approved Partner<select value={onboardPartnerId} onChange={(event) => { setOnboardPartnerId(event.target.value); const chosen = onboardPartners.find((partner) => String(partner.id) === event.target.value); if (chosen?.referred_by_partner_id) setOnboardParentId(String(chosen.referred_by_partner_id)); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose a partner</option>{onboardPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id}{partner.referred_by_partner_id ? " · already referred" : " · no parent yet"}</option>)}</select></label>
         {onboardLoading && <p className="mt-2 text-xs text-muted">Loading approved partners…</p>}
-        {!onboardLoading && !onboardPartners.length && <p className="mt-2 text-xs text-muted">No approved {onboardType === "sub_vendor" ? "sub-vendors" : "dealers"} found.</p>}
+        {!onboardLoading && !onboardPartners.length && <p className="mt-2 text-xs text-muted">No approved {{ super_vendor: "super-vendors", vendor: "vendors", sub_vendor: "sub-vendors", dealer: "dealers" }[onboardType]} found.</p>}
         {selectedOnboardPartner && <p className="mt-3 rounded-lg bg-amber-soft p-3 text-xs text-navy">{selectedOnboardPartner.partner_login_id ? `Login ${selectedOnboardPartner.partner_login_id} exists. Continue to reset its password.` : `A new login will be created for ${selectedOnboardPartner.company_name || selectedOnboardPartner.contact_name}.`}</p>}
         {onboardCredentials && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-sm font-bold text-emerald-900">Credentials ready — share securely</p><p className="mt-2 text-sm text-emerald-900">Login ID: <strong>{onboardCredentials.loginId}</strong></p><p className="mt-1 text-sm text-emerald-900">Temporary password: <strong>{onboardCredentials.password}</strong></p><p className="mt-2 text-xs text-emerald-800">The partner must change the password at first sign-in.</p><button onClick={() => navigator.clipboard?.writeText(`Login ID: ${onboardCredentials.loginId}\nTemporary password: ${onboardCredentials.password}`)} className="mt-3 rounded-full border border-emerald-300 px-4 py-2 text-xs font-bold text-emerald-900">Copy Credentials</button></div>}
-        <div className="mt-6 flex justify-end gap-3"><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-bold text-navy">Close</button><button onClick={handlePartnerOnboard} disabled={!selectedOnboardPartner || onboardLoading || onboardSaving || Boolean(onboardCredentials)} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50">{onboardSaving ? "Processing..." : selectedOnboardPartner?.partner_login_id ? "Reset Password" : "Create Login"}</button></div>
+        <div className="mt-6 flex justify-end gap-3"><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-bold text-navy">Close</button><button onClick={handlePartnerOnboard} disabled={!selectedOnboardPartner || (Boolean(onboardParentType) && !onboardParentId) || onboardLoading || onboardSaving || Boolean(onboardCredentials)} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50">{onboardSaving ? "Processing..." : selectedOnboardPartner?.partner_login_id ? "Reset Password" : "Create Login"}</button></div>
       </div></div>}
       {isPartners && selectedPartner && (
         <PartnerDetailsModal

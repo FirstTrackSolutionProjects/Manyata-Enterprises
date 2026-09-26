@@ -15,6 +15,7 @@ import {
 import { submitPartner } from "../services/api";
 
 const PARTNER_TYPES = [
+  { value: "super_vendor", label: "Super-vendor" },
   { value: "vendor", label: "Vendor" },
   { value: "dealer", label: "Dealer" },
   { value: "sub_vendor", label: "Sub-vendor" },
