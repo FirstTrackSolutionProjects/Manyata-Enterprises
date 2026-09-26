@@ -2031,11 +2031,11 @@ function SubmissionList({ type }) {
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
             <th className="p-3 whitespace-nowrap">ID</th>
-            <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact" : "Name"}</th>
+            <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact Person" : "Name"}</th>
             <th className="p-3 whitespace-nowrap">Phone</th>
             {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
-            {isPartners && <><th className="p-3 whitespace-nowrap">Email</th><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Referred By</th></>}
+            {isPartners && <><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Referred By</th></>}
             <th className="p-3 whitespace-nowrap">Status</th>
             <th className="p-3 whitespace-nowrap">Created</th>
             {isPartners && <th className="p-3 whitespace-nowrap">Updated</th>}
@@ -2061,7 +2061,7 @@ function SubmissionList({ type }) {
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
               {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
-              {isPartners && <><td className="p-3 whitespace-nowrap">{it.email || "-"}</td><td className="p-3 whitespace-nowrap">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[it.partner_type] || it.partner_type || "-"}</td><td className="p-3 whitespace-nowrap">{it.referrer_company_name || it.referrer_contact_name || "Owner / Not assigned"}</td></>}
+              {isPartners && <><td className="p-3 whitespace-nowrap">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[it.partner_type] || it.partner_type || "-"}</td><td className="p-3 whitespace-nowrap">{it.referrer_company_name || it.referrer_contact_name || "Owner / Not assigned"}</td></>}
               <td className="p-3 whitespace-nowrap">
                 <StatusBadge status={it.status} isPartner={isPartners} />
               </td>
