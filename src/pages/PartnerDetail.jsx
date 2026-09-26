@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { useAuth } from "../contexts/AuthContext";
-import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, updatePartnerDashboardAccess, updatePartnerStatus } from "../services/api";
+import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, setOwnerPartnerCommission, updatePartnerDashboardAccess, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
   ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
@@ -242,6 +242,11 @@ export default function PartnerDetail() {
             ["Commission Chart", partner.commission_model === "per_completed_installation" || partner.partner_type === "sub_vendor_commission" ? `On-Grid: ₹${Number(partner.commission_rates?.on_grid ?? 20000).toLocaleString("en-IN")} per completed installation · Hybrid: ₹${Number(partner.commission_rates?.hybrid ?? 30000).toLocaleString("en-IN")} per completed installation` : "—"],
             ["Experience", partner.experience_years], ["Business Description", partner.description],
           ]} />
+          {isOwner && <InfoSection title="Referral Commission Offered to This Partner" items={[
+            ["On-Grid", partner.referral_commission?.commission_rates?.on_grid === undefined ? "Not set" : `₹${Number(partner.referral_commission.commission_rates.on_grid).toLocaleString("en-IN")} per completed installation`],
+            ["Hybrid", partner.referral_commission?.commission_rates?.hybrid === undefined ? "Not set" : `₹${Number(partner.referral_commission.commission_rates.hybrid).toLocaleString("en-IN")} per completed installation`],
+            ["Paid by", partner.referral_commission?.payer_partner_id ? partner.referrer_company_name || partner.referrer_contact_name || "Direct referrer" : "Owner"],
+          ]} />}
           <InfoSection title="Registration Details" items={[
             ["GST Number", partner.gst_number], ["PAN Number", partner.pan_number], ["MSME Number", partner.msme_number],
           ]} />
@@ -283,6 +288,7 @@ export default function PartnerDetail() {
               <button onClick={saveDashboardAccess} disabled={savingDashboardAccess || partner.status !== "approved"} className="mt-4 w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-60">{savingDashboardAccess ? "Saving..." : "Save Access"}</button>
             </> : <p className="mt-3 text-xs text-muted">Create the partner login first to manage dashboard access.</p>}
           </div>}
+          {isOwner && !partner.referred_by_partner_id && <OwnerReferralCommissionCard partner={partner} onSaved={load} />}
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock size={16} className="text-amber" />Status Timeline</h3>
             <div className="mt-4 space-y-3">
@@ -298,6 +304,35 @@ export default function PartnerDetail() {
       </div>
     </>
   );
+}
+
+function OwnerReferralCommissionCard({ partner, onSaved }) {
+  const initial = partner.referral_commission?.commission_rates || {};
+  const [rates, setRates] = useState({ on_grid: initial.on_grid ?? "", hybrid: initial.hybrid ?? "" });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const save = async () => {
+    setSaving(true);
+    setMessage("");
+    try {
+      await setOwnerPartnerCommission(partner.id, rates);
+      setMessage("Owner commission offer saved. Only this partner can see it.");
+      await onSaved();
+    } catch (error) {
+      setMessage(error.message || "Could not save the commission offer.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  return <div className="rounded-2xl border border-navy/10 bg-white p-5">
+    <h3 className="text-sm font-bold text-navy">Owner offer to this partner</h3>
+    <p className="mt-1 text-xs text-muted">This is the amount this partner receives from Owner, separate from any amount they may offer to their referrals.</p>
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      {[["on_grid", "On-Grid"], ["hybrid", "Hybrid"]].map(([key, label]) => <label key={key} className="text-xs font-semibold text-muted">{label} · per installation<input type="number" min="0" step="1" value={rates[key]} onChange={(event) => setRates((current) => ({ ...current, [key]: event.target.value }))} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label>)}
+    </div>
+    {message && <p role="status" className="mt-3 text-xs text-muted">{message}</p>}
+    <button onClick={save} disabled={saving} className="mt-4 w-full rounded-full bg-amber px-4 py-2.5 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Saving..." : "Save Owner Offer"}</button>
+  </div>;
 }
 
 function InfoSection({ title, items, children }) {

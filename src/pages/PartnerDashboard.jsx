@@ -3,7 +3,7 @@ import { Building2, FileText, Search, Loader2, Network } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import { useAuth } from "../contexts/AuthContext";
-import { getMyPartnerApplications, getMyPartnerHierarchy } from "../services/api";
+import { getMyPartnerApplications, getMyPartnerHierarchy, setMyChildPartnerCommission } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : "—";
@@ -15,6 +15,10 @@ export default function PartnerDashboard() {
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const [section, setSection] = useState("dashboard");
   const [hierarchy, setHierarchy] = useState([]);
+  const [incomingCommission, setIncomingCommission] = useState(null);
+  const [commissionDrafts, setCommissionDrafts] = useState({});
+  const [savingCommissionId, setSavingCommissionId] = useState(null);
+  const [commissionNotice, setCommissionNotice] = useState("");
   const [regionCounts, setRegionCounts] = useState({ odisha: 0, west_bengal: 0 });
   const [applications, setApplications] = useState([]);
   const [total, setTotal] = useState(0);
@@ -30,6 +34,7 @@ export default function PartnerDashboard() {
       if (!active) return;
       const children = response.data.children || [];
       setHierarchy(children);
+      setIncomingCommission(response.data.partner?.incoming_commission || null);
       const chain = [response.data.partner, ...children].filter(Boolean);
       const counts = { odisha: 0, west_bengal: 0 };
       chain.forEach((partner) => {
@@ -43,6 +48,26 @@ export default function PartnerDashboard() {
     });
     return () => { active = false; };
   }, []);
+
+  const saveChildCommission = async (child) => {
+    const draft = commissionDrafts[child.id] || {};
+    setSavingCommissionId(child.id);
+    setCommissionNotice("");
+    try {
+      const response = await setMyChildPartnerCommission(child.id, {
+        on_grid: draft.on_grid ?? child.referral_commission_rates?.on_grid ?? "",
+        hybrid: draft.hybrid ?? child.referral_commission_rates?.hybrid ?? "",
+      });
+      setHierarchy((current) => current.map((item) => Number(item.id) === Number(child.id)
+        ? { ...item, referral_commission_model: response.data.commission.commission_model, referral_commission_rates: response.data.commission.commission_rates }
+        : item));
+      setCommissionNotice("Referral commission saved.");
+    } catch (err) {
+      setCommissionNotice(err.message || "Could not save referral commission.");
+    } finally {
+      setSavingCommissionId(null);
+    }
+  };
 
   useEffect(() => {
     if (!canViewApplications) return;
@@ -87,8 +112,9 @@ export default function PartnerDashboard() {
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">Odisha Partners in Your Chain</p><p className="mt-2 text-2xl font-extrabold text-navy">{regionCounts.odisha}</p></div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">West Bengal Partners in Your Chain</p><p className="mt-2 text-2xl font-extrabold text-navy">{regionCounts.west_bengal}</p></div>
         </div>
+        {incomingCommission && <div className="mb-6 rounded-2xl border border-amber/30 bg-amber-50 p-5"><h2 className="text-sm font-bold text-navy">Your commission from direct referrer</h2><div className="mt-3 flex flex-wrap gap-6 text-sm text-navy"><span>On-Grid: <strong>{incomingCommission.commission_rates?.on_grid === undefined ? "Not set" : `₹${Number(incomingCommission.commission_rates.on_grid).toLocaleString("en-IN")}`}</strong></span><span>Hybrid: <strong>{incomingCommission.commission_rates?.hybrid === undefined ? "Not set" : `₹${Number(incomingCommission.commission_rates.hybrid).toLocaleString("en-IN")}`}</strong></span><span className="text-muted">Per completed installation</span></div></div>}
         {canViewApplications && <div className="rounded-2xl border border-navy/10 bg-white p-5"><h2 className="text-sm font-bold text-navy">Your Applications</h2><p className="mt-1 text-sm text-muted">{total} applications assigned to your partner account.</p><button onClick={() => setSection("applications")} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber hover:underline"><FileText size={15} /> Open applications</button></div>}
-        <div className="mt-6 rounded-2xl border border-navy/10 bg-white p-5"><h2 className="flex items-center gap-2 text-sm font-bold text-navy"><Network size={16} /> Referral Chain</h2><p className="mt-1 text-sm text-muted">Partners referred through your account and their levels are shown here.</p><div className="mt-3 divide-y divide-navy/5">{hierarchy.length ? hierarchy.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span className="font-semibold text-navy" style={{ paddingLeft: `${Math.min(Number(item.depth || 1) - 1, 3) * 18}px` }}>{item.company_name || item.contact_name}</span><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" })[item.partner_type] || item.partner_type}</span></div>) : <p className="py-3 text-sm text-muted">No referrals in your chain yet.</p>}</div></div>
+        <div className="mt-6 rounded-2xl border border-navy/10 bg-white p-5"><h2 className="flex items-center gap-2 text-sm font-bold text-navy"><Network size={16} /> Referral Chain</h2><p className="mt-1 text-sm text-muted">Set the commission you offer to each direct referral. Each partner can see only the amount offered to them.</p>{commissionNotice && <p role="status" className="mt-3 text-sm text-amber">{commissionNotice}</p>}<div className="mt-3 divide-y divide-navy/5">{hierarchy.length ? hierarchy.map((item) => { const direct = Number(item.depth) === 1; const rates = item.referral_commission_rates || {}; const draft = commissionDrafts[item.id] || {}; return <div key={item.id} className="py-4"><div className="flex items-center justify-between gap-3 text-sm"><span className="font-semibold text-navy" style={{ paddingLeft: `${Math.min(Number(item.depth || 1) - 1, 3) * 18}px` }}>{item.company_name || item.contact_name}</span><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" })[item.partner_type] || item.partner_type}</span></div>{direct && <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"><label className="text-xs font-semibold text-muted">On-Grid amount<input type="number" min="0" step="1" value={draft.on_grid ?? rates.on_grid ?? ""} onChange={(event) => setCommissionDrafts((current) => ({ ...current, [item.id]: { ...(current[item.id] || {}), on_grid: event.target.value } }))} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label><label className="text-xs font-semibold text-muted">Hybrid amount<input type="number" min="0" step="1" value={draft.hybrid ?? rates.hybrid ?? ""} onChange={(event) => setCommissionDrafts((current) => ({ ...current, [item.id]: { ...(current[item.id] || {}), hybrid: event.target.value } }))} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label><button onClick={() => saveChildCommission(item)} disabled={savingCommissionId === item.id} className="rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy disabled:opacity-50">{savingCommissionId === item.id ? "Saving..." : "Save offer"}</button></div>}{!direct && <p className="mt-1 text-xs text-muted" style={{ paddingLeft: `${Math.min(Number(item.depth || 1) - 1, 3) * 18}px` }}>Commission amounts are private to this partner and their direct referrer.</p>}</div>; }) : <p className="py-3 text-sm text-muted">No referrals in your chain yet.</p>}</div></div>
       </> : canViewApplications ? <>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm text-muted">Only applications assigned to your partner account are listed here.</p></div><div className="rounded-xl border border-navy/10 bg-white px-4 py-2"><span className="text-xs text-muted">Total </span><strong className="text-navy">{total}</strong></div></div>
         <div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search by name, phone, email, or application no." className="w-full rounded-lg border border-navy/15 bg-white py-3 pl-9 pr-4 text-sm focus:border-amber focus:outline-none" /></div>

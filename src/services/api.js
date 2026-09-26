@@ -237,6 +237,11 @@ export const updatePartner = (id, payload) =>
   });
 
 export const getPartnerDetail = (id) => apiFetch(`/admin/partners/${id}`);
+export const setOwnerPartnerCommission = (id, commissionRates) =>
+  apiFetch(`/admin/partners/${id}/commission`, {
+    method: "PUT",
+    body: JSON.stringify({ commissionRates }),
+  });
 
 export const updatePartnerStatus = (id, status, note = "") =>
   apiFetch(`/admin/partners/${id}/status`, {
@@ -255,6 +260,11 @@ export const getMyPartnerApplications = (params = {}) => {
   return apiFetch(`/partners/my-applications?${query.toString()}`);
 };
 export const getMyPartnerHierarchy = () => apiFetch("/partners/my-hierarchy");
+export const setMyChildPartnerCommission = (id, commissionRates) =>
+  apiFetch(`/partners/${id}/commission`, {
+    method: "PUT",
+    body: JSON.stringify({ commissionRates }),
+  });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {
