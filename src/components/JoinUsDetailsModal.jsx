@@ -3,7 +3,7 @@ import { fileUrl, updateJoinUs, uploadFilesToS3 } from "../services/api";
 
 const FIELDS = [
   ["firstName", "First Name"], ["lastName", "Last Name"], ["email", "Email", "email"], ["phone", "Phone"],
-  ["dob", "Date of Birth"], ["gender", "Gender"], ["guardianName", "Father's / Husband's Name"], ["maritalStatus", "Marital Status"],
+  ["dob", "Date of Birth"], ["gender", "Gender"], ["fatherName", "Father's Name"], ["motherName", "Mother's Name"], ["bloodGroup", "Blood Group"], ["guardianName", "Guardian Name"], ["guardianMobile", "Guardian Mobile Number"], ["maritalStatus", "Marital Status"],
   ["streetAddress", "Street Address"], ["city", "City"], ["district", "District"], ["state", "State"], ["location", "Location / Posting Preference"], ["postalCode", "Postal Code"], ["country", "Country"],
   ["permanentAddress", "Permanent Address"], ["permanentCity", "Permanent City"], ["permanentState", "Permanent State"], ["permanentPostalCode", "Permanent Postal Code"],
   ["aadhaarNumber", "Aadhaar Number"], ["panNumber", "PAN Number"], ["qualification", "Qualification"], ["institutionName", "Institution"], ["yearOfPassing", "Year of Passing"],
@@ -16,10 +16,10 @@ const LOA_FIELDS = [
   ["allowance", "Monthly Allowance (optional)"], ["annualCtc", "Annual CTC", true],
   ["probationPeriod", "Probation Period"], ["noticePeriod", "Notice Period"],
 ];
-const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"]];
+const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"], ["educationCertificate", "Education Certificate / Marksheet", "Education Certificate / Marksheet"], ["experienceDocument", "Experience Certificate / Work Proof", "Experience Certificate / Work Proof"]];
 
 export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNotice = "" }) {
-  const [form, setForm] = useState(() => Object.fromEntries(FIELDS.map(([key]) => [key, submission[key] ?? ""]).concat([["sameAsAbove", Boolean(submission.same_as_above)]])));
+  const [form, setForm] = useState(() => Object.fromEntries(FIELDS.map(([key]) => [key, submission[key] ?? submission[key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)] ?? ""]).concat([["sameAsAbove", Boolean(submission.same_as_above)]])));
   const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(loaNotice);

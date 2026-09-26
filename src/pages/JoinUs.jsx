@@ -38,7 +38,11 @@ const initialState = {
   phone: "",
   dob: "",
   gender: "Male",
+  fatherName: "",
+  motherName: "",
   guardianName: "",
+  guardianMobile: "",
+  bloodGroup: "",
   maritalStatus: "",
   streetAddress: "",
   city: "",
@@ -174,7 +178,11 @@ export default function JoinUs() {
               <Field label="Phone Number" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter your phone number" type="tel" />
               <Field label="Date of Birth" name="dob" value={form.dob} onChange={handleChange} type="date" />
               <SelectField label="Gender" name="gender" value={form.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
-              <Field label="Father's / Husband's Name" name="guardianName" value={form.guardianName} onChange={handleChange} placeholder="Enter name" />
+              <Field label="Father's Name" name="fatherName" value={form.fatherName} onChange={handleChange} placeholder="Enter father's name" />
+              <Field label="Mother's Name" name="motherName" value={form.motherName} onChange={handleChange} placeholder="Enter mother's name" />
+              <SelectField label="Blood Group" name="bloodGroup" value={form.bloodGroup} onChange={handleChange} options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]} placeholder="Select blood group" />
+              <Field label="Guardian Name" name="guardianName" value={form.guardianName} onChange={handleChange} placeholder="Enter guardian name" />
+              <Field label="Guardian Mobile Number" name="guardianMobile" value={form.guardianMobile} onChange={handleChange} placeholder="Enter guardian mobile number" type="tel" />
               <SelectField label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleChange} options={["Single", "Married"]} placeholder="Select" />
             </div>
           </FormCard>
@@ -245,6 +253,7 @@ export default function JoinUs() {
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Institution Name" name="institutionName" value={form.institutionName} onChange={handleChange} placeholder="Enter your institution name" />
               <Field label="Year of Passing" name="yearOfPassing" value={form.yearOfPassing} onChange={handleChange} placeholder="Eg: 2023" />
+              {form.experience === "fresher" && <FileUpload label="Education Certificate / Marksheet" name="educationCertificate" />}
             </div>
           </FormCard>
 
@@ -265,6 +274,7 @@ export default function JoinUs() {
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Current / Last Company (optional)" name="companyName" value={form.companyName} onChange={handleChange} placeholder="Enter company name" />
               <Field label="Current / Last Designation (optional)" name="designation" value={form.designation} onChange={handleChange} placeholder="Enter designation" />
+              {form.experience && form.experience !== "fresher" && <FileUpload label="Experience Certificate / Work Proof" name="experienceDocument" />}
             </div>
           </FormCard>
 
