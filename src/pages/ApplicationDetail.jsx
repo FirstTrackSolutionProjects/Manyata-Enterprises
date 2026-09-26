@@ -25,11 +25,17 @@ import {
   fileUrl,
 } from "../services/api";
 import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
+import { useAuth } from "../contexts/AuthContext";
+import { hasActionPermission } from "../utils/permissions";
 
 export default function ApplicationDetail() {
+  const { user } = useAuth();
+  const canEdit = hasActionPermission(user, "applications", "edit");
+  const canDownload = hasActionPermission(user, "applications", "download");
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
+  const [documentPresence, setDocumentPresence] = useState({});
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -50,6 +56,7 @@ export default function ApplicationDetail() {
         getApplicationTimeline(id),
       ]);
       setApp(a.data.application);
+      setDocumentPresence(a.data.documentPresence || {});
       setHistory(h.data.items || []);
       setNewStatus(a.data.application.status);
     } catch (err) {
@@ -134,12 +141,12 @@ export default function ApplicationDetail() {
           </p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowEditForm(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>
-          <button onClick={() => downloadApplicationPdf(app.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16} />Download PDF</button>
+          {canEdit && <button onClick={() => setShowEditForm(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>}
+          {canDownload && <button onClick={() => downloadApplicationPdf(app.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16} />Download PDF</button>}
         </div>
       </div>
 
-      {showEditForm && <ApplicationEditForm app={app} onClose={() => setShowEditForm(false)} onSaved={async () => { setShowEditForm(false); await load(); }} />}
+      {showEditForm && canEdit && <ApplicationEditForm app={app} onClose={() => setShowEditForm(false)} onSaved={async () => { setShowEditForm(false); await load(); }} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -214,37 +221,23 @@ export default function ApplicationDetail() {
           <InfoSection title="Uploaded Documents">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {[
-                ["Aadhaar Front", app.file_aadhaar_front],
-                ["PAN Card", app.file_pan_card],
-                ["Photo", app.file_photo],
-                ["Signature", app.file_signature],
-                ["Electricity Bill", app.file_electricity_bill],
-                ["Cheque / Passbook", app.file_cheque_passbook],
-                ["Site Photo", app.file_site_photo],
-              ]
-                .filter(([, v]) => v)
-                .map(([label, path]) => (
-                  <a
-                    key={label}
-                    href={fileUrl(path)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 rounded-lg border border-navy/10 bg-white p-3 hover:border-amber"
-                  >
-                    <FileText size={18} className="text-amber" />
-                    <span className="text-sm font-semibold text-navy">
-                      {label}
-                    </span>
-                  </a>
-                ))}
-              {![
-                app.file_aadhaar_front,
-                app.file_pan_card,
-                app.file_photo,
-                app.file_signature,
-                app.file_electricity_bill,
-                app.file_cheque_passbook,
-                app.file_site_photo,
+                ["file_aadhaar_front", "Aadhaar Front"],
+                ["file_pan_card", "PAN Card"],
+                ["file_photo", "Photo"],
+                ["file_signature", "Signature"],
+                ["file_electricity_bill", "Electricity Bill"],
+                ["file_cheque_passbook", "Cheque / Passbook"],
+                ["file_site_photo", "Site Photo"],
+              ].filter(([key]) => documentPresence[key] || app[key]).map(([key, label]) => canDownload && app[key] ? (
+                <a key={key} href={fileUrl(app[key])} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border border-navy/10 bg-white p-3 hover:border-amber">
+                  <FileText size={18} className="text-amber" />
+                  <span className="text-sm font-semibold text-navy">{label}</span>
+                  <Download size={15} className="ml-auto text-muted" />
+                </a>
+              ) : <div key={key} className="flex items-center gap-3 rounded-lg border border-navy/10 bg-slate-50 p-3"><FileText size={18} className="text-muted" /><span className="text-sm font-semibold text-muted">{label} · no download access</span></div>)}
+              {!Object.values(documentPresence).some(Boolean) && ![
+                app.file_aadhaar_front, app.file_pan_card, app.file_photo, app.file_signature,
+                app.file_electricity_bill, app.file_cheque_passbook, app.file_site_photo,
               ].some(Boolean) && (
                 <p className="text-sm text-muted">No documents uploaded.</p>
               )}
@@ -259,7 +252,7 @@ export default function ApplicationDetail() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-2xl border border-navy/10 bg-white p-5">
+          {canEdit && <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <h3 className="text-sm font-bold text-navy">Update Status</h3>
             <div className="mt-4 space-y-3">
               <StatusDropdown
@@ -268,7 +261,7 @@ export default function ApplicationDetail() {
                 open={statusMenuOpen}
                 onOpenChange={setStatusMenuOpen}
                 onChange={setNewStatus}
-              />
+                  />
               <textarea
                 value={statusNote}
                 onChange={(e) => setStatusNote(e.target.value)}
@@ -298,7 +291,7 @@ export default function ApplicationDetail() {
                 </button>
               )}
             </div>
-          </div>
+          </div>}
 
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <h3 className="flex items-center gap-2 text-sm font-bold text-navy">

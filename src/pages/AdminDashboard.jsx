@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   Filter,
   RotateCcw,
+  Download,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
@@ -49,7 +50,9 @@ import {
   createBranch,
   updateBranch,
   apiFetch,
+  downloadApplicationPdf,
 } from "../services/api";
+import { hasActionPermission } from "../utils/permissions";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -58,7 +61,9 @@ export default function AdminDashboard() {
   const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
   const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || "no-access");
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
-  const hasAccess = user?.role === "owner" || permissions.includes(requiredModule);
+  const hasAccess = user?.role === "owner" || ((requiredModule === "applications" || requiredModule === "installations")
+    ? hasActionPermission(user, requiredModule, "view")
+    : permissions.includes(requiredModule));
 
   const handleSectionChange = (section) => {
     setSearchParams({ section }, { replace: true });
@@ -305,6 +310,9 @@ const EMPTY_FILTERS = {
 
 function ApplicationsTab({ initialLocation = "" }) {
   const { user } = useAuth();
+  const canViewApplications = hasActionPermission(user, "applications", "view");
+  const canEditApplications = hasActionPermission(user, "applications", "edit");
+  const canDownloadApplications = hasActionPermission(user, "applications", "download");
   const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -578,18 +586,19 @@ function ApplicationsTab({ initialLocation = "" }) {
                       {a.last_updated_by_name ? <><span className="block font-semibold text-navy">{a.last_updated_by_name}</span>{formatDateTime(a.last_updated_by_at)}</> : "Not edited"}
                     </td>
                     <td className="p-3 whitespace-nowrap">
-                      <Link
+                      {canViewApplications && <Link
                         to={`/admin/applications/${a.id}`}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"
                       >
                         <Eye size={14} /> View
-                      </Link>
-                      <Link
+                      </Link>}
+                      {canEditApplications && <Link
                         to={`/admin/applications/${a.id}`}
                         className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
                       >
                         <Pencil size={14} /> Edit
-                      </Link>
+                      </Link>}
+                      {canDownloadApplications && <button onClick={() => downloadApplicationPdf(a.id)} className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-navy hover:underline"><Download size={14} /> Download</button>}
                     </td>
                   </tr>
                 ))}
@@ -901,6 +910,10 @@ function EmployeesTab() {
                     {(u.permissions || []).length
                       ? u.permissions.map((permission) => ({ applications: "Applications", installations: "Installation", employees: "Employees", partners: "Partners", branches: "Branches", submissions: "Submissions" }[permission] || permission)).join(", ")
                       : "No dashboard access"}
+                    {u.actionPermissions && <div className="mt-1 text-[11px] leading-4 text-muted">{["applications", "installations"].filter((module) => u.permissions?.includes(module)).map((module) => {
+                      const granted = ["view", "edit", "download"].filter((action) => u.actionPermissions?.[module]?.[action]).map((action) => action[0].toUpperCase() + action.slice(1));
+                      return `${module === "applications" ? "Applications" : "Installation"}: ${granted.join(" / ") || "No actions"}`;
+                    }).join(" · ")}</div>}
                   </td>
                   <td className="p-3 whitespace-nowrap">
                     <span
@@ -988,6 +1001,12 @@ function EmployeesTab() {
 
 function EmployeeModal({ employee, branches, onClose, onSaved }) {
   const isEdit = !!employee;
+  const existingModules = employee?.permissions || ["applications"];
+  const initialActionPermissions = Object.fromEntries(["applications", "installations"].map((module) => [module, {
+    view: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.view) : existingModules.includes(module),
+    edit: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.edit) : existingModules.includes(module),
+    download: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.download) : existingModules.includes(module),
+  }]));
   const [form, setForm] = useState({
     name: employee?.name || "",
     email: employee?.email || "",
@@ -996,6 +1015,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     designation: employee?.designation || "",
     department: employee?.department || "",
     permissions: Array.isArray(employee?.permissions) ? employee.permissions : ["applications"],
+    actionPermissions: initialActionPermissions,
     userId: employee?.user_id || "",
     address: employee?.address || "",
     city: employee?.city || "",
@@ -1005,6 +1025,27 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [profilePhoto, setProfilePhoto] = useState(null);
+
+  const toggleModule = (module, checked) => setForm((current) => ({
+    ...current,
+    permissions: checked ? [...new Set([...current.permissions, module])] : current.permissions.filter((permission) => permission !== module),
+    ...(["applications", "installations"].includes(module) ? {
+      actionPermissions: { ...current.actionPermissions, [module]: checked ? { view: true, edit: true, download: true } : { view: false, edit: false, download: false } },
+    } : {}),
+  }));
+
+  const toggleAction = (module, action, checked) => setForm((current) => {
+    const next = { ...current.actionPermissions[module], [action]: checked };
+    let permissions = current.permissions;
+    if (action === "view" && !checked) {
+      Object.assign(next, { edit: false, download: false });
+      permissions = permissions.filter((permission) => permission !== module);
+    }
+    if (action !== "view" && checked) next.view = true;
+    if (action !== "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
+    if (action === "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
+    return { ...current, permissions, actionPermissions: { ...current.actionPermissions, [module]: next } };
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1137,13 +1178,16 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
 
           <fieldset className="rounded-xl border border-navy/10 p-4">
             <legend className="px-1 text-sm font-bold text-navy">Dashboard access</legend>
-            <p className="mb-3 text-xs text-muted">Choose which dashboard sections this employee can access.</p>
-            <div className="grid grid-cols-2 gap-2">
+            <p className="mb-3 text-xs text-muted">Choose dashboard sections and set Applications/Installations actions separately.</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {[["applications", "Applications"], ["installations", "Installation"], ["employees", "Employees"], ["partners", "Partners"], ["branches", "Branches"], ["submissions", "Submissions"]].map(([value, label]) => (
-                <label key={value} className="flex items-center gap-2 rounded-lg bg-offwhite px-3 py-2 text-sm text-navy">
-                  <input type="checkbox" checked={form.permissions.includes(value)} onChange={(event) => setForm((current) => ({ ...current, permissions: event.target.checked ? [...current.permissions, value] : current.permissions.filter((permission) => permission !== value) }))} className="accent-amber" />
-                  {label}
-                </label>
+                <div key={value} className="rounded-lg bg-offwhite p-3">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-navy">
+                    <input type="checkbox" checked={form.permissions.includes(value)} onChange={(event) => toggleModule(value, event.target.checked)} className="accent-amber" />
+                    {label}
+                  </label>
+                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{[["view", "View"], ["edit", "Edit"], ["download", "Download"]].map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
+                </div>
               ))}
             </div>
           </fieldset>
@@ -1570,7 +1614,9 @@ function BranchModal({ branch, onClose, onSaved }) {
 
 function InstallationsTab({ location }) {
   const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const canView = hasActionPermission(user, "installations", "view");
+  const canEdit = hasActionPermission(user, "installations", "edit");
+  const canDownload = hasActionPermission(user, "installations", "download");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -1638,7 +1684,7 @@ function InstallationsTab({ location }) {
               <th className="p-3">Installation</th>
               <th className="p-3">City</th>
               <th className="p-3">Status</th>
-              {isOwner && <th className="p-3">Actions</th>}
+              {(canView || canEdit) && <th className="p-3">Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -1653,7 +1699,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3">{item.installation_type || "—"}</td>
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3"><StatusBadge status={item.status} /></td>
-                  {isOwner && <td className="p-3 whitespace-nowrap"><button onClick={() => setSelected(item.id)} className="text-xs font-semibold text-amber">View / Edit</button></td>}
+                  {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <button onClick={() => setSelected({ id: item.id, mode: "view" })} className="text-xs font-semibold text-amber">View</button>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
                 </tr>
               );
             })}
@@ -1661,16 +1707,17 @@ function InstallationsTab({ location }) {
         </table>
       </div>
     )}
-    {isOwner && selected && <InstallationModal id={selected} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}
+    {selected && <InstallationModal id={selected.id} initialMode={selected.mode} canEdit={canEdit} canDownload={canDownload} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}
   </div>;
 }
 
-function InstallationModal({ id, onClose, onSaved }) {
-  const [item, setItem] = useState(null); const [form, setForm] = useState(null); const [files, setFiles] = useState({}); const [saving, setSaving] = useState(false);
+function InstallationModal({ id, initialMode, canEdit, canDownload, onClose, onSaved }) {
+  const [item, setItem] = useState(null); const [form, setForm] = useState(null); const [files, setFiles] = useState({}); const [saving, setSaving] = useState(false); const [mode, setMode] = useState(initialMode);
   useEffect(() => { (async () => { const res = await getInstallation(id); const x = res.data.installation; setItem(x); setForm({ location: x.location, customerName: x.customer_name, phone: x.phone, email: x.email, gender: x.gender, companyName: x.company_name, contactPerson: x.contact_person, installationType: x.installation_type, installationDate: x.installation_date, electricianName: x.electrician_name, technicianName: x.technician_name, solarPanelType: x.solar_panel_type, connectionType: x.connection_type, state: x.state, address: x.address, city: x.city, pincode: x.pincode, notes: x.notes }); })(); }, [id]);
   if (!form) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60"><Loader2 className="animate-spin text-amber" /></div>;
+  const editing = canEdit && mode === "edit";
   const fields = [["customerName","Customer Name"],["phone","Phone"],["email","Email"],["companyName","Company"],["contactPerson","Contact Person"],["installationType","Installation Type"],["installationDate","Installation Date","date"],["electricianName","Electrician"],["technicianName","Technician"],["solarPanelType","Solar Panel Type"],["connectionType","Connection Type"],["state","State"],["address","Address"],["city","City"],["pincode","PIN Code"],["notes","Notes"]];
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><div className="mx-auto my-5 max-w-3xl rounded-2xl bg-white p-6"><div className="flex justify-between"><h3 className="text-xl font-extrabold text-navy">Installation Details</h3><button onClick={onClose}>Close</button></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{fields.map(([key,label,type]) => <label key={key} className="text-xs font-semibold text-navy/70">{label}<input type={type || "text"} value={form[key] || ""} onChange={(e) => setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label>)}</div><div className="mt-4"><p className="text-sm font-bold text-navy">Documents</p><div className="mt-2 flex flex-wrap gap-2">{Object.entries(item.documents || {}).map(([name,url]) => <a key={name} href={url} target="_blank" rel="noreferrer" className="rounded bg-amber-soft px-3 py-2 text-xs font-semibold text-navy">{name}</a>)}{!Object.keys(item.documents || {}).length && <span className="text-xs text-muted">No saved documents.</span>}</div><p className="mt-3 text-xs text-muted">Choose a file only to replace that document.</p><div className="mt-2 grid grid-cols-2 gap-2">{["aadhaarPhoto","fullSetupPhoto","panelSerialPhoto1","panelSerialPhoto2","panelSerialPhoto3","panelSerialPhoto4","panelSerialPhoto5","panelSerialPhoto6","inverterSerialPhoto","earthingPhoto1","earthingPhoto2","earthingPhoto3","laCableConnectorPhoto","earthingArresterSpikePhoto","inverterAcdbDcdbPhoto","batteryPhoto1","batteryPhoto2","otherDocument"].map((name) => <label key={name} className="text-[10px] text-muted">{name}<input type="file" className="mt-1 block w-full text-xs" onChange={(e) => e.target.files?.[0] && setFiles({...files,[name]:e.target.files[0]})} /></label>)}</div></div><div className="mt-5 flex items-center gap-3"><select value={item.status} onChange={async (e) => { await updateInstallationStatus(id, e.target.value); const res = await getInstallation(id); setItem(res.data.installation); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="completed">Completed</option></select><button disabled={saving} onClick={async () => { setSaving(true); try { const uploaded = await uploadFilesToS3("installations", files); await updateInstallation(id, {...form, files: uploaded}); onSaved(); } finally { setSaving(false); } }} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy">{saving ? "Saving..." : "Save Changes"}</button></div></div></div>;
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><div className="mx-auto my-5 max-w-3xl rounded-2xl bg-white p-6"><div className="flex justify-between"><h3 className="text-xl font-extrabold text-navy">Installation Details</h3><div className="flex gap-3">{canEdit && <button onClick={() => setMode(editing ? "view" : "edit")} className="text-sm font-bold text-blue-600">{editing ? "View mode" : "Edit"}</button>}<button onClick={onClose}>Close</button></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{fields.map(([key,label,type]) => <label key={key} className="text-xs font-semibold text-navy/70">{label}<input readOnly={!editing} type={type || "text"} value={form[key] || ""} onChange={(e) => setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm read-only:bg-slate-50" /></label>)}</div><div className="mt-4"><p className="text-sm font-bold text-navy">Documents</p><div className="mt-2 flex flex-wrap gap-2">{Object.entries(item.documents || {}).map(([name,url]) => url && canDownload ? <a key={name} href={url} target="_blank" rel="noreferrer" className="rounded bg-amber-soft px-3 py-2 text-xs font-semibold text-navy">Download {name}</a> : <span key={name} className="rounded bg-slate-100 px-3 py-2 text-xs text-muted">{name}{canDownload ? "" : " · no download access"}</span>)}{!Object.keys(item.documents || {}).length && <span className="text-xs text-muted">No saved documents.</span>}</div>{editing && <><p className="mt-3 text-xs text-muted">Choose a file only to replace that document.</p><div className="mt-2 grid grid-cols-2 gap-2">{["aadhaarPhoto","fullSetupPhoto","panelSerialPhoto1","panelSerialPhoto2","panelSerialPhoto3","panelSerialPhoto4","panelSerialPhoto5","panelSerialPhoto6","inverterSerialPhoto","earthingPhoto1","earthingPhoto2","earthingPhoto3","laCableConnectorPhoto","earthingArresterSpikePhoto","inverterAcdbDcdbPhoto","batteryPhoto1","batteryPhoto2","otherDocument"].map((name) => <label key={name} className="text-[10px] text-muted">{name}<input type="file" className="mt-1 block w-full text-xs" onChange={(e) => e.target.files?.[0] && setFiles({...files,[name]:e.target.files[0]})} /></label>)}</div></>}</div>{editing && <div className="mt-5 flex items-center gap-3"><select value={item.status} onChange={async (e) => { await updateInstallationStatus(id, e.target.value); const res = await getInstallation(id); setItem(res.data.installation); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="completed">Completed</option></select><button disabled={saving} onClick={async () => { setSaving(true); try { const uploaded = Object.keys(files).length ? await uploadFilesToS3("installations", files) : {}; await updateInstallation(id, {...form, files: uploaded}); onSaved(); } finally { setSaving(false); } }} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy">{saving ? "Saving..." : "Save Changes"}</button></div>}</div></div>;
 }
 
 function OtherTab() {

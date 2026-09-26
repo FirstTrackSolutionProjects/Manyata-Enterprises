@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
+import { hasActionPermission } from "../utils/permissions";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
@@ -44,7 +45,9 @@ export default function DashboardLayout({
 
   const NAV_ITEMS = user?.role === "owner"
     ? OWNER_NAV
-    : OWNER_NAV.filter((item) => item.id !== "overview" && (user?.permissions || ["applications"]).includes(item.id));
+    : OWNER_NAV.filter((item) => item.id !== "overview" && (item.id === "applications" || item.id === "installations"
+      ? hasActionPermission(user, item.id, "view")
+      : (user?.permissions || ["applications"]).includes(item.id)));
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
 

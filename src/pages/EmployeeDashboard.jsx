@@ -7,12 +7,14 @@ import {
   Pencil,
   Filter,
   RotateCcw,
+  Download,
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import { APPLICATION_STATUSES } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
-import { listApplications } from "../services/api";
+import { listApplications, downloadApplicationPdf } from "../services/api";
+import { hasActionPermission } from "../utils/permissions";
 
 const EMPTY_FILTERS = {
   search: "",
@@ -28,6 +30,9 @@ const EMPTY_FILTERS = {
 
 export default function EmployeeDashboard() {
   const { user } = useAuth();
+  const canViewApplications = hasActionPermission(user, "applications", "view");
+  const canEditApplications = hasActionPermission(user, "applications", "edit");
+  const canDownloadApplications = hasActionPermission(user, "applications", "download");
   const [tab, setTab] = useState("applications");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -324,12 +329,14 @@ export default function EmployeeDashboard() {
                       </td>
                       <td className="p-3 text-xs text-muted whitespace-nowrap">{a.last_updated_by_name ? <><span className="block font-semibold text-navy">{a.last_updated_by_name}</span>{formatDateTime(a.last_updated_by_at)}</> : "Not edited"}</td>
                       <td className="p-3 whitespace-nowrap">
-                        <Link
+                        {canViewApplications && <Link
                           to={`/employee/applications/${a.id}`}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"
                         >
-                          <Pencil size={14} /> Edit
-                        </Link>
+                          <FileText size={14} /> View
+                        </Link>}
+                        {canEditApplications && <Link to={`/employee/applications/${a.id}`} className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"><Pencil size={14} /> Edit</Link>}
+                        {canDownloadApplications && <button onClick={() => downloadApplicationPdf(a.id)} className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-navy hover:underline"><Download size={14} /> Download</button>}
                       </td>
                     </tr>
                   ))}
