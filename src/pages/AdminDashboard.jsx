@@ -777,10 +777,15 @@ function EmployeesTab() {
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [branchFilter, setBranchFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const load = async () => {
     setLoading(true);
@@ -825,13 +830,13 @@ function EmployeesTab() {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
+  const filteredUsers = applyDateSort(users.filter((u) => {
     const term = search.trim().toLowerCase();
     const matchesSearch = !term || [u.name, u.email, u.user_id, u.designation, u.department, u.branch_name, u.branch_code]
       .some((value) => String(value || "").toLowerCase().includes(term));
-    return matchesSearch && (!nameFilter || String(u.name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(u.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(u.phone || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!branchFilter || String(u.branch_id) === branchFilter) && (!statusFilter || u.status === statusFilter);
-  });
-  const activeFilterCount = Number(Boolean(branchFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter));
+    return matchesSearch && (!nameFilter || String(u.name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(u.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(u.phone || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!branchFilter || String(u.branch_id) === branchFilter) && (!locationFilter || (u.city || u.state) === locationFilter) && (!statusFilter || u.status === statusFilter);
+  }), { fromDate, toDate, sortBy, sortOrder });
+  const activeFilterCount = Number(Boolean(branchFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
 
   return (
     <div className="space-y-4">
@@ -869,8 +874,13 @@ function EmployeesTab() {
         <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
         <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
         <FilterSelect label="Branch" value={branchFilter} onChange={setBranchFilter} options={branches.map((branch) => ({ value: String(branch.id), label: `${branch.name} (${branch.code})` }))} placeholder="All branches" />
+        <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(users.map((employee) => employee.city || employee.state).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All locations" />
         <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }]} placeholder="All statuses" />
-        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setBranchFilter(""); setStatusFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+        <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
+        <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
+        <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "name", label: "Name" }, { value: "last_login_at", label: "Last Login" }]} placeholder="Sort by" />
+        <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setBranchFilter(""); setLocationFilter(""); setStatusFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
       </div>}
 
       {loading ? (
@@ -1643,10 +1653,14 @@ function InstallationsTab({ location }) {
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
   const load = async () => {
     setLoading(true);
     try {
-      const res = await listInstallations(location);
+      const res = await listInstallations(location, { fromDate, toDate, sortBy, sortOrder, limit: "500" });
       setItems(res.data.items || []);
     } catch (err) {
       console.error(err);
@@ -1657,10 +1671,10 @@ function InstallationsTab({ location }) {
   };
   useEffect(() => {
     load();
-  }, [location]);
+  }, [location, fromDate, toDate, sortBy, sortOrder]);
 
   const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "Kolkata Installations" : "All Installations";
-  const filteredItems = items.filter((item) =>
+  const filteredItems = applyDateSort(items.filter((item) =>
     [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status]
       .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
     (!nameFilter || String(item.customer_name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) &&
@@ -1669,8 +1683,8 @@ function InstallationsTab({ location }) {
     (!statusFilter || item.status === statusFilter) &&
     (!typeFilter || item.installation_type === typeFilter) &&
     (!locationFilter || item.location === locationFilter)
-  );
-  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter));
+  ), { fromDate, toDate, sortBy, sortOrder, nameKey: "customer_name" });
+  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
@@ -1687,9 +1701,13 @@ function InstallationsTab({ location }) {
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
       <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "pending", label: "Pending" }, { value: "reviewed", label: "Reviewed" }, { value: "completed", label: "Completed" }]} placeholder="All statuses" />
-      <FilterSelect label="Installation Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
+      <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
-      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
+      <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
+      <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "customer_name", label: "Customer Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
+      <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
+      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
     </div>}
     {filteredItems.length === 0 ? (
       <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
@@ -1733,6 +1751,28 @@ function InstallationsTab({ location }) {
     )}
     {selected && <InstallationModal id={selected.id} initialMode={selected.mode} canEdit={canEdit} canDownload={canDownload} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}
   </div>;
+}
+
+const recordTimestamp = (value) => {
+  if (!value) return NaN;
+  return new Date(String(value).replace(" ", "T")).getTime();
+};
+
+function applyDateSort(items, { fromDate, toDate, sortBy, sortOrder, nameKey = "name" }) {
+  const from = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : -Infinity;
+  const to = toDate ? new Date(`${toDate}T23:59:59.999`).getTime() : Infinity;
+  const field = sortBy === "name" ? nameKey : sortBy || "created_at";
+  return items.filter((item) => {
+    const timestamp = recordTimestamp(item.created_at);
+    return (!fromDate && !toDate) || (Number.isFinite(timestamp) && timestamp >= from && timestamp <= to);
+  }).slice().sort((a, b) => {
+    const left = field === "name" ? a[nameKey] : a[field];
+    const right = field === "name" ? b[nameKey] : b[field];
+    const comparison = field.endsWith("_at")
+      ? recordTimestamp(left) - recordTimestamp(right)
+      : String(left ?? "").localeCompare(String(right ?? ""), undefined, { numeric: true, sensitivity: "base" });
+    return (sortOrder === "asc" ? 1 : -1) * (Number.isNaN(comparison) ? 0 : comparison);
+  });
 }
 
 function InstallationModal({ id, initialMode, canEdit, canDownload, onClose, onSaved }) {
@@ -1785,9 +1825,15 @@ function SubmissionList({ type }) {
   const [statusFilter, setStatusFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
+  const [systemTypeFilter, setSystemTypeFilter] = useState("");
+  const [systemSizeFilter, setSystemSizeFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const load = async () => {
     setLoading(true);
@@ -1796,6 +1842,10 @@ function SubmissionList({ type }) {
       if (nameFilter.trim()) query.set("name", nameFilter.trim());
       if (emailFilter.trim()) query.set("email", emailFilter.trim());
       if (phoneFilter.trim()) query.set("phone", phoneFilter.trim());
+      if (fromDate) query.set("fromDate", fromDate);
+      if (toDate) query.set("toDate", toDate);
+      query.set("sortBy", sortBy);
+      query.set("sortOrder", sortOrder);
       const res = await apiFetch(`/admin/${type}?${query.toString()}`);
       setItems(res.data.items || []);
     } catch (err) {
@@ -1809,7 +1859,7 @@ function SubmissionList({ type }) {
     const timer = setTimeout(() => load(), 250);
     return () => clearTimeout(timer);
     // eslint-disable-next-line
-  }, [type, nameFilter, emailFilter, phoneFilter]);
+  }, [type, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder]);
 
   const updateStatus = async (id, status) => {
     setUpdating(true);
@@ -1834,14 +1884,15 @@ function SubmissionList({ type }) {
   const availableLocations = [...new Set(items.map((item) => item.location || item.city).filter(Boolean))].sort();
   const availableStates = [...new Set(items.map((item) => item.state).filter(Boolean))].sort();
   const normalizedSearch = search.trim().toLowerCase();
-  const filteredItems = items.filter((item) => {
+  const filteredItems = applyDateSort(items.filter((item) => {
     const fullName = `${item.first_name || ""} ${item.last_name || ""}`;
     const matchesSearch = !normalizedSearch || [item.id, item.name, item.full_name, item.company_name, item.contact_name, fullName, item.email, item.phone, item.phone_number, item.location, item.state, item.district, item.subject, item.message, item.status]
       .some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
     const recordName = [item.name, item.full_name, item.company_name, item.contact_name, fullName].filter(Boolean).join(" ").toLowerCase();
-    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || item.state === stateFilter);
-  });
-  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter));
+    const partnerSystemTypes = Array.isArray(item.system_types) ? item.system_types : [];
+    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || item.state === stateFilter) && (!systemTypeFilter || partnerSystemTypes.includes(systemTypeFilter)) && (!systemSizeFilter || String(item.system_size || "") === systemSizeFilter);
+  }), { fromDate, toDate, sortBy, sortOrder, nameKey: isPartners ? "company_name" : isContacts ? "name" : "first_name" });
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter));
 
   if (loading)
     return (
@@ -1865,9 +1916,15 @@ function SubmissionList({ type }) {
         <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
         <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
         <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={availableStatuses.map((value) => ({ value, label: isPartners && value === "new" ? "Submitted" : isPartners && value === "reviewed" ? "Under Review" : value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) }))} placeholder="All statuses" />
-        {(isJoinUs || isCareers || isContacts) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
+        {(isJoinUs || isCareers || isContacts || isPartners) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
         {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
-        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+        {isPartners && <FilterSelect label="System Type" value={systemTypeFilter} onChange={setSystemTypeFilter} options={[{ value: "on_grid", label: "On-Grid" }, { value: "hybrid", label: "Hybrid" }]} placeholder="All types" />}
+        {isContacts && <FilterSelect label="System Size" value={systemSizeFilter} onChange={setSystemSizeFilter} options={[...new Set(items.map((item) => item.system_size).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All sizes" />}
+        <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
+        <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
+        <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "name", label: "Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
+        <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); setSystemTypeFilter(""); setSystemSizeFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
       </div>}
       {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search || activeFilterCount ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
       {filteredItems.length > 0 && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">

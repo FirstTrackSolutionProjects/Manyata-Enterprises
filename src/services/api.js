@@ -166,8 +166,12 @@ export const submitToGovt = (id, govtPortalRef, note = "") =>
 export const deleteApplication = (id) =>
   apiFetch(`/applications/${id}`, { method: "DELETE" });
 
-export const listInstallations = (location = "") =>
-  apiFetch(`/installations${location ? `?location=${location}` : ""}`);
+export const listInstallations = (location = "", filters = {}) => {
+  const params = new URLSearchParams();
+  if (location) params.set("location", location);
+  Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+  return apiFetch(`/installations${params.size ? `?${params.toString()}` : ""}`);
+};
 export const getInstallation = (id) => apiFetch(`/installations/${id}`);
 export const updateInstallation = (id, payload) => apiFetch(`/installations/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 export const updateInstallationStatus = (id, status) => apiFetch(`/installations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
