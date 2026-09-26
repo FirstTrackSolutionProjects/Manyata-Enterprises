@@ -684,9 +684,9 @@ function VendorStep({ form, location, onChange }) {
       const items = response?.data?.items || response?.items || [];
       setApprovedVendors(items.map((item) => item.name).filter(Boolean));
     } catch (error) {
-      console.error("Could not load approved sub-vendors:", error);
+      console.error("Could not load approved partners:", error);
       setApprovedVendors([]);
-      setVendorLoadError(error.message || "Could not load approved sub-vendors. Try refreshing the list.");
+      setVendorLoadError(error.message || "Could not load approved partners. Try refreshing the list.");
     } finally {
       setLoadingApprovedVendors(false);
     }
@@ -715,9 +715,9 @@ function VendorStep({ form, location, onChange }) {
                 onChange={(event) => { setVendorSearch(event.target.value); setShowVendorMatches(true); }}
                 onFocus={() => setShowVendorMatches(true)}
                 onBlur={() => setTimeout(() => setShowVendorMatches(false), 120)}
-                placeholder="Search sub-vendors by name..."
+                placeholder="Search approved partners by name..."
                 autoComplete="off"
-                aria-label="Search sub-vendors by name"
+                aria-label="Search approved partners by name"
                 aria-expanded={showVendorMatches}
                 className="w-full rounded-lg border border-navy/15 bg-white py-2.5 pl-9 pr-3.5 text-sm text-navy placeholder:text-muted focus:border-amber focus:outline-none"
               />
@@ -734,7 +734,7 @@ function VendorStep({ form, location, onChange }) {
                 setShowVendorMatches(false);
               }}
               className={`block w-full px-3.5 py-2 text-left text-sm hover:bg-amber-soft ${form.subVendorName === name ? "bg-amber-soft font-semibold text-navy" : "text-navy/80"}`}
-            >{name}</button>) : <p className="px-3.5 py-2 text-sm text-muted">No matching sub-vendors.</p>}
+            >{name}</button>) : <p className="px-3.5 py-2 text-sm text-muted">No matching approved partners.</p>}
           </div>}
           {vendorLoadError && <p role="alert" className="mt-1 text-[11px] text-red-600">{vendorLoadError}</p>}
           <p className="mt-1 text-[11px] text-muted">{form.subVendorName ? `Selected: ${form.subVendorName}` : "Type a name to find and select a sub-vendor."}</p>
