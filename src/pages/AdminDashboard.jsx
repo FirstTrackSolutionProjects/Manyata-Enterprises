@@ -51,6 +51,7 @@ import {
   updateBranch,
   apiFetch,
   downloadApplicationPdf,
+  resetPartnerPassword,
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 
@@ -1846,6 +1847,14 @@ function SubmissionList({ type }) {
   const [updating, setUpdating] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [showPartnerCreate, setShowPartnerCreate] = useState(false);
+  const [showPartnerOnboard, setShowPartnerOnboard] = useState(false);
+  const [onboardItems, setOnboardItems] = useState([]);
+  const [onboardLoading, setOnboardLoading] = useState(false);
+  const [onboardType, setOnboardType] = useState("sub_vendor");
+  const [onboardPartnerId, setOnboardPartnerId] = useState("");
+  const [onboardCredentials, setOnboardCredentials] = useState(null);
+  const [onboardError, setOnboardError] = useState("");
+  const [onboardSaving, setOnboardSaving] = useState(false);
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
@@ -1888,6 +1897,17 @@ function SubmissionList({ type }) {
     // eslint-disable-next-line
   }, [type, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder]);
 
+  useEffect(() => {
+    if (!showPartnerOnboard || !isOwner || type !== "partners") return;
+    let active = true;
+    setOnboardLoading(true);
+    apiFetch("/admin/partners?limit=100&status=approved")
+      .then((res) => { if (active) setOnboardItems(res.data.items || []); })
+      .catch((err) => { if (active) setOnboardError(err.message || "Could not load approved partners."); })
+      .finally(() => { if (active) setOnboardLoading(false); });
+    return () => { active = false; };
+  }, [showPartnerOnboard, isOwner, type]);
+
   const updateStatus = async (id, status) => {
     setUpdating(true);
     try {
@@ -1911,6 +1931,38 @@ function SubmissionList({ type }) {
   const isJoinUs = type === "join-us";
   const isCareers = type === "careers";
   const isContacts = type === "contacts";
+  const onboardPartners = onboardItems.filter((item) => {
+    const normalizedType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
+    return normalizedType === onboardType && item.status === "approved";
+  });
+  const selectedOnboardPartner = onboardPartners.find((item) => String(item.id) === onboardPartnerId) || null;
+
+  const handlePartnerOnboard = async () => {
+    if (!selectedOnboardPartner || onboardSaving) return;
+    setOnboardSaving(true);
+    setOnboardError("");
+    setOnboardCredentials(null);
+    try {
+      let credentials;
+      if (selectedOnboardPartner.partner_login_id) {
+        const response = await resetPartnerPassword(selectedOnboardPartner.id);
+        credentials = response.data;
+      } else {
+        const response = await apiFetch(`/admin/partners/${selectedOnboardPartner.id}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "approved" }),
+        });
+        credentials = response.data?.accountCredentials;
+      }
+      if (!credentials) throw new Error("Could not create credentials. Refresh the list and try again.");
+      setOnboardCredentials(credentials);
+      await load();
+    } catch (err) {
+      setOnboardError(err.message || "Could not onboard this partner.");
+    } finally {
+      setOnboardSaving(false);
+    }
+  };
   const availableStatuses = [...new Set(items.map((item) => item.status).filter(Boolean))].sort();
   const availableLocations = [...new Set(items.map((item) => item.location || item.city).filter(Boolean))].sort();
   const availableStates = [...new Set(items.map((item) => item.state).filter(Boolean))].sort();
@@ -1941,6 +1993,7 @@ function SubmissionList({ type }) {
           <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
           <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
           {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
+          {isPartners && isOwner && <button onClick={() => { setShowPartnerOnboard(true); setOnboardCredentials(null); setOnboardError(""); setOnboardPartnerId(""); }} className="flex items-center gap-1.5 rounded-full border border-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-soft"><UserCheck size={15} /> Onboard Partner</button>}
       </div>
 
       {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -2056,6 +2109,16 @@ function SubmissionList({ type }) {
       </div>
       }
       {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
+      {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Create or reset a separate login for an approved sub-vendor or dealer.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
+        {onboardError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{onboardError}</p>}
+        <label className="mt-5 block text-xs font-semibold text-navy/70">Partner Type<select value={onboardType} onChange={(event) => { setOnboardType(event.target.value); setOnboardPartnerId(""); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select></label>
+        <label className="mt-4 block text-xs font-semibold text-navy/70">Approved Partner<select value={onboardPartnerId} onChange={(event) => { setOnboardPartnerId(event.target.value); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose a partner</option>{onboardPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id}</option>)}</select></label>
+        {onboardLoading && <p className="mt-2 text-xs text-muted">Loading approved partners…</p>}
+        {!onboardLoading && !onboardPartners.length && <p className="mt-2 text-xs text-muted">No approved {onboardType === "sub_vendor" ? "sub-vendors" : "dealers"} found.</p>}
+        {selectedOnboardPartner && <p className="mt-3 rounded-lg bg-amber-soft p-3 text-xs text-navy">{selectedOnboardPartner.partner_login_id ? `Login ${selectedOnboardPartner.partner_login_id} exists. Continue to reset its password.` : `A new login will be created for ${selectedOnboardPartner.company_name || selectedOnboardPartner.contact_name}.`}</p>}
+        {onboardCredentials && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-sm font-bold text-emerald-900">Credentials ready — share securely</p><p className="mt-2 text-sm text-emerald-900">Login ID: <strong>{onboardCredentials.loginId}</strong></p><p className="mt-1 text-sm text-emerald-900">Temporary password: <strong>{onboardCredentials.password}</strong></p><p className="mt-2 text-xs text-emerald-800">The partner must change the password at first sign-in.</p><button onClick={() => navigator.clipboard?.writeText(`Login ID: ${onboardCredentials.loginId}\nTemporary password: ${onboardCredentials.password}`)} className="mt-3 rounded-full border border-emerald-300 px-4 py-2 text-xs font-bold text-emerald-900">Copy Credentials</button></div>}
+        <div className="mt-6 flex justify-end gap-3"><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-bold text-navy">Close</button><button onClick={handlePartnerOnboard} disabled={!selectedOnboardPartner || onboardLoading || onboardSaving || Boolean(onboardCredentials)} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50">{onboardSaving ? "Processing..." : selectedOnboardPartner?.partner_login_id ? "Reset Password" : "Create Login"}</button></div>
+      </div></div>}
       {isPartners && selectedPartner && (
         <PartnerDetailsModal
           key={`${selectedPartner.partner.id}-${selectedPartner.editing ? "edit" : "view"}`}
