@@ -319,6 +319,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const canDownloadApplications = hasActionPermission(user, "applications", "download");
   const [items, setItems] = useState([]);
   const [locationCounts, setLocationCounts] = useState(null);
+  const [totalApplicationCount, setTotalApplicationCount] = useState(null);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
@@ -379,7 +380,7 @@ function ApplicationsTab({ initialLocation = "" }) {
     let active = true;
     const statsQuery = filters.branchId ? `?${new URLSearchParams({ branchId: filters.branchId })}` : "";
     apiFetch(`/applications/stats/overview${statsQuery}`)
-      .then((res) => { if (active) setLocationCounts(res.data.byLocation || null); })
+      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
   }, [filters.branchId]);
@@ -401,6 +402,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
       </div>
       {/* Top search + filter toggle */}
@@ -440,6 +442,7 @@ function ApplicationsTab({ initialLocation = "" }) {
             const statsQuery = filters.branchId ? `?${new URLSearchParams({ branchId: filters.branchId })}` : "";
             const statsRes = await apiFetch(`/applications/stats/overview${statsQuery}`);
             setLocationCounts(statsRes.data.byLocation || null);
+            setTotalApplicationCount(Number(statsRes.data.total || 0));
           }}
           className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light"
         >
@@ -1663,6 +1666,7 @@ function InstallationsTab({ location }) {
   const canDownload = hasActionPermission(user, "installations", "download");
   const [items, setItems] = useState([]);
   const [locationCounts, setLocationCounts] = useState(null);
+  const [totalInstallationCount, setTotalInstallationCount] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
@@ -1696,7 +1700,7 @@ function InstallationsTab({ location }) {
   useEffect(() => {
     let active = true;
     apiFetch("/installations/stats/overview")
-      .then((res) => { if (active) setLocationCounts(res.data.byLocation || null); })
+      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalInstallationCount(Number(res.data.total || 0)); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
   }, []);
@@ -1717,6 +1721,7 @@ function InstallationsTab({ location }) {
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Installations</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalInstallationCount ?? "—"}</p></div>
       {[["Odisha Installations", "odisha"], ["West Bengal Installations", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
     </div>
     <div className="flex w-full flex-wrap gap-3">
@@ -1725,7 +1730,7 @@ function InstallationsTab({ location }) {
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
       </div>
       <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
-      <button onClick={async () => { await load(); const statsRes = await apiFetch("/installations/stats/overview"); setLocationCounts(statsRes.data.byLocation || null); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+      <button onClick={async () => { await load(); const statsRes = await apiFetch("/installations/stats/overview"); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
     </div>
     {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
