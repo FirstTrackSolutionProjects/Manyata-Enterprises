@@ -220,6 +220,12 @@ export const submitPartner = (payload) =>
     body: payload instanceof FormData ? payload : JSON.stringify(payload),
   });
 
+export const createPartnerRecord = (payload) =>
+  apiFetch("/admin/partners", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
 export const updatePartner = (id, payload) =>
   apiFetch(`/admin/partners/${id}`, {
     method: "PUT",
