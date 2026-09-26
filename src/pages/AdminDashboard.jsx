@@ -1741,7 +1741,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3">{item.installation_type || "—"}</td>
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3"><StatusBadge status={item.status} /></td>
-                  {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <button onClick={() => setSelected({ id: item.id, mode: "view" })} className="text-xs font-semibold text-amber">View</button>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
+                  {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`/admin/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
                 </tr>
               );
             })}

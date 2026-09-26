@@ -30,6 +30,7 @@ import PartnerDetail from "./pages/PartnerDetail";
 import JoinUsDetail from "./pages/JoinUsDetail";
 import CareerDetail from "./pages/CareerDetail";
 import ContactDetail from "./pages/ContactDetail";
+import InstallationDetail from "./pages/InstallationDetail";
 
 export default function App() {
   return (
@@ -95,6 +96,16 @@ export default function App() {
               <ProtectedRoute permission="applications">
                 <DashboardLayout title="Application Detail">
                   <ApplicationDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/installations/:id"
+            element={
+              <ProtectedRoute permission="installations">
+                <DashboardLayout title="Installation Detail">
+                  <InstallationDetail />
                 </DashboardLayout>
               </ProtectedRoute>
             }
