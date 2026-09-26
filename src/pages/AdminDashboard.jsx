@@ -1843,6 +1843,7 @@ function SubmissionList({ type }) {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
   const [items, setItems] = useState([]);
+  const [partnerCounts, setPartnerCounts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
@@ -1885,6 +1886,10 @@ function SubmissionList({ type }) {
       query.set("sortOrder", sortOrder);
       const res = await apiFetch(`/admin/${type}?${query.toString()}`);
       setItems(res.data.items || []);
+      if (type === "partners") {
+        const counts = await apiFetch("/admin/partners/stats");
+        setPartnerCounts(counts.data || null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -1999,6 +2004,9 @@ function SubmissionList({ type }) {
   return (
     <div className="space-y-4">
       <h2 className="text-sm font-bold text-navy">{isPartners ? "Partners" : isJoinUs ? "Join Us Submissions" : isCareers ? "Career Applications" : "Contact Submissions"}</h2>
+      {isPartners && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        {[["Total Partners", "total"], ["Super-vendors", "super_vendor"], ["Vendors", "vendor"], ["Sub-vendors", "sub_vendor"], ["Dealers", "dealer"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{partnerCounts?.[key] ?? "—"}</p></div>)}
+      </div>}
       <div className="flex w-full flex-wrap gap-3">
           <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
           <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
