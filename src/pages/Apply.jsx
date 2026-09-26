@@ -22,6 +22,7 @@ import {
   Download,
   Eye,
   Trash2,
+  Search,
 } from "lucide-react";
 import { submitApplication, downloadApplicationPdf, uploadFilesToS3, getApprovedSubVendors } from "../services/api";
 
@@ -670,6 +671,8 @@ function SystemSizeStep({ form, onChange }) {
 
 function VendorStep({ form, location, onChange }) {
   const [approvedVendors, setApprovedVendors] = useState([]);
+  const [vendorSearch, setVendorSearch] = useState(form.subVendorName || "");
+  const [showVendorMatches, setShowVendorMatches] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -689,17 +692,47 @@ function VendorStep({ form, location, onChange }) {
   const existingVendors =
     location === "odisha" ? ODISHA_SUB_VENDORS : KOLKATA_SUB_VENDORS;
   const vendors = [...new Set([...existingVendors, ...approvedVendors])];
+  const matchingVendors = vendors
+    .filter((name) => name.toLowerCase().includes(vendorSearch.trim().toLowerCase()))
+    .slice(0, 50);
   return (
     <FormCard icon={User} title="Vendor & Sales Details">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField
-          label="Sub Vendor Name"
-          name="subVendorName"
-          value={form.subVendorName}
-          onChange={onChange}
-          options={vendors}
-          placeholder="Choose"
-        />
+        <div className="relative">
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-navy/70">Sub Vendor Name</span>
+            <span className="relative block">
+              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+              <input
+                type="search"
+                name="subVendorNameSearch"
+                value={vendorSearch}
+                onChange={(event) => { setVendorSearch(event.target.value); setShowVendorMatches(true); }}
+                onFocus={() => setShowVendorMatches(true)}
+                onBlur={() => setTimeout(() => setShowVendorMatches(false), 120)}
+                placeholder="Search sub-vendors by name..."
+                autoComplete="off"
+                aria-label="Search sub-vendors by name"
+                aria-expanded={showVendorMatches}
+                className="w-full rounded-lg border border-navy/15 bg-white py-2.5 pl-9 pr-3.5 text-sm text-navy placeholder:text-muted focus:border-amber focus:outline-none"
+              />
+            </span>
+          </label>
+          {showVendorMatches && <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-navy/15 bg-white py-1 shadow-lg">
+            {matchingVendors.length ? matchingVendors.map((name) => <button
+              key={name}
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => {
+                onChange({ target: { name: "subVendorName", value: name } });
+                setVendorSearch(name);
+                setShowVendorMatches(false);
+              }}
+              className={`block w-full px-3.5 py-2 text-left text-sm hover:bg-amber-soft ${form.subVendorName === name ? "bg-amber-soft font-semibold text-navy" : "text-navy/80"}`}
+            >{name}</button>) : <p className="px-3.5 py-2 text-sm text-muted">No matching sub-vendors.</p>}
+          </div>}
+          <p className="mt-1 text-[11px] text-muted">{form.subVendorName ? `Selected: ${form.subVendorName}` : "Type a name to find and select a sub-vendor."}</p>
+        </div>
         <Field
           label="Sales Executive Name"
           name="salesExecutiveName"
