@@ -20,7 +20,7 @@ const FIELDS = [
   ["phone", "Phone"], ["email", "Email", "email"],
   ["aadhaarNumber", "Aadhaar Number"], ["gender", "Gender", "gender"], ["dob", "Date of Birth", "date"],
   ["gstNumber", "GST Number"], ["panNumber", "PAN Number"], ["msmeNumber", "MSME Number"],
-  ["address", "Address"], ["city", "City"], ["state", "State"], ["pincode", "PIN Code"],
+  ["address", "Address"], ["city", "City"], ["state", "State", "state"], ["pincode", "PIN Code"],
   ["experienceYears", "Experience"], ["description", "Business Description", "textarea"],
   ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
 ];
@@ -113,6 +113,10 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
               ) : type === "gender" ? (
                 <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
                   <option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
+                </select>
+              ) : type === "state" ? (
+                <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
+                  <option value="">Select state</option><option value="Odisha">Odisha</option><option value="West Bengal">West Bengal</option>
                 </select>
               ) : type === "systems" ? (
                 <span className="mt-2 grid gap-2 sm:grid-cols-2">

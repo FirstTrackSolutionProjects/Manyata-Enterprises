@@ -301,12 +301,12 @@ export default function Partner() {
                 onChange={handleChange}
                 placeholder="Enter city"
               />
-              <Field
+              <SelectField
                 label="State"
                 name="state"
                 value={form.state}
                 onChange={handleChange}
-                placeholder="Enter state"
+                options={[{ value: "", label: "Select state" }, { value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]}
               />
               <Field
                 label="PIN Code"

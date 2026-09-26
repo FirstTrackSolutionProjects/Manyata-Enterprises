@@ -21,7 +21,7 @@ const INPUTS = [
   ["aadhaarNumber", "Aadhaar Number"], ["dob", "Date of Birth", false, "date"],
   ["gstNumber", "GST Number"], ["panNumber", "PAN Number"], ["msmeNumber", "MSME / Udyam Number"],
   ["experienceYears", "Years of Experience"], ["address", "Address"], ["city", "City"],
-  ["state", "State"], ["pincode", "PIN Code"], ["bankName", "Bank Name"],
+  ["pincode", "PIN Code"], ["bankName", "Bank Name"],
   ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
 ];
 
@@ -77,6 +77,7 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
           <Select label="Partner Type" value={form.partnerType} onChange={(value) => updateField("partnerType", value)} options={[["vendor", "Vendor"], ["dealer", "Dealer"], ["sub_vendor", "Sub-vendor"]]} />
           {form.partnerType === "sub_vendor" && <Select label="Commission" value={form.commissionModel} onChange={(value) => updateField("commissionModel", value)} options={[["per_completed_installation", "Per completed installation"]]} />}
           {INPUTS.map(([name, label, required, type]) => <Field key={name} label={label} value={form[name]} required={required} type={type || "text"} onChange={(value) => updateField(name, value)} />)}
+          <Select label="State" value={form.state} onChange={(value) => updateField("state", value)} options={[["", "Select state"], ["Odisha", "Odisha"], ["West Bengal", "West Bengal"]]} />
           <Select label="Gender" value={form.gender} required={false} onChange={(value) => updateField("gender", value)} options={[["", "Select gender (optional)"], ["male", "Male"], ["female", "Female"], ["other", "Other"]]} />
           <label className="text-xs font-semibold text-navy/70 sm:col-span-2">Business Description<textarea rows={3} value={form.description} onChange={(event) => updateField("description", event.target.value)} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm font-normal" /></label>
         </div>
