@@ -15,6 +15,7 @@ export default function PartnerDashboard() {
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const [section, setSection] = useState("dashboard");
   const [hierarchy, setHierarchy] = useState([]);
+  const [regionCounts, setRegionCounts] = useState({ odisha: 0, west_bengal: 0 });
   const [applications, setApplications] = useState([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -26,7 +27,17 @@ export default function PartnerDashboard() {
   useEffect(() => {
     let active = true;
     getMyPartnerHierarchy().then((response) => {
-      if (active) setHierarchy(response.data.children || []);
+      if (!active) return;
+      const children = response.data.children || [];
+      setHierarchy(children);
+      const chain = [response.data.partner, ...children].filter(Boolean);
+      const counts = { odisha: 0, west_bengal: 0 };
+      chain.forEach((partner) => {
+        const state = String(partner.state || "").toLowerCase().replace(/[\s_-]/g, "");
+        if (["odisha", "orissa", "udisa", "odisa"].includes(state)) counts.odisha += 1;
+        if (["westbengal", "westbangol", "westbangal", "kolkata"].includes(state)) counts.west_bengal += 1;
+      });
+      setRegionCounts(counts);
     }).catch(() => {
       if (active) setHierarchy([]);
     });
@@ -71,6 +82,10 @@ export default function PartnerDashboard() {
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">Partner Login ID</p><p className="mt-1 font-mono text-lg font-extrabold text-navy">{user?.userId || user?.user_id || "—"}</p></div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5 sm:col-span-2 lg:col-span-3"><p className="text-xs font-semibold text-muted">Contact email</p><p className="mt-1 font-bold text-navy">{user?.email || "—"}</p></div>
           {canViewApplications && <button onClick={() => setSection("applications")} className="rounded-2xl border border-navy/10 bg-white p-5 text-left hover:border-amber"><p className="flex items-center gap-2 text-xs font-semibold text-muted"><FileText size={15} /> Your Applications</p><p className="mt-1 text-2xl font-extrabold text-navy">{total}</p></button>}
+        </div>
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:max-w-2xl">
+          <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">Odisha Partners in Your Chain</p><p className="mt-2 text-2xl font-extrabold text-navy">{regionCounts.odisha}</p></div>
+          <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">West Bengal Partners in Your Chain</p><p className="mt-2 text-2xl font-extrabold text-navy">{regionCounts.west_bengal}</p></div>
         </div>
         {canViewApplications && <div className="rounded-2xl border border-navy/10 bg-white p-5"><h2 className="text-sm font-bold text-navy">Your Applications</h2><p className="mt-1 text-sm text-muted">{total} applications assigned to your partner account.</p><button onClick={() => setSection("applications")} className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-amber hover:underline"><FileText size={15} /> Open applications</button></div>}
         <div className="mt-6 rounded-2xl border border-navy/10 bg-white p-5"><h2 className="flex items-center gap-2 text-sm font-bold text-navy"><Network size={16} /> Referral Chain</h2><p className="mt-1 text-sm text-muted">Partners referred through your account and their levels are shown here.</p><div className="mt-3 divide-y divide-navy/5">{hierarchy.length ? hierarchy.map((item) => <div key={item.id} className="flex items-center justify-between gap-3 py-3 text-sm"><span className="font-semibold text-navy" style={{ paddingLeft: `${Math.min(Number(item.depth || 1) - 1, 3) * 18}px` }}>{item.company_name || item.contact_name}</span><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" })[item.partner_type] || item.partner_type}</span></div>) : <p className="py-3 text-sm text-muted">No referrals in your chain yet.</p>}</div></div>
