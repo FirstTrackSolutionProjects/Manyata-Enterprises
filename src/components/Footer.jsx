@@ -111,7 +111,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/45 sm:flex-row">
-          <p>© {new Date().getFullYear()} Manyata Enterprises · First Track Solution Technologies</p>
+          <p>© {new Date().getFullYear()} Manyata Enterprises · Developed by First Track Solution Technologies</p>
           <p>Office Address: College Square, Soro, Balasore, Odisha - 
 756045
 </p>
