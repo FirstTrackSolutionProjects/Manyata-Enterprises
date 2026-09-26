@@ -245,6 +245,15 @@ export const updatePartnerStatus = (id, status, note = "") =>
   });
 export const resetPartnerPassword = (id) =>
   apiFetch(`/admin/partners/${id}/reset-password`, { method: "POST" });
+export const updatePartnerDashboardAccess = (id, applications) =>
+  apiFetch(`/admin/partners/${id}/dashboard-access`, {
+    method: "PUT",
+    body: JSON.stringify({ applications }),
+  });
+export const getMyPartnerApplications = (params = {}) => {
+  const query = new URLSearchParams(params);
+  return apiFetch(`/partners/my-applications?${query.toString()}`);
+};
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {

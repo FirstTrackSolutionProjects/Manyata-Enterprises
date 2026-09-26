@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { useAuth } from "../contexts/AuthContext";
-import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, updatePartnerStatus } from "../services/api";
+import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, updatePartnerDashboardAccess, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
   ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
@@ -13,6 +13,10 @@ const partnerStatusLabel = (status) => ({ new: "Submitted", reviewed: "Under Rev
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
 const titleCase = (value = "") => value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+const readPermissions = (value) => {
+  if (Array.isArray(value)) return value;
+  try { return JSON.parse(value || "[]"); } catch { return []; }
+};
 
 export default function PartnerDetail() {
   const { user } = useAuth();
@@ -33,11 +37,14 @@ export default function PartnerDetail() {
   const [editOpen, setEditOpen] = useState(false);
   const [creatingLogin, setCreatingLogin] = useState(false);
   const [resettingLogin, setResettingLogin] = useState(false);
+  const [savingDashboardAccess, setSavingDashboardAccess] = useState(false);
+  const [applicationsAccess, setApplicationsAccess] = useState(false);
 
   const load = async () => {
     try {
       const response = await getPartnerDetail(id);
       setPartner(response.data.partner);
+      setApplicationsAccess(readPermissions(response.data.partner.partner_permissions).includes("applications"));
       setHistory(response.data.history || []);
       setNewStatus(response.data.partner.status);
       setError("");
@@ -116,6 +123,22 @@ export default function PartnerDetail() {
       setError(err.message || "Could not reset the partner password.");
     } finally {
       setResettingLogin(false);
+    }
+  };
+
+  const saveDashboardAccess = async () => {
+    if (!partner || savingDashboardAccess) return;
+    setSavingDashboardAccess(true);
+    setError("");
+    setNotice("");
+    try {
+      await updatePartnerDashboardAccess(id, applicationsAccess);
+      setNotice(applicationsAccess ? "Applications access granted. The partner can see applications assigned to them." : "Applications access removed.");
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not update partner dashboard access.");
+    } finally {
+      setSavingDashboardAccess(false);
     }
   };
 
@@ -252,6 +275,14 @@ export default function PartnerDetail() {
               {isOwner && ["sub_vendor", "dealer"].includes(partner.partner_type) && partner.status === "approved" && partner.partner_login_id && <button onClick={resetPartnerLogin} disabled={resettingLogin} className="w-full rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60">{resettingLogin ? "Resetting Password..." : "Reset Partner Password"}</button>}
             </div>
           </div>
+          {isOwner && ["sub_vendor", "dealer"].includes(partner.partner_type) && <div className="rounded-2xl border border-navy/10 bg-white p-5">
+            <h3 className="text-sm font-bold text-navy">Partner Dashboard Access</h3>
+            <p className="mt-1 text-xs text-muted">Granted partners can only see applications assigned to their own partner name.</p>
+            {partner.partner_login_id ? <>
+              <label className="mt-4 flex items-start gap-2 text-sm font-semibold text-navy"><input type="checkbox" checked={applicationsAccess} onChange={(event) => setApplicationsAccess(event.target.checked)} className="mt-0.5 accent-amber" />Applications</label>
+              <button onClick={saveDashboardAccess} disabled={savingDashboardAccess || partner.status !== "approved"} className="mt-4 w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-60">{savingDashboardAccess ? "Saving..." : "Save Access"}</button>
+            </> : <p className="mt-3 text-xs text-muted">Create the partner login first to manage dashboard access.</p>}
+          </div>}
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock size={16} className="text-amber" />Status Timeline</h3>
             <div className="mt-4 space-y-3">
