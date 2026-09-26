@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -673,21 +673,26 @@ function VendorStep({ form, location, onChange }) {
   const [approvedVendors, setApprovedVendors] = useState([]);
   const [vendorSearch, setVendorSearch] = useState(form.subVendorName || "");
   const [showVendorMatches, setShowVendorMatches] = useState(false);
+  const [loadingApprovedVendors, setLoadingApprovedVendors] = useState(false);
+  const [vendorLoadError, setVendorLoadError] = useState("");
 
-  useEffect(() => {
-    let active = true;
-    getApprovedSubVendors(location)
-      .then((response) => {
-        if (!active) return;
-        const items = response?.data?.items || response?.items || [];
-        setApprovedVendors(items.map((item) => item.name).filter(Boolean));
-      })
-      .catch((error) => {
-        console.error("Could not load approved sub-vendors:", error);
-        if (active) setApprovedVendors([]);
-      });
-    return () => { active = false; };
+  const loadApprovedVendors = useCallback(async () => {
+    setLoadingApprovedVendors(true);
+    setVendorLoadError("");
+    try {
+      const response = await getApprovedSubVendors(location);
+      const items = response?.data?.items || response?.items || [];
+      setApprovedVendors(items.map((item) => item.name).filter(Boolean));
+    } catch (error) {
+      console.error("Could not load approved sub-vendors:", error);
+      setApprovedVendors([]);
+      setVendorLoadError(error.message || "Could not load approved sub-vendors. Try refreshing the list.");
+    } finally {
+      setLoadingApprovedVendors(false);
+    }
   }, [location]);
+
+  useEffect(() => { loadApprovedVendors(); }, [loadApprovedVendors]);
 
   const existingVendors =
     location === "odisha" ? ODISHA_SUB_VENDORS : KOLKATA_SUB_VENDORS;
@@ -700,7 +705,7 @@ function VendorStep({ form, location, onChange }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="relative">
           <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold text-navy/70">Sub Vendor Name</span>
+            <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-semibold text-navy/70"><span>Sub Vendor Name</span><button type="button" onClick={loadApprovedVendors} disabled={loadingApprovedVendors} className="font-semibold text-amber hover:underline disabled:opacity-50">{loadingApprovedVendors ? "Loading..." : "Refresh names"}</button></span>
             <span className="relative block">
               <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
               <input
@@ -731,6 +736,7 @@ function VendorStep({ form, location, onChange }) {
               className={`block w-full px-3.5 py-2 text-left text-sm hover:bg-amber-soft ${form.subVendorName === name ? "bg-amber-soft font-semibold text-navy" : "text-navy/80"}`}
             >{name}</button>) : <p className="px-3.5 py-2 text-sm text-muted">No matching sub-vendors.</p>}
           </div>}
+          {vendorLoadError && <p role="alert" className="mt-1 text-[11px] text-red-600">{vendorLoadError}</p>}
           <p className="mt-1 text-[11px] text-muted">{form.subVendorName ? `Selected: ${form.subVendorName}` : "Type a name to find and select a sub-vendor."}</p>
         </div>
         <Field

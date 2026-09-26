@@ -222,7 +222,7 @@ export const submitPartner = (payload) =>
   });
 
 export const getApprovedSubVendors = (location) =>
-  apiFetch(`/partners/approved-sub-vendors?location=${encodeURIComponent(location)}`);
+  apiFetch(`/partners/approved-sub-vendors?location=${encodeURIComponent(location)}`, { cache: "no-store" });
 
 export const createPartnerRecord = (payload) =>
   apiFetch("/admin/partners", {
