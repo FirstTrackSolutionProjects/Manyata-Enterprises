@@ -174,7 +174,7 @@ export const listInstallations = (location = "", filters = {}) => {
 };
 export const getInstallation = (id) => apiFetch(`/installations/${id}`);
 export const updateInstallation = (id, payload) => apiFetch(`/installations/${id}`, { method: "PUT", body: JSON.stringify(payload) });
-export const updateInstallationStatus = (id, status) => apiFetch(`/installations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) });
+export const updateInstallationStatus = (id, status, note = "") => apiFetch(`/installations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) });
 export const deleteInstallation = (id) => apiFetch(`/installations/${id}`, { method: "DELETE" });
 
 export const getApplicationStats = (params = {}) => {

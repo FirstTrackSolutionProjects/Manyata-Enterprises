@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Clock, Download, Loader2, Save } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { getInstallation, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
@@ -27,6 +27,7 @@ export default function InstallationDetail() {
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
   const [item, setItem] = useState(null);
+  const [history, setHistory] = useState([]);
   const [form, setForm] = useState(null);
   const [files, setFiles] = useState({});
   const [editing, setEditing] = useState(false);
@@ -34,6 +35,9 @@ export default function InstallationDetail() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [newStatus, setNewStatus] = useState("pending");
+  const [statusNote, setStatusNote] = useState("");
+  const [savingStatus, setSavingStatus] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -42,6 +46,8 @@ export default function InstallationDetail() {
       const response = await getInstallation(id);
       const record = response.data.installation;
       setItem(record);
+      setHistory(response.data.history || []);
+      setNewStatus(record.status);
       setForm(Object.fromEntries(FIELDS.map(([key, , formKey]) => [formKey, record[key] || ""])));
     } catch (err) {
       setError(err.message || "Could not load installation details.");
@@ -70,15 +76,19 @@ export default function InstallationDetail() {
     }
   };
 
-  const changeStatus = async (status) => {
+  const saveStatus = async () => {
+    setSavingStatus(true);
     setError("");
     setNotice("");
     try {
-      await updateInstallationStatus(id, status);
-      setItem((current) => ({ ...current, status }));
+      await updateInstallationStatus(id, newStatus, statusNote.trim());
+      setStatusNote("");
       setNotice("Installation status updated.");
+      await load();
     } catch (err) {
       setError(err.message || "Could not update installation status.");
+    } finally {
+      setSavingStatus(false);
     }
   };
 
@@ -114,8 +124,11 @@ export default function InstallationDetail() {
       </div>
       <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6">
         <h3 className="font-bold text-navy">Update Status</h3>
-        <p className="mt-1 text-sm text-muted">Current status: <span className="font-semibold capitalize text-navy">{item.status}</span></p>
-        {canEdit ? <select value={item.status} onChange={(event) => changeStatus(event.target.value)} className="mt-4 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm"><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="completed">Completed</option></select> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
+        {canEdit ? <div className="mt-4 space-y-3"><select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-amber bg-white px-3.5 py-2.5 text-sm focus:outline-none"><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="completed">Completed</option></select><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" /><button onClick={saveStatus} disabled={savingStatus || newStatus === item.status} className="w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{savingStatus ? "Saving..." : "Save Status"}</button></div> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
+      </aside>
+      <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6 xl:col-start-2">
+        <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock size={16} className="text-amber" />Status Timeline</h3>
+        <div className="mt-4 space-y-3">{history.map((entry) => <div key={entry.id} className="border-l-2 border-amber/40 pl-3"><p className="text-xs font-bold capitalize text-navy">{entry.new_status}</p><p className="text-xs text-muted">{dateTime(entry.created_at)}</p><p className="text-xs text-muted">by {entry.changed_by_name || "Customer"}</p>{entry.note && <p className="mt-1 text-xs italic text-muted">{entry.note}</p>}</div>)}</div>
       </aside>
     </div>
   </div>;
