@@ -1891,10 +1891,14 @@ function SubmissionList({ type }) {
   const updateStatus = async (id, status) => {
     setUpdating(true);
     try {
-      await apiFetch(`/admin/${type}/${id}/status`, {
+      const response = await apiFetch(`/admin/${type}/${id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       });
+      const credentials = response.data?.accountCredentials;
+      if (credentials) {
+        window.alert(`Partner approved. Login ID: ${credentials.loginId}\nTemporary password: ${credentials.password}\nShare these credentials with the partner. They must change the password after signing in.`);
+      }
       await load();
     } catch (err) {
       alert(err.message);
@@ -2013,7 +2017,7 @@ function SubmissionList({ type }) {
                     <Link to={`/admin/partners/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13} /> View</Link>
                      {isOwner && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
                     </>}
-                    {it.status !== "approved" && (
+                    {isOwner && it.status !== "approved" && (
                       <button
                         disabled={updating}
                         onClick={() => updateStatus(it.id, "approved")}
@@ -2022,7 +2026,7 @@ function SubmissionList({ type }) {
                         Approve
                       </button>
                     )}
-                    {it.status !== "rejected" && (
+                    {isOwner && it.status !== "rejected" && (
                       <button
                         disabled={updating}
                         onClick={() => updateStatus(it.id, "rejected")}
@@ -2031,7 +2035,7 @@ function SubmissionList({ type }) {
                         Reject
                       </button>
                     )}
-                    {it.status !== "reviewed" &&
+                    {isOwner && it.status !== "reviewed" &&
                       it.status !== "approved" &&
                       it.status !== "rejected" && (
                         <button

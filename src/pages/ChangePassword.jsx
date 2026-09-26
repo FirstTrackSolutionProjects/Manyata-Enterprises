@@ -41,7 +41,7 @@ export default function ChangePassword() {
       await refresh();
       setSuccess(true);
       setTimeout(() => {
-        navigate(user?.role === "owner" ? "/admin" : "/employee", {
+        navigate(user?.role === "owner" ? "/admin" : user?.role === "partner" ? "/partner/dashboard" : "/employee", {
           replace: true,
         });
       }, 1200);
@@ -202,7 +202,7 @@ export default function ChangePassword() {
         <button
           type="button"
           onClick={() =>
-            navigate(user?.role === "owner" ? "/admin" : "/employee")
+            navigate(user?.role === "owner" ? "/admin" : user?.role === "partner" ? "/partner/dashboard" : "/employee")
           }
           className="mt-3 w-full text-center text-xs font-semibold text-muted hover:text-navy"
         >

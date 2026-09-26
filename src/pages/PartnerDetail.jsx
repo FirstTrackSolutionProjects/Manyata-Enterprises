@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2 } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { useAuth } from "../contexts/AuthContext";
-import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, sendPartnerAgreement, updatePartnerStatus } from "../services/api";
+import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
   ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
@@ -31,6 +31,8 @@ export default function PartnerDetail() {
   const [downloadingAgreementPdf, setDownloadingAgreementPdf] = useState(false);
   const [sendingAgreement, setSendingAgreement] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [creatingLogin, setCreatingLogin] = useState(false);
+  const [resettingLogin, setResettingLogin] = useState(false);
 
   const load = async () => {
     try {
@@ -71,12 +73,49 @@ export default function PartnerDetail() {
       }
       const response = await updatePartnerStatus(id, newStatus, statusNote.trim());
       setStatusNote("");
-      setNotice(response.message || "Status updated.");
+      const credentials = response.data?.accountCredentials;
+      setNotice(credentials
+        ? `Partner approved. Login ID: ${credentials.loginId} · Temporary password: ${credentials.password}. Share these credentials with the partner; they must change the password after signing in.`
+        : response.message || "Status updated.");
       await load();
     } catch (err) {
       setError(err.message || "Could not update partner status.");
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const createPartnerLogin = async () => {
+    if (!partner || creatingLogin) return;
+    setCreatingLogin(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await updatePartnerStatus(id, "approved");
+      const credentials = response.data?.accountCredentials;
+      setNotice(credentials
+        ? `Partner login created. Login ID: ${credentials.loginId} · Temporary password: ${credentials.password}. Share these with the partner; they must change the password after signing in.`
+        : "This partner already has a login account.");
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not create the partner login.");
+    } finally {
+      setCreatingLogin(false);
+    }
+  };
+
+  const resetPartnerLogin = async () => {
+    if (!partner || resettingLogin) return;
+    setResettingLogin(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await resetPartnerPassword(id);
+      setNotice(`Partner password reset. Login ID: ${response.data.loginId} · Temporary password: ${response.data.password}. Share these with the partner; they must change the password after signing in.`);
+    } catch (err) {
+      setError(err.message || "Could not reset the partner password.");
+    } finally {
+      setResettingLogin(false);
     }
   };
 
@@ -172,6 +211,7 @@ export default function PartnerDetail() {
         <div className="space-y-6 lg:col-span-2">
           <InfoSection title="Partner Details" items={[
             ["Partner Type", ["sub_vendor", "sub_vendor_commission"].includes(partner.partner_type) ? "Sub-vendor" : titleCase(partner.partner_type)],
+            ...(isOwner && partner.partner_login_id ? [["Partner Login ID", partner.partner_login_id], ["Partner Login Status", titleCase(partner.partner_account_status || "active")]] : []),
             ["Commission", partner.commission_model === "per_completed_installation" || partner.partner_type === "sub_vendor_commission" ? "Per completed installation" : "—"], ["Company Name", partner.company_name],
             ["Contact Name", partner.contact_name], ["Phone", partner.phone], ["Email", partner.email],
             ["Aadhaar Number", partner.aadhaar_number], ["Gender", ({ male: "Male", female: "Female", other: "Other" }[partner.gender] || partner.gender)], ["Date of Birth", partner.dob ? String(partner.dob).slice(0, 10) : ""],
@@ -200,14 +240,16 @@ export default function PartnerDetail() {
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <h3 className="text-sm font-bold text-navy">Update Status</h3>
             <div className="mt-4 space-y-3">
-              <select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm">
+              <select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} disabled={!isOwner} className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm disabled:bg-slate-100">
                 {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 {isOwner && <option value={SEND_AGREEMENT_ACTION}>Send Agreement Mail</option>}
               </select>
               {isOwner && newStatus === SEND_AGREEMENT_ACTION && <p className="text-xs text-muted">{partner.status !== "approved" ? "Approve and save this partner first, then send the agreement." : !partner.email ? "Add the partner email before sending." : "Save this action to email the agreement PDF. Partner status will remain Approved."}</p>}
-              <textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" />
-              <button onClick={saveStatus} disabled={updating || sendingAgreement || (newStatus === partner.status)} className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60">{(updating || sendingAgreement) && <Loader2 size={16} className="animate-spin" />}{newStatus === SEND_AGREEMENT_ACTION ? "Send Agreement Mail" : "Save Status"}</button>
+              <textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} disabled={!isOwner} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none disabled:bg-slate-100" />
+              <button onClick={saveStatus} disabled={!isOwner || updating || sendingAgreement || (newStatus === partner.status)} className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60">{(updating || sendingAgreement) && <Loader2 size={16} className="animate-spin" />}{newStatus === SEND_AGREEMENT_ACTION ? "Send Agreement Mail" : "Save Status"}</button>
               {isOwner && <button onClick={sendAgreement} disabled={sendingAgreement || partner.status !== "approved" || !partner.email} className="flex w-full items-center justify-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:cursor-not-allowed disabled:opacity-60"><FileText size={16} />{sendingAgreement ? "Sending Agreement..." : "Send Agreement Mail"}</button>}
+              {isOwner && ["sub_vendor", "dealer"].includes(partner.partner_type) && partner.status === "approved" && !partner.partner_login_id && <button onClick={createPartnerLogin} disabled={creatingLogin} className="w-full rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60">{creatingLogin ? "Creating Login..." : "Create Partner Login"}</button>}
+              {isOwner && ["sub_vendor", "dealer"].includes(partner.partner_type) && partner.status === "approved" && partner.partner_login_id && <button onClick={resetPartnerLogin} disabled={resettingLogin} className="w-full rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber disabled:opacity-60">{resettingLogin ? "Resetting Password..." : "Reset Partner Password"}</button>}
             </div>
           </div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5">

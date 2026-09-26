@@ -243,6 +243,8 @@ export const updatePartnerStatus = (id, status, note = "") =>
     method: "PATCH",
     body: JSON.stringify({ status, note }),
   });
+export const resetPartnerPassword = (id) =>
+  apiFetch(`/admin/partners/${id}/reset-password`, { method: "POST" });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {

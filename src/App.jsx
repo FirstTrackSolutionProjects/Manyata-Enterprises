@@ -31,6 +31,7 @@ import JoinUsDetail from "./pages/JoinUsDetail";
 import CareerDetail from "./pages/CareerDetail";
 import ContactDetail from "./pages/ContactDetail";
 import InstallationDetail from "./pages/InstallationDetail";
+import PartnerDashboard from "./pages/PartnerDashboard";
 
 export default function App() {
   return (
@@ -167,6 +168,15 @@ export default function App() {
                 <DashboardLayout title="Application Detail">
                   <ApplicationDetail />
                 </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/partner/dashboard"
+            element={
+              <ProtectedRoute roles={["partner"]}>
+                <PartnerDashboard />
               </ProtectedRoute>
             }
           />
