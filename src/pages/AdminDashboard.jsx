@@ -1827,6 +1827,7 @@ function SubmissionList({ type }) {
   const [stateFilter, setStateFilter] = useState("");
   const [systemTypeFilter, setSystemTypeFilter] = useState("");
   const [systemSizeFilter, setSystemSizeFilter] = useState("");
+  const [partnerTypeFilter, setPartnerTypeFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
@@ -1890,9 +1891,10 @@ function SubmissionList({ type }) {
       .some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
     const recordName = [item.name, item.full_name, item.company_name, item.contact_name, fullName].filter(Boolean).join(" ").toLowerCase();
     const partnerSystemTypes = Array.isArray(item.system_types) ? item.system_types : [];
-    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase()) && (!systemTypeFilter || partnerSystemTypes.includes(systemTypeFilter)) && (!systemSizeFilter || String(item.system_size || "") === systemSizeFilter);
+    const normalizedPartnerType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
+    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || (item.location || item.city) === locationFilter) && (!stateFilter || String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase()) && (!systemTypeFilter || partnerSystemTypes.includes(systemTypeFilter)) && (!systemSizeFilter || String(item.system_size || "") === systemSizeFilter) && (!partnerTypeFilter || normalizedPartnerType === partnerTypeFilter);
   }), { fromDate, toDate, sortBy, sortOrder, nameKey: isPartners ? "company_name" : isContacts ? "name" : "first_name" });
-  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter));
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter)) + Number(Boolean(partnerTypeFilter));
 
   if (loading)
     return (
@@ -1919,13 +1921,14 @@ function SubmissionList({ type }) {
         {(isJoinUs || isCareers || isContacts || isPartners) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
         {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
         {isPartners && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={[{ value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]} placeholder="All states" />}
+        {isPartners && <FilterSelect label="Partner Type" value={partnerTypeFilter} onChange={setPartnerTypeFilter} options={[{ value: "vendor", label: "Vendor" }, { value: "sub_vendor", label: "Sub-vendor" }, { value: "dealer", label: "Dealer" }]} placeholder="All partner types" />}
         {isPartners && <FilterSelect label="System Type" value={systemTypeFilter} onChange={setSystemTypeFilter} options={[{ value: "on_grid", label: "On-Grid" }, { value: "hybrid", label: "Hybrid" }]} placeholder="All types" />}
         {isContacts && <FilterSelect label="System Size" value={systemSizeFilter} onChange={setSystemSizeFilter} options={[...new Set(items.map((item) => item.system_size).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All sizes" />}
         <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
         <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
         <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "name", label: "Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
         <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
-        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); setSystemTypeFilter(""); setSystemSizeFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); setSystemTypeFilter(""); setSystemSizeFilter(""); setPartnerTypeFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
       </div>}
       {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search || activeFilterCount ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
       {filteredItems.length > 0 && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
