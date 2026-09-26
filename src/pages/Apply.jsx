@@ -457,10 +457,10 @@ function LocationStep({ onSelect }) {
             />
             <LocationCard
               icon={MapIcon}
-              title="Kolkata"
-              subtitle="For customers from Kolkata / West Bengal"
-              description="Apply for rooftop solar installation services in Kolkata and West Bengal."
-              buttonText="Apply from Kolkata"
+              title="West Bengal"
+              subtitle="For customers from West Bengal"
+              description="Apply for rooftop solar installation services in West Bengal."
+              buttonText="Apply from West Bengal"
               onClick={() => onSelect("kolkata")}
             />
           </div>
@@ -512,7 +512,7 @@ function WizardShell({
                 Exit
               </button>
               <span className="text-xs font-semibold text-amber">
-                {location === "odisha" ? "Odisha" : "Kolkata"} Application
+                {location === "odisha" ? "Odisha" : "West Bengal"} Application
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs">
@@ -1159,7 +1159,7 @@ function PreviewStep({ form, location, onEdit }) {
           </button>
         </div>
         <p className="mt-2 text-sm text-navy">
-          {location === "odisha" ? "Odisha" : "Kolkata / West Bengal"}
+          {location === "odisha" ? "Odisha" : "West Bengal"}
         </p>
       </div>
 

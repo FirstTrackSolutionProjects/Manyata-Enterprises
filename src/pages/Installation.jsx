@@ -189,10 +189,10 @@ export default function Installation() {
 
               <LocationCard
                 icon={Map}
-                title="Kolkata"
-                subtitle="For installations in Kolkata / West Bengal"
-                description="Submit technical installation details for a rooftop solar system in Kolkata and West Bengal."
-                buttonText="Continue with Kolkata"
+                title="West Bengal"
+                subtitle="For installations in West Bengal"
+                description="Submit technical installation details for a rooftop solar system in West Bengal."
+                buttonText="Continue with West Bengal"
                 onClick={() => handleLocationSelect("kolkata")}
               />
             </div>
@@ -233,7 +233,7 @@ export default function Installation() {
 
           <p className="mt-3 text-sm leading-relaxed text-muted">
             Thank you for submitting the installation details for{" "}
-            {selectedLocation === "odisha" ? "Odisha" : "Kolkata"}. Our team
+            {selectedLocation === "odisha" ? "Odisha" : "West Bengal"}. Our team
             will review the information and reach out if required.
           </p>
 
@@ -283,7 +283,7 @@ export default function Installation() {
                 <span className="text-sm font-semibold text-amber">
                   {selectedLocation === "odisha"
                     ? "Odisha Installation"
-                    : "Kolkata Installation"}
+                    : "West Bengal Installation"}
                 </span>
                 <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl">
                   Technical Installation Form
@@ -320,7 +320,7 @@ export default function Installation() {
                   <p className="text-base font-bold text-navy">
                     {selectedLocation === "odisha"
                       ? "Odisha"
-                      : "Kolkata, West Bengal"}
+                      : "West Bengal"}
                   </p>
                 </div>
               </div>
