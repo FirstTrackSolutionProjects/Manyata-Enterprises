@@ -173,6 +173,7 @@ export const listInstallations = (location = "", filters = {}) => {
   return apiFetch(`/installations${params.size ? `?${params.toString()}` : ""}`);
 };
 export const getInstallation = (id) => apiFetch(`/installations/${id}`);
+export const downloadInstallationPdf = (id) => window.open(`${API_URL}/installations/${id}/pdf`, "_blank", "noopener,noreferrer");
 export const updateInstallation = (id, payload) => apiFetch(`/installations/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 export const updateInstallationStatus = (id, status, note = "") => apiFetch(`/installations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) });
 export const deleteInstallation = (id) => apiFetch(`/installations/${id}`, { method: "DELETE" });
