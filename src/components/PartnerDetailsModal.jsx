@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
+import { useEffect, useState } from "react";
+import { apiFetch, fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
 
 const PARTNER_TYPES = [
   ["super_vendor", "Super-vendor"],
   ["vendor", "Vendor"],
-  ["dealer", "Dealer"],
   ["sub_vendor", "Sub-vendor"],
+  ["dealer", "Dealer"],
 ];
 const COMMISSION_MODELS = [["per_completed_installation", "Per completed installation"]];
 const SYSTEM_TYPES = [
@@ -51,10 +51,14 @@ const readAssignedLocations = (partner) => {
   if (["westbengal", "westbangol", "westbangal", "kolkata"].includes(state)) return ["west_bengal"];
   return [];
 };
+const normalizePartnerType = (type) => type === "sub_vendor_commission" ? "sub_vendor" : type;
+const PARENT_TYPE_BY_PARTNER_TYPE = { vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
+const PARTNER_TYPE_LABELS = { super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" };
 
 export default function PartnerDetailsModal({ partner, editing, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
     partnerType: partner.partner_type === "sub_vendor_commission" ? "sub_vendor" : PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
+    referredByPartnerId: partner.referred_by_partner_id ? String(partner.referred_by_partner_id) : "",
     commissionModel: partner.commission_model || (partner.partner_type === "sub_vendor_commission" ? "per_completed_installation" : ""),
     systemTypes: readSystemTypes(partner.system_types),
     assignedLocations: readAssignedLocations(partner),
@@ -71,11 +75,41 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
   const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [approvedPartners, setApprovedPartners] = useState([]);
+  const [loadingPartners, setLoadingPartners] = useState(false);
+
+  useEffect(() => {
+    if (!editing) return undefined;
+    let active = true;
+    setLoadingPartners(true);
+    apiFetch("/admin/partners?status=approved&limit=100")
+      .then((response) => {
+        if (active) setApprovedPartners(response?.data?.items || []);
+      })
+      .catch((err) => {
+        if (active) setError(err.message || "Could not load approved referral partners.");
+      })
+      .finally(() => { if (active) setLoadingPartners(false); });
+    return () => { active = false; };
+  }, [editing]);
+
+  const requiredParentType = PARENT_TYPE_BY_PARTNER_TYPE[form.partnerType];
+  const parentOptions = approvedPartners.filter((item) =>
+    Number(item.id) !== Number(partner.id) && normalizePartnerType(item.partner_type) === requiredParentType
+  );
 
   const save = async (event) => {
     event.preventDefault();
     if (!form.assignedLocations.length) {
       setError("Select at least one partner location: Odisha or West Bengal.");
+      return;
+    }
+    const originalPartnerType = normalizePartnerType(partner.partner_type);
+    const originalParentId = partner.referred_by_partner_id ? String(partner.referred_by_partner_id) : "";
+    const partnerTypeChanged = form.partnerType !== originalPartnerType;
+    const referralChanged = form.referredByPartnerId !== originalParentId;
+    if (requiredParentType && (partnerTypeChanged || referralChanged) && !form.referredByPartnerId) {
+      setError(`Choose an approved ${PARTNER_TYPE_LABELS[requiredParentType]} to refer this partner.`);
       return;
     }
     if (!form.systemTypes.length) {
@@ -90,7 +124,10 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
     setError("");
     try {
       const uploaded = await uploadFilesToS3("partners", files);
-      await updatePartner(partner.id, { ...form, files: uploaded });
+      const payload = { ...form, files: uploaded };
+      if (partnerTypeChanged || referralChanged) payload.referredByPartnerId = form.referredByPartnerId || null;
+      else delete payload.referredByPartnerId;
+      await updatePartner(partner.id, payload);
       await onSaved();
     } catch (err) {
       setError(err.message || "Could not update partner details.");
@@ -114,7 +151,7 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {FIELDS.map(([key, label, type]) => {
-            const FieldWrapper = type === "systems" || type === "locations" || type === "commission-chart" ? "div" : "label";
+            const FieldWrapper = type === "systems" || type === "locations" || type === "commission-chart" || type === "select" ? "div" : "label";
             return (
             <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" || type === "locations" || type === "commission-chart" ? "sm:col-span-2" : ""}`}>
               {label}
@@ -124,11 +161,29 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                 </span>
               ) : type === "select" ? (
                 <>
-                  <select required value={form[key]} disabled={key === "partnerType"} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm disabled:bg-slate-100">
+                  <select required value={form[key]} onChange={(event) => {
+                    const partnerType = event.target.value;
+                    const nextParentType = PARENT_TYPE_BY_PARTNER_TYPE[partnerType];
+                    const currentParent = approvedPartners.find((item) => String(item.id) === form.referredByPartnerId);
+                    setForm({
+                      ...form,
+                      partnerType,
+                      referredByPartnerId: nextParentType && normalizePartnerType(currentParent?.partner_type) === nextParentType ? form.referredByPartnerId : "",
+                      commissionModel: partnerType === "sub_vendor" ? (form.commissionModel || COMMISSION_MODELS[0][0]) : "",
+                    });
+                  }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
                     <option value="" disabled>Select partner type</option>
                     {PARTNER_TYPES.map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}
                   </select>
-                  {key === "partnerType" && <span className="mt-1 block font-normal text-muted">Assign partner type and referral parent from Onboard Partner.</span>}
+                  {key === "partnerType" && <>
+                    <span className="mt-1 block font-normal text-muted">Owner can assign this partner as a super-vendor, vendor, sub-vendor, or dealer.</span>
+                    {requiredParentType && <label className="mt-3 block text-xs font-semibold text-navy/70">Referred by ({PARTNER_TYPE_LABELS[requiredParentType]})
+                      <select required value={form.referredByPartnerId} disabled={loadingPartners} onChange={(event) => setForm({ ...form, referredByPartnerId: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm disabled:bg-slate-100">
+                        <option value="">{loadingPartners ? "Loading approved partners…" : `Choose ${PARTNER_TYPE_LABELS[requiredParentType]}`}</option>
+                        {parentOptions.map((item) => <option key={item.id} value={item.id}>{item.company_name || item.contact_name} · #{item.id}</option>)}
+                      </select>
+                    </label>}
+                  </>}
                 </>
               ) : type === "gender" ? (
                 <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
