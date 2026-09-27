@@ -410,7 +410,7 @@ function ApplicationsTab({ initialLocation = "" }) {
     <div className="space-y-4">
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
-          ["Total Applications", totalApplicationCount],
+          [initialLocation === "odisha" ? "Odisha" : "West Bengal", totalApplicationCount],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
           ["Approved", Number(applicationStatusCounts.approved || 0)],
