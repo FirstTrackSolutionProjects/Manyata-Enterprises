@@ -1,9 +1,11 @@
 export const APPLICATION_STATUSES = [
   { value: "pending", label: "Pending" },
   { value: "verified", label: "Verified" },
-  { value: "electricity_bill_name_mismatch", label: "Electricity Bill Name Mismatch" },
+  { value: "electricity_bill_name_mismatch", label: "Electricity Bill - Name Mismatch" },
   { value: "electricity_bill_name_mismatch_completed_successfully", label: "Electricity Bill Name Mismatch – Completed Successfully" },
-  { value: "electricity_bill_mismatch_ownership_transfer", label: "Electricity Bill Mismatch – Ownership Transfer" },
+  { value: "electricity_bill_mismatch_ownership_transfer", label: "Electricity Bill - Ownership Transfer" },
+  { value: "customer_side_login_otp_pending_customer_not_responding_call", label: "Customer Side - Login - OTP Pending - Customer Not Responding Call" },
+  { value: "vendor_side_login_otp_pending_customer_not_responding_call", label: "Vendor Side - Login - OTP Pending - Customer Not Responding Call" },
   { value: "ownership_transfer_completed_successfully", label: "Ownership Transfer – Completed Successfully" },
   { value: "consumer_login_submitted_to_govt_portal", label: "Consumer Login – Submitted to Govt Portal" },
   { value: "vendor_side_pending_for_bank_forward", label: "Vendor Side Pending for Bank Forward" },

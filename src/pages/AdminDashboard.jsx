@@ -417,6 +417,10 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
           ["Under Review", Number(applicationStatusCounts.under_review || 0)],
+          ["Electricity Bill - Name Mismatch", Number(applicationStatusCounts.electricity_bill_name_mismatch || 0)],
+          ["Electricity Bill - Ownership Transfer", Number(applicationStatusCounts.electricity_bill_mismatch_ownership_transfer || 0)],
+          ["Customer Side - Login - OTP Pending - Customer Not Responding Call", Number(applicationStatusCounts.customer_side_login_otp_pending_customer_not_responding_call || 0)],
+          ["Vendor Side - Login - OTP Pending - Customer Not Responding Call", Number(applicationStatusCounts.vendor_side_login_otp_pending_customer_not_responding_call || 0)],
           ["Loan Disbursed - Phase 1", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0)],
           ["Loan Disbursed - Phase 2", Number(applicationStatusCounts.loan_disbursed_phase_2 || 0)],
         ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{value ?? "—"}</p></div>)}
