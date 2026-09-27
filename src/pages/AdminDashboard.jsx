@@ -411,13 +411,14 @@ function ApplicationsTab({ initialLocation = "" }) {
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           ["Total Applications", totalApplicationCount],
-          ["Pending", applicationStatusCounts.pending],
-          ["Verified", applicationStatusCounts.verified],
-          ["Approved", applicationStatusCounts.approved],
-          ["Rejected", applicationStatusCounts.rejected],
+          ["Pending", Number(applicationStatusCounts.pending || 0)],
+          ["Verified", Number(applicationStatusCounts.verified || 0)],
+          ["Approved", Number(applicationStatusCounts.approved || 0)],
+          ["Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
-          ["Loan Disbursed - Phase 1", applicationStatusCounts.loan_disbursed_successfully_phase_1],
-          ["Loan Disbursed - Phase 2", applicationStatusCounts.loan_disbursed_phase_2],
+          ["Under Review", Number(applicationStatusCounts.under_review || 0)],
+          ["Loan Disbursed - Phase 1", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0)],
+          ["Loan Disbursed - Phase 2", Number(applicationStatusCounts.loan_disbursed_phase_2 || 0)],
         ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{value ?? "—"}</p></div>)}
       </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
