@@ -1698,6 +1698,7 @@ function InstallationsTab({ location }) {
   const [items, setItems] = useState([]);
   const [locationCounts, setLocationCounts] = useState(null);
   const [totalInstallationCount, setTotalInstallationCount] = useState(null);
+  const [installationStatusCounts, setInstallationStatusCounts] = useState({});
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
@@ -1730,13 +1731,14 @@ function InstallationsTab({ location }) {
 
   useEffect(() => {
     let active = true;
-    apiFetch("/installations/stats/overview")
-      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalInstallationCount(Number(res.data.total || 0)); } })
+    const statsQuery = location ? `?location=${encodeURIComponent(location)}` : "";
+    apiFetch(`/installations/stats/overview${statsQuery}`)
+      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalInstallationCount(Number(res.data.total || 0)); setInstallationStatusCounts(res.data.byStatus || {}); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
-  }, []);
+  }, [location]);
 
-  const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "Kolkata Installations" : "All Installations";
+  const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "West Bengal Installations" : "All Installations";
   const filteredItems = applyDateSort(items.filter((item) =>
     [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status]
       .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
@@ -1751,9 +1753,18 @@ function InstallationsTab({ location }) {
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Installations</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalInstallationCount ?? "—"}</p></div>
-      {[["Odisha Installations", "odisha"], ["West Bengal Installations", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
+    <div className={`grid grid-cols-2 gap-3 ${location ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+      {location ? <>
+        {[
+          [`Total Installations - ${location === "odisha" ? "Odisha" : "West Bengal"}`, totalInstallationCount],
+          ["Pending", installationStatusCounts.pending],
+          ["Reviewed", installationStatusCounts.reviewed],
+          ["Completed", installationStatusCounts.completed],
+        ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
+      </> : <>
+        <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Installations</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalInstallationCount ?? "—"}</p></div>
+        {[["Odisha Installations", "odisha"], ["West Bengal Installations", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
+      </>}
     </div>
     <div className="flex w-full flex-wrap gap-3">
       <div className="relative min-w-[240px] flex-1">
@@ -1761,7 +1772,7 @@ function InstallationsTab({ location }) {
         <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
       </div>
       <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
-      <button onClick={async () => { await load(); const statsRes = await apiFetch("/installations/stats/overview"); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+      <button onClick={async () => { await load(); const statsQuery = location ? `?location=${encodeURIComponent(location)}` : ""; const statsRes = await apiFetch(`/installations/stats/overview${statsQuery}`); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); setInstallationStatusCounts(statsRes.data.byStatus || {}); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
     </div>
     {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
