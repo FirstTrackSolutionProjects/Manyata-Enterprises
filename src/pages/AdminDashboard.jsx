@@ -43,6 +43,7 @@ import {
   uploadFilesToS3,
   listUsers,
   listBranches,
+  getApprovedPartnerNetwork,
   createEmployee,
   updateEmployee,
   resetEmployeePassword,
@@ -313,6 +314,11 @@ const EMPTY_FILTERS = {
   name: "",
   email: "",
   phone: "",
+  superVendorName: "",
+  vendorName: "",
+  subVendorName: "",
+  dealerName: "",
+  salesExecutiveName: "",
 };
 
 function ApplicationsTab({ initialLocation = "" }) {
@@ -324,6 +330,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [locationCounts, setLocationCounts] = useState(null);
   const [totalApplicationCount, setTotalApplicationCount] = useState(null);
   const [applicationStatusCounts, setApplicationStatusCounts] = useState({});
+  const [partnerFilterOptions, setPartnerFilterOptions] = useState({});
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
@@ -345,6 +352,28 @@ function ApplicationsTab({ initialLocation = "" }) {
     })();
   }, [user?.role, user?.permissions]);
 
+  useEffect(() => {
+    let active = true;
+    const locations = filters.location
+      ? [filters.location === "odisha" ? "odisha" : "kolkata"]
+      : initialLocation
+        ? [initialLocation === "odisha" ? "odisha" : "kolkata"]
+        : ["odisha", "kolkata"];
+    Promise.all(locations.map((location) => getApprovedPartnerNetwork(location)))
+      .then((responses) => {
+        if (!active) return;
+        const merged = responses.map((response) => response?.data || {}).reduce((result, data) => {
+          for (const key of ["superVendors", "vendors", "subVendors", "dealers", "salesExecutives"]) {
+            result[key] = [...new Set([...(result[key] || []), ...(data[key] || [])])];
+          }
+          return result;
+        }, {});
+        setPartnerFilterOptions(merged);
+      })
+      .catch((err) => console.error("Could not load partner filter options:", err));
+    return () => { active = false; };
+  }, [filters.location, initialLocation]);
+
   const load = async (p = page, overrideFilters) => {
     setLoading(true);
     const f = overrideFilters || filters;
@@ -354,6 +383,11 @@ function ApplicationsTab({ initialLocation = "" }) {
       if (f.name) params.name = f.name;
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
+      if (f.superVendorName) params.superVendorName = f.superVendorName;
+      if (f.vendorName) params.vendorName = f.vendorName;
+      if (f.subVendorName) params.subVendorName = f.subVendorName;
+      if (f.dealerName) params.dealerName = f.dealerName;
+      if (f.salesExecutiveName) params.salesExecutiveName = f.salesExecutiveName;
       if (f.status) params.status = f.status;
       if (f.branchId) params.branchId = f.branchId;
       if (f.location) params.location = f.location;
@@ -517,6 +551,21 @@ function ApplicationsTab({ initialLocation = "" }) {
               ]}
               placeholder="All locations"
             />
+
+            {[
+              ["superVendorName", "Super-vendor", "superVendors"],
+              ["vendorName", "Vendor", "vendors"],
+              ["subVendorName", "Sub-vendor", "subVendors"],
+              ["dealerName", "Dealer", "dealers"],
+              ["salesExecutiveName", "Sales Executive", "salesExecutives"],
+            ].map(([key, label, source]) => <FilterSelect
+              key={key}
+              label={label}
+              value={filters[key]}
+              onChange={(value) => updateFilter(key, value)}
+              options={[...new Set(partnerFilterOptions[source] || [])].map((name) => ({ value: name, label: name }))}
+              placeholder={`All ${label.toLowerCase()}s`}
+            />)}
 
             <FilterSelect
               label="System Type"
