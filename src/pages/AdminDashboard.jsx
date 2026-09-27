@@ -1974,8 +1974,7 @@ function SubmissionList({ type }) {
   const isCareers = type === "careers";
   const isContacts = type === "contacts";
   const onboardPartners = onboardItems.filter((item) => {
-    const normalizedType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
-    return normalizedType === onboardType && item.status === "approved";
+    return item.status === "approved";
   });
   const parentTypeByChildType = { super_vendor: null, vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
   const onboardParentType = parentTypeByChildType[onboardType];
@@ -1994,7 +1993,7 @@ function SubmissionList({ type }) {
       let credentials;
       await apiFetch(`/admin/partners/${selectedOnboardPartner.id}`, {
         method: "PUT",
-        body: JSON.stringify({ referredByPartnerId: onboardParentId || null }),
+        body: JSON.stringify({ partnerType: onboardType, referredByPartnerId: onboardParentId || null }),
       });
       if (selectedOnboardPartner.partner_login_id) {
         const response = await resetPartnerPassword(selectedOnboardPartner.id);
@@ -2041,7 +2040,7 @@ function SubmissionList({ type }) {
     <div className="space-y-4">
       <h2 className="text-sm font-bold text-navy">{isPartners ? "Partners" : isJoinUs ? "Join Us Submissions" : isCareers ? "Career Applications" : "Contact Submissions"}</h2>
       {isPartners && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-        {[["Total Partners", "total"], ["Super-vendors", "super_vendor"], ["Vendors", "vendor_total"], ["Sub-vendors", "sub_vendor"], ["Dealers", "dealer"], ["Odisha", "odisha"], ["West Bengal", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{key === "vendor_total" ? Number(partnerCounts?.vendor || 0) + Number(partnerCounts?.sub_vendor || 0) : partnerCounts?.[key] ?? "—"}</p></div>)}
+        {[["Total Partners", "total"], ["Super-vendors", "super_vendor"], ["Vendors", "vendor"], ["Sub-vendors", "sub_vendor"], ["Dealers", "dealer"], ["Odisha", "odisha"], ["West Bengal", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{partnerCounts?.[key] ?? "—"}</p></div>)}
       </div>}
       <div className="flex w-full flex-wrap gap-3">
           <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
@@ -2164,11 +2163,11 @@ function SubmissionList({ type }) {
       </div>
       }
       {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
-      {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Create a login for the next partner level in the referral chain.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
+      {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Owner assigns the partner level, referral parent, and login access here.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
         {onboardError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{onboardError}</p>}
         <label className="mt-5 block text-xs font-semibold text-navy/70">New Partner Type<select value={onboardType} onChange={(event) => { setOnboardType(event.target.value); setOnboardPartnerId(""); setOnboardParentId(""); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select></label>
         {onboardParentType && <label className="mt-4 block text-xs font-semibold text-navy/70">Referred by ({onboardParentType.replace("_", "-")})<select value={onboardParentId} onChange={(event) => setOnboardParentId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose referring partner</option>{onboardParents.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id}</option>)}</select></label>}
-        <label className="mt-4 block text-xs font-semibold text-navy/70">Approved Partner<select value={onboardPartnerId} onChange={(event) => { setOnboardPartnerId(event.target.value); const chosen = onboardPartners.find((partner) => String(partner.id) === event.target.value); if (chosen?.referred_by_partner_id) setOnboardParentId(String(chosen.referred_by_partner_id)); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose a partner</option>{onboardPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id}{partner.referred_by_partner_id ? " · already referred" : " · no parent yet"}</option>)}</select></label>
+        <label className="mt-4 block text-xs font-semibold text-navy/70">Approved Partner to assign<select value={onboardPartnerId} onChange={(event) => { setOnboardPartnerId(event.target.value); const chosen = onboardPartners.find((partner) => String(partner.id) === event.target.value); if (chosen?.referred_by_partner_id) setOnboardParentId(String(chosen.referred_by_partner_id)); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose a partner</option>{onboardPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id} (currently {({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[partner.partner_type] || partner.partner_type})</option>)}</select></label>
         {onboardLoading && <p className="mt-2 text-xs text-muted">Loading approved partners…</p>}
         {!onboardLoading && !onboardPartners.length && <p className="mt-2 text-xs text-muted">No approved {{ super_vendor: "super-vendors", vendor: "vendors", sub_vendor: "sub-vendors", dealer: "dealers" }[onboardType]} found.</p>}
         {selectedOnboardPartner && <p className="mt-3 rounded-lg bg-amber-soft p-3 text-xs text-navy">{selectedOnboardPartner.partner_login_id ? `Login ${selectedOnboardPartner.partner_login_id} exists. Continue to reset its password.` : `A new login will be created for ${selectedOnboardPartner.company_name || selectedOnboardPartner.contact_name}.`}</p>}

@@ -107,10 +107,13 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                   {key === "systemTypes" ? systemLabels || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : key === "gender" ? ({ male: "Male", female: "Female", other: "Other" }[form[key]] || "—") : form[key] || "—"}
                 </span>
               ) : type === "select" ? (
-                <select required value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
-                  <option value="" disabled>Select partner type</option>
-                  {PARTNER_TYPES.map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}
-                </select>
+                <>
+                  <select required value={form[key]} disabled={key === "partnerType"} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm disabled:bg-slate-100">
+                    <option value="" disabled>Select partner type</option>
+                    {PARTNER_TYPES.map(([value, optionLabel]) => <option key={value} value={value}>{optionLabel}</option>)}
+                  </select>
+                  {key === "partnerType" && <span className="mt-1 block font-normal text-muted">Assign partner type and referral parent from Onboard Partner.</span>}
+                </>
               ) : type === "gender" ? (
                 <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
                   <option value="">Not specified</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
