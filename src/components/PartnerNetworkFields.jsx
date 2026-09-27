@@ -46,8 +46,16 @@ export default function PartnerNetworkFields({ location, form, onChange, fields 
     setLoading(true);
     setError("");
     try {
-      const response = await getApprovedPartnerNetwork(location);
-      setOptions(response?.data || {});
+      const responses = location === "both"
+        ? await Promise.all([getApprovedPartnerNetwork("odisha"), getApprovedPartnerNetwork("kolkata")])
+        : [await getApprovedPartnerNetwork(location)];
+      const merged = responses.map((response) => response?.data || {}).reduce((result, data) => {
+        for (const key of ["superVendors", "vendors", "subVendors", "dealers", "salesExecutives"]) {
+          result[key] = [...new Set([...(result[key] || []), ...(data[key] || [])])];
+        }
+        return result;
+      }, {});
+      setOptions(merged);
     } catch (err) {
       setError(err.message || "Could not load partner names. You can still enter a name manually.");
       setOptions({});

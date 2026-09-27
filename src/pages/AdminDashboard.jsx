@@ -54,6 +54,7 @@ import {
   resetPartnerPassword,
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
+import { formatApplicationLocation } from "../utils/applicationLocation";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -605,7 +606,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                       {a.full_name}
                     </td>
                     <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
-                    <td className="p-3 text-xs whitespace-nowrap">{String(a.location || "-").toLowerCase() === "kolkata" ? "West Bengal" : a.location || "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{formatApplicationLocation(a.location)}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.branch_name ? a.branch_name.replace(/\bKolkata\b/gi, "West Bengal") : "-"}</td>
                     <td className="p-3 text-xs capitalize whitespace-nowrap">
                       {a.system_size} · {a.system_type}

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { trackApplication, downloadApplicationPdf } from "../services/api";
 import { applicationStatusLabel } from "../constants/applicationStatuses";
+import { formatApplicationLocation } from "../utils/applicationLocation";
 
 
 export default function TrackApplication() {
@@ -158,11 +159,7 @@ export default function TrackApplication() {
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <InfoRow
                   label="Location"
-                  value={
-                    result.application.location === "odisha"
-                      ? "Odisha"
-                      : "West Bengal"
-                  }
+                  value={formatApplicationLocation(result.application.location)}
                 />
                 <InfoRow
                   label="System Type"

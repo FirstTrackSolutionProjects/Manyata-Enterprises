@@ -15,6 +15,7 @@ import { APPLICATION_STATUSES } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import { listApplications, downloadApplicationPdf } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
+import { formatApplicationLocation } from "../utils/applicationLocation";
 
 const EMPTY_FILTERS = {
   search: "",
@@ -320,7 +321,7 @@ export default function EmployeeDashboard() {
                         {a.full_name}
                       </td>
                       <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
-                      <td className="p-3 text-xs capitalize whitespace-nowrap">{a.location}</td>
+                      <td className="p-3 text-xs whitespace-nowrap">{formatApplicationLocation(a.location)}</td>
                       <td className="p-3 text-xs capitalize whitespace-nowrap">
                         {a.system_size} · {a.system_type}
                       </td>

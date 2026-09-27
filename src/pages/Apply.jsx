@@ -188,7 +188,7 @@ export default function Apply() {
     setLocation(loc);
     setForm((prev) => ({
       ...prev,
-      state: loc === "odisha" ? "Odisha" : "West Bengal",
+      state: loc === "odisha" ? "Odisha" : loc === "kolkata" ? "West Bengal" : "",
     }));
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -406,6 +406,14 @@ function LocationStep({ onSelect }) {
               buttonText="Apply from West Bengal"
               onClick={() => onSelect("kolkata")}
             />
+            <LocationCard
+              icon={MapIcon}
+              title="Odisha & West Bengal"
+              subtitle="For applications in both regions"
+              description="Submit one application and have it listed in both Odisha and West Bengal application dashboards."
+              buttonText="Apply for both regions"
+              onClick={() => onSelect("both")}
+            />
           </div>
 
           <div className="mt-8 flex items-start gap-3 rounded-xl border border-navy/10 bg-white p-4">
@@ -455,7 +463,7 @@ function WizardShell({
                 Exit
               </button>
               <span className="text-xs font-semibold text-amber">
-                {location === "odisha" ? "Odisha" : "West Bengal"} Application
+                {location === "both" ? "Odisha & West Bengal" : location === "odisha" ? "Odisha" : "West Bengal"} Application
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs">
@@ -681,19 +689,16 @@ function PersonalStep({ form, onChange }) {
 /* ── Step 6: Address ─────────────────────────────────── */
 
 function AddressStep({ form, location, onChange }) {
+  const isBoth = location === "both";
+  const isOdishaAddress = form.state === "Odisha" || (location === "odisha" && !isBoth);
+  const isWestBengalAddress = form.state === "West Bengal" || (location === "kolkata" && !isBoth);
   return (
     <FormCard
       icon={location === "odisha" ? MapPin : MapIcon}
       title="Consumer Address Details"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field
-          label="State"
-          name="state"
-          value={form.state}
-          onChange={onChange}
-          readOnly
-        />
+        {isBoth ? <label className="block text-xs font-semibold text-navy/70">State<select name="state" value={form.state} onChange={onChange} required className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose actual site state</option><option value="Odisha">Odisha</option><option value="West Bengal">West Bengal</option></select></label> : <Field label="State" name="state" value={form.state} onChange={onChange} readOnly />}
         <Field
           label="District"
           name="district"
@@ -701,7 +706,7 @@ function AddressStep({ form, location, onChange }) {
           onChange={onChange}
           placeholder="Enter your district"
         />
-        {location === "odisha" ? (
+        {isOdishaAddress ? (
           <>
             <Field
               label="Block"
@@ -718,7 +723,7 @@ function AddressStep({ form, location, onChange }) {
               placeholder="Enter your Gram Panchayat"
             />
           </>
-        ) : (
+        ) : isWestBengalAddress ? (
           <>
             <Field
               label="Municipality / Corporation"
@@ -735,7 +740,7 @@ function AddressStep({ form, location, onChange }) {
               placeholder="Enter ward number"
             />
           </>
-        )}
+        ) : <p className="text-xs text-muted sm:col-span-2">Choose the actual site state to show the matching address fields.</p>}
         <Field
           label="Building / Plot No."
           name="buildingPlot"
@@ -743,7 +748,7 @@ function AddressStep({ form, location, onChange }) {
           onChange={onChange}
           placeholder="Enter building / plot no."
         />
-        {location === "odisha" ? (
+        {isOdishaAddress ? (
           <Field
             label="Village Name"
             name="villageName"
@@ -751,7 +756,7 @@ function AddressStep({ form, location, onChange }) {
             onChange={onChange}
             placeholder="Enter village name"
           />
-        ) : (
+        ) : isWestBengalAddress ? (
           <Field
             label="Street / Locality"
             name="streetLocality"
@@ -759,7 +764,7 @@ function AddressStep({ form, location, onChange }) {
             onChange={onChange}
             placeholder="Enter street / locality"
           />
-        )}
+        ) : null}
         <Field
           label="City"
           name="city"
@@ -1072,7 +1077,7 @@ function PreviewStep({ form, location, onEdit }) {
           </button>
         </div>
         <p className="mt-2 text-sm text-navy">
-          {location === "odisha" ? "Odisha" : "West Bengal"}
+          {location === "both" ? "Odisha & West Bengal" : location === "odisha" ? "Odisha" : "West Bengal"}
         </p>
       </div>
 
