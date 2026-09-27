@@ -34,7 +34,7 @@ const matchesSearch = (name, search) => {
   ));
 };
 
-export default function PartnerNetworkFields({ location, form, onChange }) {
+export default function PartnerNetworkFields({ location, form, onChange, fields = FIELDS }) {
   const [options, setOptions] = useState({});
   const [queries, setQueries] = useState({});
   const [openField, setOpenField] = useState("");
@@ -67,7 +67,7 @@ export default function PartnerNetworkFields({ location, form, onChange }) {
   }, [load]);
 
   return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-    {FIELDS.map(([key, label, source]) => {
+    {fields.map(([key, label, source]) => {
       const query = queries[key] ?? form[key] ?? "";
       const names = (options[source] || []).map((item) => typeof item === "string" ? item : item.name).filter(Boolean);
       const matches = names.filter((name) => matchesSearch(name, query)).slice(0, 40);

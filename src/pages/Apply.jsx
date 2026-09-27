@@ -614,7 +614,15 @@ function SystemSizeStep({ form, onChange }) {
 function VendorStep({ form, location, onChange }) {
   return (
     <FormCard icon={User} title="Vendor & Sales Details">
-      <PartnerNetworkFields location={location} form={form} onChange={onChange} />
+      <PartnerNetworkFields
+        location={location}
+        form={form}
+        onChange={onChange}
+        fields={[
+          ["subVendorName", "Sub-vendor", "subVendors"],
+          ["salesExecutiveName", "Sales Executive", "salesExecutives"],
+        ]}
+      />
     </FormCard>
   );
 }
@@ -975,8 +983,6 @@ function PreviewStep({ form, location, onEdit }) {
       step: 4,
       title: "Vendor",
       rows: [
-        ["Super-vendor", form.superVendorName],
-        ["Vendor", form.vendorName],
         ["Sub Vendor", form.subVendorName],
         ["Sales Executive", form.salesExecutiveName],
       ],
