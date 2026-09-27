@@ -619,7 +619,7 @@ function VendorStep({ form, location, onChange }) {
         form={form}
         onChange={onChange}
         fields={[
-          ["subVendorName", "Sub-vendor", "subVendors"],
+          ["subVendorName", "Sub-vendor", "allPartners"],
           ["salesExecutiveName", "Sales Executive", "salesExecutives"],
         ]}
       />
