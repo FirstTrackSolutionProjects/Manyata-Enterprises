@@ -50,7 +50,7 @@ export default function PartnerNetworkFields({ location, form, onChange, fields 
         ? await Promise.all([getApprovedPartnerNetwork("odisha"), getApprovedPartnerNetwork("kolkata")])
         : [await getApprovedPartnerNetwork(location)];
       const merged = responses.map((response) => response?.data || {}).reduce((result, data) => {
-        for (const key of ["superVendors", "vendors", "subVendors", "dealers", "salesExecutives"]) {
+        for (const key of ["partners", "superVendors", "vendors", "subVendors", "dealers", "salesExecutives"]) {
           result[key] = [...new Set([...(result[key] || []), ...(data[key] || [])])];
         }
         return result;
@@ -78,7 +78,7 @@ export default function PartnerNetworkFields({ location, form, onChange, fields 
     {fields.map(([key, label, source]) => {
       const query = queries[key] ?? form[key] ?? "";
       const sourceNames = source === "allPartners"
-        ? [...(options.superVendors || []), ...(options.vendors || []), ...(options.subVendors || []), ...(options.dealers || [])]
+        ? (options.partners || [...(options.superVendors || []), ...(options.vendors || []), ...(options.subVendors || []), ...(options.dealers || [])])
         : options[source] || [];
       const names = [...new Set(sourceNames.map((item) => typeof item === "string" ? item : item.name).filter(Boolean))];
       const matches = names.filter((name) => matchesSearch(name, query)).slice(0, 40);
