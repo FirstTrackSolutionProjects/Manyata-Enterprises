@@ -31,7 +31,7 @@ const initialState = {
   partnerType: "sub_vendor",
   commissionModel: "",
   commissionRates: { on_grid: "20000", hybrid: "30000" },
-  systemTypes: [],
+  systemTypes: PARTNER_SYSTEMS.map((system) => system.value),
   companyName: "",
   contactName: "",
   email: "",
@@ -75,12 +75,6 @@ export default function Partner() {
 
     setSubmitting(true);
     setSubmitError("");
-
-    if (!form.systemTypes.length) {
-      setSubmitError("Select at least one system type: On-Grid or Hybrid.");
-      setSubmitting(false);
-      return;
-    }
 
     try {
       // 1. Collect files from the form
@@ -193,43 +187,6 @@ export default function Partner() {
                 placeholder="e.g. 5"
               />
             </div>
-          </FormCard>
-
-          <FormCard icon={Building2} title="System Types">
-            <p className="mb-4 text-sm text-muted">Choose the systems you work with.</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {PARTNER_SYSTEMS.map((system) => {
-                const checked = form.systemTypes.includes(system.value);
-                return (
-                  <label key={system.value} className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${checked ? "border-amber bg-amber-soft" : "border-navy/15 hover:border-amber/60"}`}>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => setForm((current) => ({
-                        ...current,
-                        systemTypes: checked
-                          ? current.systemTypes.filter((value) => value !== system.value)
-                          : [...current.systemTypes, system.value],
-                      }))}
-                      className="mt-1 accent-amber"
-                    />
-                    <span>
-                      <span className="block text-sm font-semibold text-navy">{system.label}</span>
-                    </span>
-                  </label>
-                );
-              })}
-            </div>
-            {!form.systemTypes.length && <p className="mt-2 text-xs text-muted">Select at least one system type to continue.</p>}
-            {form.partnerType === "sub_vendor" && <div className="mt-5 overflow-hidden rounded-xl border border-navy/10">
-              <h3 className="border-b border-navy/10 bg-slate-50 px-4 py-3 text-sm font-bold text-navy">Commission Chart (per completed installation)</h3>
-              <div className="divide-y divide-navy/10">
-                {PARTNER_SYSTEMS.map((system) => <label key={system.value} className="grid grid-cols-[1fr_minmax(150px,220px)] items-center gap-4 px-4 py-3 text-sm text-navy">
-                  <span>{system.label}</span>
-                  <span className="flex items-center gap-2"><span className="text-muted">₹</span><input type="number" min="0" step="1" required value={form.commissionRates[system.value]} onChange={(event) => setForm((current) => ({ ...current, commissionRates: { ...current.commissionRates, [system.value]: event.target.value } }))} className="w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" aria-label={`${system.label} commission amount`} /></span>
-                </label>)}
-              </div>
-            </div>}
           </FormCard>
 
           <FormCard icon={User} title="Contact Person">
