@@ -111,6 +111,7 @@ export default function Apply() {
   const formRef = useRef(null);
 
   const [location, setLocation] = useState("");
+  const [selectedLocations, setSelectedLocations] = useState([]);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initialState);
   const [submitting, setSubmitting] = useState(false);
@@ -161,6 +162,7 @@ export default function Apply() {
       if (!raw) return;
       const draft = JSON.parse(raw);
       setLocation(draft.location || "");
+      setSelectedLocations(draft.location === "both" ? ["odisha", "kolkata"] : draft.location ? [draft.location] : []);
       setForm({ ...initialState, ...draft.form });
       setStep(draft.step || 1);
       setShowResumePrompt(false);
@@ -174,6 +176,7 @@ export default function Apply() {
     clearDraft();
     setForm(initialState);
     setLocation("");
+    setSelectedLocations([]);
     setStep(1);
     setShowResumePrompt(false);
     if (formRef.current) formRef.current.reset();
@@ -184,11 +187,14 @@ export default function Apply() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLocationSelect = (loc) => {
+  const handleLocationSelect = (locations) => {
+    const selected = Array.isArray(locations) ? locations : [locations];
+    const loc = selected.length > 1 ? "both" : selected[0];
+    setSelectedLocations(selected);
     setLocation(loc);
     setForm((prev) => ({
       ...prev,
-      state: loc === "odisha" ? "Odisha" : loc === "kolkata" ? "West Bengal" : "",
+      state: selected.length > 1 ? "" : loc === "odisha" ? "Odisha" : "West Bengal",
     }));
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -258,6 +264,7 @@ export default function Apply() {
           setSubmitted(null);
           setForm(initialState);
           setLocation("");
+          setSelectedLocations([]);
           setStep(1);
         }}
       />
@@ -267,7 +274,7 @@ export default function Apply() {
   /* ── Location selection (Step 1) ───────────────────── */
   if (!location) {
     return (
-      <LocationStep onSelect={handleLocationSelect} />
+      <LocationStep selectedLocations={selectedLocations} onSelect={handleLocationSelect} />
     );
   }
 
@@ -352,7 +359,11 @@ export default function Apply() {
 
 /* ── Step 1: Location ────────────────────────────────── */
 
-function LocationStep({ onSelect }) {
+function LocationStep({ selectedLocations, onSelect }) {
+  const [selected, setSelected] = useState(selectedLocations);
+  const toggle = (value) => setSelected((current) => current.includes(value)
+    ? current.filter((item) => item !== value)
+    : [...current, value]);
   return (
     <>
       <section className="bg-navy py-14 text-white lg:py-16">
@@ -389,31 +400,19 @@ function LocationStep({ onSelect }) {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <LocationCard
-              icon={MapPin}
-              title="Odisha"
-              subtitle="For customers from Odisha"
-              description="Apply for rooftop solar installation and subsidy services in Odisha."
-              buttonText="Apply from Odisha"
-              onClick={() => onSelect("odisha")}
-            />
-            <LocationCard
-              icon={MapIcon}
-              title="West Bengal"
-              subtitle="For customers from West Bengal"
-              description="Apply for rooftop solar installation services in West Bengal."
-              buttonText="Apply from West Bengal"
-              onClick={() => onSelect("kolkata")}
-            />
-            <LocationCard
-              icon={MapIcon}
-              title="Odisha & West Bengal"
-              subtitle="For applications in both regions"
-              description="Submit one application and have it listed in both Odisha and West Bengal application dashboards."
-              buttonText="Apply for both regions"
-              onClick={() => onSelect("both")}
-            />
+          <div className="mx-auto max-w-2xl rounded-2xl border border-navy/10 bg-white p-6 shadow-sm sm:p-8">
+            <p className="mb-5 text-sm text-muted">Select one or both locations:</p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[["odisha", "Odisha"], ["kolkata", "West Bengal"]].map(([value, label]) => (
+                <label key={value} className={`flex cursor-pointer items-center gap-3 rounded-xl border p-5 transition ${selected.includes(value) ? "border-amber bg-amber-soft" : "border-navy/10 hover:border-amber/60"}`}>
+                  <input type="checkbox" checked={selected.includes(value)} onChange={() => toggle(value)} className="h-5 w-5 accent-amber" />
+                  <span className="font-bold text-navy">{label}</span>
+                </label>
+              ))}
+            </div>
+            <button type="button" disabled={!selected.length} onClick={() => onSelect(selected)} className="mt-6 w-full rounded-full bg-navy px-6 py-3 font-bold text-white transition hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-50">
+              Continue with {selected.length === 2 ? "Odisha & West Bengal" : selected[0] === "odisha" ? "Odisha" : selected[0] === "kolkata" ? "West Bengal" : "selected location"}
+            </button>
           </div>
 
           <div className="mt-8 flex items-start gap-3 rounded-xl border border-navy/10 bg-white p-4">
@@ -1282,44 +1281,6 @@ function ResumePrompt({ onResume, onStartFresh }) {
 }
 
 /* ── Shared subcomponents ────────────────────────────── */
-
-function LocationCard({
-  icon: Icon,
-  title,
-  subtitle,
-  description,
-  buttonText,
-  onClick,
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3 }}
-      className="group rounded-2xl border border-navy/10 bg-white p-5 shadow-sm transition-shadow hover:shadow-lg sm:p-7"
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-soft text-amber">
-        <Icon size={26} />
-      </div>
-      <h3 className="mt-5 text-xl font-extrabold text-navy sm:text-2xl">
-        {title}
-      </h3>
-      <p className="mt-1 text-sm font-semibold text-amber">{subtitle}</p>
-      <p className="mt-3 min-h-[48px] text-sm leading-6 text-muted">
-        {description}
-      </p>
-      <button
-        type="button"
-        onClick={onClick}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-bold text-white transition hover:bg-amber hover:text-navy"
-      >
-        {buttonText}
-        <Send size={15} />
-      </button>
-    </motion.div>
-  );
-}
 
 function FormCard({ icon: Icon, title, children }) {
   return (
