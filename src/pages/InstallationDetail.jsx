@@ -4,11 +4,14 @@ import { ArrowLeft, Clock, Download, FileText, Loader2, Save } from "lucide-reac
 import { useAuth } from "../contexts/AuthContext";
 import { downloadInstallationPdf, getInstallation, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
+import PartnerNetworkFields from "../components/PartnerNetworkFields";
 
 const FIELDS = [
   ["customer_name", "Customer Name", "customerName"], ["phone", "Phone", "phone"], ["gender", "Gender", "gender"],
   ["email", "Email", "email"], ["company_name", "Company", "companyName"],
   ["contact_person", "Contact Person", "contactPerson"], ["location", "Location", "location"],
+  ["super_vendor_name", "Super-vendor", "superVendorName"], ["vendor_name", "Vendor", "vendorName"],
+  ["sub_vendor_name", "Sub-vendor", "subVendorName"], ["sales_executive_name", "Sales Executive", "salesExecutiveName"],
   ["installation_type", "Installation Type", "installationType"], ["installation_date", "Installation Date", "installationDate", "date"],
   ["electrician_name", "Electrician", "electricianName"], ["technician_name", "Technician", "technicianName"],
   ["solar_panel_type", "Solar Panel Type", "solarPanelType"], ["connection_type", "Connection Type", "connectionType"],
@@ -21,6 +24,7 @@ const display = (value) => value || "—";
 const dateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
 const CUSTOMER_FIELDS = [["customer_name", "Customer Name"], ["phone", "Phone"], ["email", "Email"], ["gender", "Gender"], ["company_name", "Company"], ["contact_person", "Contact Person"]];
 const INSTALLATION_FIELDS = [["installation_type", "Installation Type"], ["installation_date", "Installation Date"], ["electrician_name", "Electrician"], ["technician_name", "Technician"], ["solar_panel_type", "Solar Panel Type"], ["connection_type", "Connection Type"]];
+const PARTNER_FIELDS = [["super_vendor_name", "Super-vendor"], ["vendor_name", "Vendor"], ["sub_vendor_name", "Sub-vendor"], ["sales_executive_name", "Sales Executive"]];
 const ADDRESS_FIELDS = [["location", "Location"], ["state", "State"], ["address", "Address"], ["city", "City"], ["pincode", "PIN Code"]];
 const humanizeDocumentName = (name) => name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 
@@ -101,7 +105,6 @@ export default function InstallationDetail() {
   if (!item || !form) return null;
 
   const documentEntries = Object.entries(item.documents || {}).filter(([, url]) => Boolean(url));
-  const statusStyle = item.status === "completed" ? "bg-emerald-50 text-emerald-700" : item.status === "reviewed" ? "bg-blue-50 text-blue-700" : "bg-amber-soft text-amber-700";
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-navy/10 pb-5">
@@ -115,6 +118,8 @@ export default function InstallationDetail() {
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-6">
         <DetailSection title="Customer Details" fields={CUSTOMER_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
+        {editing && <PartnerNetworkFields location={form?.location} form={form || {}} onChange={(event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))} />}
+        <DetailSection title="Partner & Sales Details" fields={PARTNER_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
         <DetailSection title="Installation Details" fields={INSTALLATION_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
         <DetailSection title="Site Address" fields={ADDRESS_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
         <section className="rounded-2xl border border-navy/10 bg-white p-6">

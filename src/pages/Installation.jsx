@@ -16,6 +16,7 @@ import {
   Zap,
 } from "lucide-react";
 import { uploadFilesToS3 } from "../services/api";
+import PartnerNetworkFields from "../components/PartnerNetworkFields";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -43,6 +44,10 @@ const initialState = {
   email: "",
   contactPerson: "",
   gender: "",
+  superVendorName: "",
+  vendorName: "",
+  subVendorName: "",
+  salesExecutiveName: "",
 
   // Installation Details
   installationType: "",
@@ -386,6 +391,10 @@ export default function Installation() {
                 placeholder="Enter contact person"
               />
             </div>
+          </FormCard>
+
+          <FormCard icon={User} title="Partner & Sales Details">
+            <PartnerNetworkFields location={selectedLocation} form={form} onChange={handleChange} />
           </FormCard>
 
           {/* Installation Details */}

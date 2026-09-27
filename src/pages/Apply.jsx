@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -22,71 +22,11 @@ import {
   Download,
   Eye,
   Trash2,
-  Search,
 } from "lucide-react";
-import { submitApplication, downloadApplicationPdf, uploadFilesToS3, getApprovedSubVendors } from "../services/api";
+import { submitApplication, downloadApplicationPdf, uploadFilesToS3 } from "../services/api";
+import PartnerNetworkFields from "../components/PartnerNetworkFields";
 
 /* ── Constants ────────────────────────────────────────── */
-
-const ODISHA_SUB_VENDORS = [
-  "MAYADHAR NAYAK",
-  "PRADEEP KUMAR BEHERA",
-  "PRAHFULA NAYAK",
-  "BABUL BEHERA",
-  "TEJASH PAREKH",
-  "TARUN KUMAR BEHERA",
-  "SOURAV KUMAR NAYAK",
-  "ABHISHEK MANDAL",
-  "PRAFULLA KUMAR MAHATA",
-  "ASHOKE BHUNIA",
-  "SIBA PRASAD SAHOO",
-  "MADHUSUDAN ROUT",
-  "NABAJIBAN BHOI",
-  "MAORANJAN SAHOO",
-  "JAYANTI MOHAPATRA",
-  "MD NASIR KHAN",
-  "SANJAYA KUMAR BEHERA",
-  "SHANTUN KUMAR MISHRA",
-  "DEBENDRANATH ACHARAY",
-  "UMESH SING",
-  "SUNAMATI DUTICHAND",
-  "JAGANATHA BEHERA",
-  "SARAT KUMAR SAHOO",
-  "ABHISHEK SAHOO",
-  "AJAYA KUMAR NAYAK",
-  "MANYATA NENTERPRISES",
-  "AJAYA KUAMR GOCHHAYAT",
-  "SUBHASH CHANDRA DASH",
-  "GIRIJA SANKAR SAHOO",
-];
-
-const KOLKATA_SUB_VENDORS = [
-  "PRAFULLA KUMAR MAHATA",
-  "SAILEN TUDU",
-  "SUJIT GHOSH",
-  "ASHOKE BHUNIA",
-  "SUBAJEET BARMAN",
-  "TAPANN KUAMR PRADHAN",
-  "SWARUP MALIK",
-  "SANJOY POREL",
-  "HAWK SAHEB",
-  "SHYAMAL MITRA",
-  "MASKARA BESUNMA",
-  "ARPITA SIKDAR",
-  "UTPAL KOLE",
-  "ARKA PRAVA BHUNIA",
-  "SWAPNA PANDIT",
-  "ASHIS BHATTAACHAJEE",
-  "JAYANTA BERA",
-  "KOUSTAV BISWAS",
-  "SUMNARRAYAN DEY",
-  "RINKU DAS",
-  "MAHABUL ALAM",
-  "MANIRUL ISLAM LASKAR",
-  "SATYA RANJAN SARDAR",
-  "PRABIR SABUD",
-  "JAVED MONDAL",
-];
 
 const SYSTEM_TYPES = [
   { value: "on-grid", label: "On-Grid System" },
@@ -106,6 +46,8 @@ const DRAFT_KEY = "manyata_apply_draft_v1";
 const initialState = {
   systemType: "",
   systemSize: "",
+  superVendorName: "",
+  vendorName: "",
   subVendorName: "",
   salesExecutiveName: "",
   incomeSource: "",
@@ -670,105 +612,9 @@ function SystemSizeStep({ form, onChange }) {
 /* ── Step 4: Vendor ──────────────────────────────────── */
 
 function VendorStep({ form, location, onChange }) {
-  const [approvedVendors, setApprovedVendors] = useState([]);
-  const [vendorSearch, setVendorSearch] = useState(form.subVendorName || "");
-  const [showVendorMatches, setShowVendorMatches] = useState(false);
-  const [loadingApprovedVendors, setLoadingApprovedVendors] = useState(false);
-  const [vendorLoadError, setVendorLoadError] = useState("");
-
-  const loadApprovedVendors = useCallback(async () => {
-    setLoadingApprovedVendors(true);
-    setVendorLoadError("");
-    try {
-      const response = await getApprovedSubVendors(location);
-      const items = response?.data?.items || response?.items || [];
-      setApprovedVendors(items.map((item) => item.name).filter(Boolean));
-    } catch (error) {
-      console.error("Could not load approved partners:", error);
-      setApprovedVendors([]);
-      setVendorLoadError(error.message || "Could not load approved partners. Try refreshing the list.");
-    } finally {
-      setLoadingApprovedVendors(false);
-    }
-  }, [location]);
-
-  useEffect(() => { loadApprovedVendors(); }, [loadApprovedVendors]);
-
-  const existingVendors =
-    location === "odisha" ? ODISHA_SUB_VENDORS : KOLKATA_SUB_VENDORS;
-  const vendors = [...new Set([...existingVendors, ...approvedVendors])];
-  const editDistance = (left, right) => {
-    const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
-    for (let i = 1; i <= left.length; i += 1) {
-      let diagonal = previous[0];
-      previous[0] = i;
-      for (let j = 1; j <= right.length; j += 1) {
-        const above = previous[j];
-        previous[j] = Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + (left[i - 1] === right[j - 1] ? 0 : 1));
-        diagonal = above;
-      }
-    }
-    return previous[right.length];
-  };
-  const matchesName = (name, search) => {
-    const normalizedName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    const normalizedSearch = search.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-    if (!normalizedSearch || normalizedName.includes(normalizedSearch)) return true;
-    const candidateWords = normalizedName.split(/\s+/);
-    return normalizedSearch.split(/\s+/).every((word) => candidateWords.some((candidate) =>
-      editDistance(word, candidate) <= Math.max(1, Math.floor(Math.max(word.length, candidate.length) * 0.45))
-    ));
-  };
-  const matchingVendors = vendors
-    .filter((name) => matchesName(name, vendorSearch))
-    .slice(0, 50);
   return (
     <FormCard icon={User} title="Vendor & Sales Details">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="relative">
-          <label className="block">
-            <span className="mb-1.5 flex items-center justify-between gap-2 text-xs font-semibold text-navy/70"><span>Sub Vendor Name</span><button type="button" onClick={loadApprovedVendors} disabled={loadingApprovedVendors} className="font-semibold text-amber hover:underline disabled:opacity-50">{loadingApprovedVendors ? "Loading..." : "Refresh names"}</button></span>
-            <span className="relative block">
-              <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                type="search"
-                name="subVendorNameSearch"
-                value={vendorSearch}
-                onChange={(event) => { setVendorSearch(event.target.value); setShowVendorMatches(true); }}
-                onFocus={() => setShowVendorMatches(true)}
-                onBlur={() => setTimeout(() => setShowVendorMatches(false), 120)}
-                placeholder="Search approved partners by name..."
-                autoComplete="off"
-                aria-label="Search approved partners by name"
-                aria-expanded={showVendorMatches}
-                className="w-full rounded-lg border border-navy/15 bg-white py-2.5 pl-9 pr-3.5 text-sm text-navy placeholder:text-muted focus:border-amber focus:outline-none"
-              />
-            </span>
-          </label>
-          {showVendorMatches && <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-navy/15 bg-white py-1 shadow-lg">
-            {matchingVendors.length ? matchingVendors.map((name) => <button
-              key={name}
-              type="button"
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                onChange({ target: { name: "subVendorName", value: name } });
-                setVendorSearch(name);
-                setShowVendorMatches(false);
-              }}
-              className={`block w-full px-3.5 py-2 text-left text-sm hover:bg-amber-soft ${form.subVendorName === name ? "bg-amber-soft font-semibold text-navy" : "text-navy/80"}`}
-            >{name}</button>) : <p className="px-3.5 py-2 text-sm text-muted">No matching approved partners.</p>}
-          </div>}
-          {vendorLoadError && <p role="alert" className="mt-1 text-[11px] text-red-600">{vendorLoadError}</p>}
-          <p className="mt-1 text-[11px] text-muted">{form.subVendorName ? `Selected: ${form.subVendorName}` : "Type a name to find and select a sub-vendor."}</p>
-        </div>
-        <Field
-          label="Sales Executive Name"
-          name="salesExecutiveName"
-          value={form.salesExecutiveName}
-          onChange={onChange}
-          placeholder="Enter sales executive name"
-        />
-      </div>
+      <PartnerNetworkFields location={location} form={form} onChange={onChange} />
     </FormCard>
   );
 }
@@ -1129,6 +975,8 @@ function PreviewStep({ form, location, onEdit }) {
       step: 4,
       title: "Vendor",
       rows: [
+        ["Super-vendor", form.superVendorName],
+        ["Vendor", form.vendorName],
         ["Sub Vendor", form.subVendorName],
         ["Sales Executive", form.salesExecutiveName],
       ],
