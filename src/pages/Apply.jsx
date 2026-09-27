@@ -618,10 +618,8 @@ function VendorStep({ form, location, onChange }) {
         location={location}
         form={form}
         onChange={onChange}
-        fields={[
-          ["subVendorName", "Sub-vendor", "allPartners"],
-          ["salesExecutiveName", "Sales Executive", "salesExecutives"],
-        ]}
+        fields={[["subVendorName", "Partner Name", "allPartners"]]}
+        textFields={[["salesExecutiveName", "Sales Executive"]]}
       />
     </FormCard>
   );
@@ -983,7 +981,7 @@ function PreviewStep({ form, location, onEdit }) {
       step: 4,
       title: "Vendor",
       rows: [
-        ["Sub Vendor", form.subVendorName],
+        ["Partner Name", form.subVendorName],
         ["Sales Executive", form.salesExecutiveName],
       ],
     },

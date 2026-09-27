@@ -34,7 +34,7 @@ const matchesSearch = (name, search) => {
   ));
 };
 
-export default function PartnerNetworkFields({ location, form, onChange, fields = FIELDS }) {
+export default function PartnerNetworkFields({ location, form, onChange, fields = FIELDS, textFields = [] }) {
   const [options, setOptions] = useState({});
   const [queries, setQueries] = useState({});
   const [openField, setOpenField] = useState("");
@@ -87,6 +87,12 @@ export default function PartnerNetworkFields({ location, form, onChange, fields 
         </div>}
         {form[key] && <p className="mt-1 text-[11px] text-muted">Selected / entered: {form[key]}</p>}
       </div>;
-    })}
+    }).filter(Boolean)}
+    {textFields.map(([key, label]) => <div key={key}>
+      <label className="block text-xs font-semibold text-navy/70">
+        <span className="mb-1.5 block">{label}</span>
+        <input type="text" name={key} value={form[key] || ""} onChange={onChange} placeholder={`Enter ${label.toLowerCase()} name`} autoComplete="name" className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none" />
+      </label>
+    </div>)}
   </div>;
 }
