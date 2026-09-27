@@ -6,9 +6,14 @@ const SYSTEMS = [
   ["on_grid", "On-Grid System"],
   ["hybrid", "Hybrid System"],
 ];
+const LOCATIONS = [
+  ["odisha", "Odisha"],
+  ["west_bengal", "West Bengal"],
+];
 
 const INITIAL_FORM = {
   partnerType: "vendor", commissionModel: "", systemTypes: [], commissionRates: { on_grid: "20000", hybrid: "30000" }, companyName: "",
+  assignedLocations: [],
   contactName: "", email: "", phone: "", gstNumber: "", panNumber: "",
   aadhaarNumber: "", gender: "", dob: "",
   msmeNumber: "", address: "", city: "", state: "", pincode: "",
@@ -41,6 +46,10 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!form.assignedLocations.length) {
+      setError("Select at least one partner location: Odisha or West Bengal.");
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -93,6 +102,17 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
               <span>{label}</span><span className="flex items-center gap-2"><span className="text-muted">₹</span><input type="number" min="0" step="1" required={form.systemTypes.includes(value)} value={form.commissionRates[value]} onChange={(event) => updateField("commissionRates", { ...form.commissionRates, [value]: event.target.value })} className="w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></span>
             </label>) : <p className="px-3 py-3 text-xs text-muted">You can add commission details later.</p>}
           </div>}
+        </section>
+
+        <section className="mt-5 rounded-xl border border-navy/10 p-4">
+          <h3 className="text-sm font-bold text-navy">Multi-location Assignment</h3>
+          <p className="mt-1 text-xs text-muted">Select every location this partner can work in.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            {LOCATIONS.map(([value, label]) => <label key={value} className="flex items-center gap-2 rounded-lg border border-navy/10 p-3 text-sm text-navy">
+              <input type="checkbox" checked={form.assignedLocations.includes(value)} onChange={() => updateField("assignedLocations", form.assignedLocations.includes(value) ? form.assignedLocations.filter((item) => item !== value) : [...form.assignedLocations, value])} className="accent-amber" />
+              <span>{label}</span>
+            </label>)}
+          </div>
         </section>
 
         <section className="mt-5 rounded-xl border border-navy/10 p-4">

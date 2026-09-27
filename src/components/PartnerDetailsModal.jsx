@@ -12,10 +12,12 @@ const SYSTEM_TYPES = [
   ["on_grid", "On-Grid System"],
   ["hybrid", "Hybrid System"],
 ];
+const PARTNER_LOCATIONS = [["odisha", "Odisha"], ["west_bengal", "West Bengal"]];
 const FIELDS = [
   ["partnerType", "Partner Type", "select"],
   ["commissionModel", "Commission", "commission"],
   ["systemTypes", "System Types", "systems"],
+  ["assignedLocations", "Assigned Locations", "locations"],
   ["commissionRates", "Commission Chart", "commission-chart"],
   ["companyName", "Company Name"], ["contactName", "Contact Name"],
   ["phone", "Phone"], ["email", "Email", "email"],
@@ -40,12 +42,22 @@ const readCommissionRates = (value) => {
   if (typeof value === "string") { try { value = JSON.parse(value); } catch { value = {}; } }
   return { on_grid: String(value?.on_grid ?? "20000"), hybrid: String(value?.hybrid ?? "30000") };
 };
+const readAssignedLocations = (partner) => {
+  let value = partner.assigned_locations;
+  if (typeof value === "string") { try { value = JSON.parse(value); } catch { value = []; } }
+  if (Array.isArray(value) && value.length) return value;
+  const state = String(partner.state || "").toLowerCase().replace(/\s+/g, "");
+  if (["odisha", "orissa", "udisa", "odisa"].includes(state)) return ["odisha"];
+  if (["westbengal", "westbangol", "westbangal", "kolkata"].includes(state)) return ["west_bengal"];
+  return [];
+};
 
 export default function PartnerDetailsModal({ partner, editing, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
     partnerType: partner.partner_type === "sub_vendor_commission" ? "sub_vendor" : PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
     commissionModel: partner.commission_model || (partner.partner_type === "sub_vendor_commission" ? "per_completed_installation" : ""),
     systemTypes: readSystemTypes(partner.system_types),
+    assignedLocations: readAssignedLocations(partner),
     commissionRates: readCommissionRates(partner.commission_rates),
     companyName: partner.company_name || "", contactName: partner.contact_name || "",
     phone: partner.phone || "", email: partner.email || "", aadhaarNumber: partner.aadhaar_number || "",
@@ -62,6 +74,10 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
 
   const save = async (event) => {
     event.preventDefault();
+    if (!form.assignedLocations.length) {
+      setError("Select at least one partner location: Odisha or West Bengal.");
+      return;
+    }
     if (!form.systemTypes.length) {
       setError("Select at least one system type: On-Grid or Hybrid.");
       return;
@@ -98,13 +114,13 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {FIELDS.map(([key, label, type]) => {
-            const FieldWrapper = type === "systems" || type === "commission-chart" ? "div" : "label";
+            const FieldWrapper = type === "systems" || type === "locations" || type === "commission-chart" ? "div" : "label";
             return (
-            <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" || type === "commission-chart" ? "sm:col-span-2" : ""}`}>
+            <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" || type === "locations" || type === "commission-chart" ? "sm:col-span-2" : ""}`}>
               {label}
               {!editing ? (
                 <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">
-                  {key === "systemTypes" ? systemLabels || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : key === "gender" ? ({ male: "Male", female: "Female", other: "Other" }[form[key]] || "—") : form[key] || "—"}
+                  {key === "systemTypes" ? systemLabels || "—" : key === "assignedLocations" ? form.assignedLocations.map((value) => PARTNER_LOCATIONS.find(([location]) => location === value)?.[1] || value).join(", ") || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : key === "gender" ? ({ male: "Male", female: "Female", other: "Other" }[form[key]] || "—") : form[key] || "—"}
                 </span>
               ) : type === "select" ? (
                 <>
@@ -127,6 +143,15 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                   {SYSTEM_TYPES.map(([value, optionLabel]) => (
                     <label key={value} className="flex items-center gap-2 rounded-lg border border-navy/10 p-3 text-sm font-normal text-navy">
                       <input type="checkbox" checked={form.systemTypes.includes(value)} onChange={() => setForm({ ...form, systemTypes: form.systemTypes.includes(value) ? form.systemTypes.filter((item) => item !== value) : [...form.systemTypes, value] })} className="accent-amber" />
+                      {optionLabel}
+                    </label>
+                  ))}
+                </span>
+              ) : type === "locations" ? (
+                <span className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {PARTNER_LOCATIONS.map(([value, optionLabel]) => (
+                    <label key={value} className="flex items-center gap-2 rounded-lg border border-navy/10 p-3 text-sm font-normal text-navy">
+                      <input type="checkbox" checked={form.assignedLocations.includes(value)} onChange={() => setForm({ ...form, assignedLocations: form.assignedLocations.includes(value) ? form.assignedLocations.filter((item) => item !== value) : [...form.assignedLocations, value] })} className="accent-amber" />
                       {optionLabel}
                     </label>
                   ))}
