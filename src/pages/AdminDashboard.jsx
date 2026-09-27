@@ -323,6 +323,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [items, setItems] = useState([]);
   const [locationCounts, setLocationCounts] = useState(null);
   const [totalApplicationCount, setTotalApplicationCount] = useState(null);
+  const [applicationStatusCounts, setApplicationStatusCounts] = useState({});
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
@@ -381,12 +382,15 @@ function ApplicationsTab({ initialLocation = "" }) {
 
   useEffect(() => {
     let active = true;
-    const statsQuery = filters.branchId ? `?${new URLSearchParams({ branchId: filters.branchId })}` : "";
+    const statsParams = new URLSearchParams();
+    if (filters.branchId) statsParams.set("branchId", filters.branchId);
+    if (filters.location) statsParams.set("location", filters.location);
+    const statsQuery = statsParams.size ? `?${statsParams}` : "";
     apiFetch(`/applications/stats/overview${statsQuery}`)
-      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); } })
+      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); setApplicationStatusCounts(res.data.byStatus || {}); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
-  }, [filters.branchId]);
+  }, [filters.branchId, filters.location]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -404,10 +408,21 @@ function ApplicationsTab({ initialLocation = "" }) {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {[
+          ["Total Applications", totalApplicationCount],
+          ["Pending", applicationStatusCounts.pending],
+          ["Verified", applicationStatusCounts.verified],
+          ["Approved", applicationStatusCounts.approved],
+          ["Rejected", applicationStatusCounts.rejected],
+          ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
+          ["Loan Disbursed - Phase 1", applicationStatusCounts.loan_disbursed_successfully_phase_1],
+          ["Loan Disbursed - Phase 2", applicationStatusCounts.loan_disbursed_phase_2],
+        ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{value ?? "—"}</p></div>)}
+      </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
-      </div>
+      </div>}
       {/* Top search + filter toggle */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[240px]">
@@ -442,10 +457,14 @@ function ApplicationsTab({ initialLocation = "" }) {
         <button
           onClick={async () => {
             await load(1);
-            const statsQuery = filters.branchId ? `?${new URLSearchParams({ branchId: filters.branchId })}` : "";
+            const statsParams = new URLSearchParams();
+            if (filters.branchId) statsParams.set("branchId", filters.branchId);
+            if (filters.location) statsParams.set("location", filters.location);
+            const statsQuery = statsParams.size ? `?${statsParams}` : "";
             const statsRes = await apiFetch(`/applications/stats/overview${statsQuery}`);
             setLocationCounts(statsRes.data.byLocation || null);
             setTotalApplicationCount(Number(statsRes.data.total || 0));
+            setApplicationStatusCounts(statsRes.data.byStatus || {});
           }}
           className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light"
         >
