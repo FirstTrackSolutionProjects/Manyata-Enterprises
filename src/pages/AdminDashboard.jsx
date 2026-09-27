@@ -410,10 +410,9 @@ function ApplicationsTab({ initialLocation = "" }) {
     <div className="space-y-4">
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
-          [initialLocation === "odisha" ? "Odisha" : "West Bengal", totalApplicationCount],
+          [initialLocation === "odisha" ? "Odisha" : "West Bengal", Number(totalApplicationCount || 0)],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
-          ["Approved", Number(applicationStatusCounts.approved || 0)],
           ["Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
           ["Under Review", Number(applicationStatusCounts.under_review || 0)],
@@ -423,7 +422,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Vendor Side - Login - OTP Pending - Customer Not Responding Call", Number(applicationStatusCounts.vendor_side_login_otp_pending_customer_not_responding_call || 0)],
           ["Loan Disbursed - Phase 1", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0)],
           ["Loan Disbursed - Phase 2", Number(applicationStatusCounts.loan_disbursed_phase_2 || 0)],
-        ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{value ?? "—"}</p></div>)}
+        ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
       </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
