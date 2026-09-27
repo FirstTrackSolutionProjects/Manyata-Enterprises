@@ -697,8 +697,30 @@ function VendorStep({ form, location, onChange }) {
   const existingVendors =
     location === "odisha" ? ODISHA_SUB_VENDORS : KOLKATA_SUB_VENDORS;
   const vendors = [...new Set([...existingVendors, ...approvedVendors])];
+  const editDistance = (left, right) => {
+    const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= left.length; i += 1) {
+      let diagonal = previous[0];
+      previous[0] = i;
+      for (let j = 1; j <= right.length; j += 1) {
+        const above = previous[j];
+        previous[j] = Math.min(previous[j] + 1, previous[j - 1] + 1, diagonal + (left[i - 1] === right[j - 1] ? 0 : 1));
+        diagonal = above;
+      }
+    }
+    return previous[right.length];
+  };
+  const matchesName = (name, search) => {
+    const normalizedName = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    const normalizedSearch = search.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+    if (!normalizedSearch || normalizedName.includes(normalizedSearch)) return true;
+    const candidateWords = normalizedName.split(/\s+/);
+    return normalizedSearch.split(/\s+/).every((word) => candidateWords.some((candidate) =>
+      editDistance(word, candidate) <= Math.max(1, Math.floor(Math.max(word.length, candidate.length) * 0.45))
+    ));
+  };
   const matchingVendors = vendors
-    .filter((name) => name.toLowerCase().includes(vendorSearch.trim().toLowerCase()))
+    .filter((name) => matchesName(name, vendorSearch))
     .slice(0, 50);
   return (
     <FormCard icon={User} title="Vendor & Sales Details">
