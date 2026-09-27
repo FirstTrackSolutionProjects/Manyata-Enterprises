@@ -3,9 +3,9 @@ import { Loader2, RefreshCw, Search } from "lucide-react";
 import { getApprovedPartnerNetwork } from "../services/api";
 
 const FIELDS = [
-  ["superVendorName", "Super-vendor", "superVendors"],
-  ["vendorName", "Vendor", "vendors"],
-  ["subVendorName", "Sub-vendor", "subVendors"],
+  ["superVendorName", "Super-vendor", "allPartners"],
+  ["vendorName", "Vendor", "allPartners"],
+  ["subVendorName", "Sub-vendor", "allPartners"],
   ["salesExecutiveName", "Sales Executive", "salesExecutives"],
 ];
 
@@ -69,7 +69,10 @@ export default function PartnerNetworkFields({ location, form, onChange, fields 
   return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
     {fields.map(([key, label, source]) => {
       const query = queries[key] ?? form[key] ?? "";
-      const names = (options[source] || []).map((item) => typeof item === "string" ? item : item.name).filter(Boolean);
+      const sourceNames = source === "allPartners"
+        ? [...(options.superVendors || []), ...(options.vendors || []), ...(options.subVendors || []), ...(options.dealers || [])]
+        : options[source] || [];
+      const names = [...new Set(sourceNames.map((item) => typeof item === "string" ? item : item.name).filter(Boolean))];
       const matches = names.filter((name) => matchesSearch(name, query)).slice(0, 40);
       return <div key={key} className="relative">
         <label className="block text-xs font-semibold text-navy/70">
