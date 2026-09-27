@@ -447,7 +447,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
-          ["Rejected", Number(applicationStatusCounts.rejected || 0)],
+          ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
           ["Under Review", Number(applicationStatusCounts.under_review || 0)],
           ["Electricity Bill - Name Mismatch", Number(applicationStatusCounts.electricity_bill_name_mismatch || 0)],
