@@ -13,6 +13,8 @@ const titleCase = (value = "") => String(value).replace(/_/g, " ").replace(/\b\w
 export default function PartnerDashboard() {
   const { user } = useAuth();
   const partnerType = ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[user?.partnerType] || "Partner";
+  const partnerRoles = [...new Set([user?.partnerType, ...(Array.isArray(user?.partnerRoles) ? user.partnerRoles : [])].filter(Boolean))];
+  const partnerRoleLabels = partnerRoles.map((role) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[role] || role);
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const [section, setSection] = useState("dashboard");
   const [hierarchy, setHierarchy] = useState([]);
@@ -104,7 +106,7 @@ export default function PartnerDashboard() {
         </div>
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">Partner Name</p><p className="mt-1 text-lg font-extrabold text-navy">{user?.partnerCompanyName || user?.name || "—"}</p></div>
-          <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="flex items-center gap-2 text-xs font-semibold text-muted"><Building2 size={15} /> Partner Type</p><p className="mt-1 text-lg font-extrabold text-navy">{partnerType}</p></div>
+          <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="flex items-center gap-2 text-xs font-semibold text-muted"><Building2 size={15} /> Partner Roles</p><p className="mt-1 text-lg font-extrabold text-navy">{partnerRoleLabels.join(", ") || partnerType}</p></div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">Partner Login ID</p><p className="mt-1 font-mono text-lg font-extrabold text-navy">{user?.userId || user?.user_id || "—"}</p></div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5 sm:col-span-2 lg:col-span-3"><p className="text-xs font-semibold text-muted">Contact email</p><p className="mt-1 font-bold text-navy">{user?.email || "—"}</p></div>
           {canViewApplications && <button onClick={() => setSection("applications")} className="rounded-2xl border border-navy/10 bg-white p-5 text-left hover:border-amber"><p className="flex items-center gap-2 text-xs font-semibold text-muted"><FileText size={15} /> Your Applications</p><p className="mt-1 text-2xl font-extrabold text-navy">{total}</p></button>}

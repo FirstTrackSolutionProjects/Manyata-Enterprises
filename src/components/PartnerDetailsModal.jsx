@@ -54,10 +54,18 @@ const readAssignedLocations = (partner) => {
 const normalizePartnerType = (type) => type === "sub_vendor_commission" ? "sub_vendor" : type;
 const PARENT_TYPE_BY_PARTNER_TYPE = { vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
 const PARTNER_TYPE_LABELS = { super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" };
+const MULTI_ROLE_NAMES = new Set(["TEJASH PAREKH", "SUDHIR JENA"]);
+const readPartnerRoles = (partner) => {
+  let roles = partner.partner_roles || [];
+  if (typeof roles === "string") { try { roles = JSON.parse(roles); } catch { roles = []; } }
+  const primary = normalizePartnerType(partner.partner_type);
+  return [...new Set([primary, ...(Array.isArray(roles) ? roles : [])].filter((role) => PARTNER_TYPES.some(([value]) => value === role)))];
+};
 
 export default function PartnerDetailsModal({ partner, editing, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
     partnerType: partner.partner_type === "sub_vendor_commission" ? "sub_vendor" : PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
+    partnerRoles: readPartnerRoles(partner),
     referredByPartnerId: partner.referred_by_partner_id ? String(partner.referred_by_partner_id) : "",
     commissionModel: partner.commission_model || (partner.partner_type === "sub_vendor_commission" ? "per_completed_installation" : ""),
     systemTypes: readSystemTypes(partner.system_types),
@@ -77,6 +85,7 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
   const [error, setError] = useState("");
   const [approvedPartners, setApprovedPartners] = useState([]);
   const [loadingPartners, setLoadingPartners] = useState(false);
+  const canAssignMultipleRoles = [partner.company_name, partner.contact_name].some((name) => MULTI_ROLE_NAMES.has(String(name || "").trim().toUpperCase()));
 
   useEffect(() => {
     if (!editing) return undefined;
@@ -125,6 +134,7 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
     try {
       const uploaded = await uploadFilesToS3("partners", files);
       const payload = { ...form, files: uploaded };
+      if (canAssignMultipleRoles) payload.partnerRoles = form.partnerRoles;
       if (partnerTypeChanged || referralChanged) payload.referredByPartnerId = form.referredByPartnerId || null;
       else delete payload.referredByPartnerId;
       await updatePartner(partner.id, payload);
@@ -150,14 +160,14 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted"><span>Created: {formatDateTime(partner.created_at)}</span><span>Updated by: {partner.updated_by_name || "—"} · {formatDateTime(partner.updated_at)}</span></div>
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {FIELDS.map(([key, label, type]) => {
-            const FieldWrapper = type === "systems" || type === "locations" || type === "commission-chart" || type === "select" ? "div" : "label";
+          {[...FIELDS, ...(canAssignMultipleRoles ? [["partnerRoles", "Multi-role access", "partner-roles"]] : [])].map(([key, label, type]) => {
+            const FieldWrapper = type === "systems" || type === "locations" || type === "commission-chart" || type === "select" || type === "partner-roles" ? "div" : "label";
             return (
-            <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" || type === "locations" || type === "commission-chart" ? "sm:col-span-2" : ""}`}>
+            <FieldWrapper key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || type === "systems" || type === "locations" || type === "commission-chart" || type === "partner-roles" ? "sm:col-span-2" : ""}`}>
               {label}
               {!editing ? (
                 <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">
-                  {key === "systemTypes" ? systemLabels || "—" : key === "assignedLocations" ? form.assignedLocations.map((value) => PARTNER_LOCATIONS.find(([location]) => location === value)?.[1] || value).join(", ") || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : key === "gender" ? ({ male: "Male", female: "Female", other: "Other" }[form[key]] || "—") : form[key] || "—"}
+                  {key === "partnerRoles" ? form.partnerRoles.map((role) => PARTNER_TYPE_LABELS[role]).filter(Boolean).join(", ") || "—" : key === "systemTypes" ? systemLabels || "—" : key === "assignedLocations" ? form.assignedLocations.map((value) => PARTNER_LOCATIONS.find(([location]) => location === value)?.[1] || value).join(", ") || "—" : key === "commissionRates" ? form.partnerType === "sub_vendor" ? `On-Grid: ₹${Number(form.commissionRates.on_grid || 0).toLocaleString("en-IN")} · Hybrid: ₹${Number(form.commissionRates.hybrid || 0).toLocaleString("en-IN")}` : "—" : key === "partnerType" ? PARTNER_TYPES.find(([value]) => value === form[key])?.[1] || (partner.partner_type === "other" ? "Other (legacy)" : "—") : key === "commissionModel" ? COMMISSION_MODELS.find(([value]) => value === form[key])?.[1] || "—" : key === "gender" ? ({ male: "Male", female: "Female", other: "Other" }[form[key]] || "—") : form[key] || "—"}
                 </span>
               ) : type === "select" ? (
                 <>
@@ -184,6 +194,19 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                       </select>
                     </label>}
                   </>}
+                </>
+              ) : type === "partner-roles" ? (
+                <>
+                  <p className="mt-1 text-xs font-normal text-muted">Owner can assign these extra roles to Tejash Parekh and Sudhir Jena. Their primary Partner Type and referral chain stay unchanged.</p>
+                  <span className="mt-2 grid gap-2 sm:grid-cols-3">
+                    {PARTNER_TYPES.filter(([value]) => value !== "dealer").map(([value, optionLabel]) => {
+                      const isPrimary = normalizePartnerType(partner.partner_type) === value;
+                      return <label key={value} className="flex items-center gap-2 rounded-lg border border-navy/10 p-3 text-sm font-normal text-navy">
+                        <input type="checkbox" checked={form.partnerRoles.includes(value)} disabled={isPrimary} onChange={() => setForm({ ...form, partnerRoles: form.partnerRoles.includes(value) ? form.partnerRoles.filter((role) => role !== value) : [...form.partnerRoles, value] })} className="accent-amber" />
+                        {optionLabel}{isPrimary ? " (primary)" : ""}
+                      </label>;
+                    })}
+                  </span>
                 </>
               ) : type === "gender" ? (
                 <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
