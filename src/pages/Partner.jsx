@@ -15,8 +15,6 @@ import {
 import { submitPartner } from "../services/api";
 
 const PARTNER_TYPES = [
-  { value: "super_vendor", label: "Super-vendor" },
-  { value: "vendor", label: "Vendor" },
   { value: "dealer", label: "Dealer" },
   { value: "sub_vendor", label: "Sub-vendor" },
 ];
@@ -30,7 +28,7 @@ const PARTNER_SYSTEMS = [
 ];
 
 const initialState = {
-  partnerType: "vendor",
+  partnerType: "sub_vendor",
   commissionModel: "",
   commissionRates: { on_grid: "20000", hybrid: "30000" },
   systemTypes: [],
