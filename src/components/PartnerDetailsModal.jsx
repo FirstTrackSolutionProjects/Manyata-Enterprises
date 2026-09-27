@@ -103,6 +103,11 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
   }, [editing]);
 
   const requiredParentType = PARENT_TYPE_BY_PARTNER_TYPE[form.partnerType];
+  const originalPartnerType = normalizePartnerType(partner.partner_type);
+  const originalParentId = partner.referred_by_partner_id ? String(partner.referred_by_partner_id) : "";
+  const partnerTypeChanged = form.partnerType !== originalPartnerType;
+  const referralChanged = form.referredByPartnerId !== originalParentId;
+  const requiresParentSelection = Boolean(requiredParentType && (partnerTypeChanged || referralChanged));
   const parentOptions = approvedPartners.filter((item) =>
     Number(item.id) !== Number(partner.id) && normalizePartnerType(item.partner_type) === requiredParentType
   );
@@ -113,10 +118,6 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
       setError("Select at least one partner location: Odisha or West Bengal.");
       return;
     }
-    const originalPartnerType = normalizePartnerType(partner.partner_type);
-    const originalParentId = partner.referred_by_partner_id ? String(partner.referred_by_partner_id) : "";
-    const partnerTypeChanged = form.partnerType !== originalPartnerType;
-    const referralChanged = form.referredByPartnerId !== originalParentId;
     if (requiredParentType && (partnerTypeChanged || referralChanged) && !form.referredByPartnerId) {
       setError(`Choose an approved ${PARTNER_TYPE_LABELS[requiredParentType]} to refer this partner.`);
       return;
@@ -188,7 +189,7 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                   {key === "partnerType" && <>
                     <span className="mt-1 block font-normal text-muted">Owner can assign this partner as a super-vendor, vendor, sub-vendor, or dealer.</span>
                     {requiredParentType && <label className="mt-3 block text-xs font-semibold text-navy/70">Referred by ({PARTNER_TYPE_LABELS[requiredParentType]})
-                      <select required value={form.referredByPartnerId} disabled={loadingPartners} onChange={(event) => setForm({ ...form, referredByPartnerId: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm disabled:bg-slate-100">
+                      <select required={requiresParentSelection} value={form.referredByPartnerId} disabled={loadingPartners} onChange={(event) => setForm({ ...form, referredByPartnerId: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm disabled:bg-slate-100">
                         <option value="">{loadingPartners ? "Loading approved partners…" : `Choose ${PARTNER_TYPE_LABELS[requiredParentType]}`}</option>
                         {parentOptions.map((item) => <option key={item.id} value={item.id}>{item.company_name || item.contact_name} · #{item.id}</option>)}
                       </select>
@@ -197,7 +198,7 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                 </>
               ) : type === "partner-roles" ? (
                 <>
-                  <p className="mt-1 text-xs font-normal text-muted">Owner can assign these extra roles to Tejash Parekh and Sudhir Jena. Their primary Partner Type and referral chain stay unchanged.</p>
+                  <p className="mt-1 text-xs font-normal text-muted">Owner can assign these extra roles to you.</p>
                   <span className="mt-2 grid gap-2 sm:grid-cols-3">
                     {PARTNER_TYPES.filter(([value]) => value !== "dealer").map(([value, optionLabel]) => {
                       const isPrimary = normalizePartnerType(partner.partner_type) === value;
