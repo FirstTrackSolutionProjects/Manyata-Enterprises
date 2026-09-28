@@ -54,7 +54,7 @@ const readAssignedLocations = (partner) => {
 const normalizePartnerType = (type) => type === "sub_vendor_commission" ? "sub_vendor" : type;
 const PARENT_TYPE_BY_PARTNER_TYPE = { vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
 const PARTNER_TYPE_LABELS = { super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" };
-const MULTI_ROLE_NAMES = new Set(["TEJASH PAREKH", "SUDHIR JENA"]);
+const MULTI_ROLE_NAMES = new Set(["MANYATA ENTERPRISES", "TEJASH PAREKH", "SUDHIR JENA"]);
 const readPartnerRoles = (partner) => {
   let roles = partner.partner_roles || [];
   if (typeof roles === "string") { try { roles = JSON.parse(roles); } catch { roles = []; } }
