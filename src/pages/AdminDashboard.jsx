@@ -625,6 +625,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                   <th className="p-3 whitespace-nowrap">Phone</th>
                   <th className="p-3 whitespace-nowrap">Location</th>
                   <th className="p-3 whitespace-nowrap">Branch</th>
+                  <th className="p-3 whitespace-nowrap">Sales Executive</th>
                   <th className="p-3 whitespace-nowrap">System</th>
                   <th className="p-3 whitespace-nowrap">Status</th>
                   <th className="p-3 whitespace-nowrap">Updated</th>
@@ -646,6 +647,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                     <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{formatApplicationLocation(a.location)}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.branch_name ? a.branch_name.replace(/\bKolkata\b/gi, "West Bengal") : "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.sales_executive_name || "-"}</td>
                     <td className="p-3 text-xs capitalize whitespace-nowrap">
                       {a.system_size} · {a.system_type}
                     </td>
@@ -1845,6 +1847,7 @@ function InstallationsTab({ location }) {
               <th className="p-3">Phone</th>
               <th className="p-3">Location</th>
               <th className="p-3">Installation</th>
+              <th className="p-3 whitespace-nowrap">Sales Executive</th>
               <th className="p-3">City</th>
               <th className="p-3">Status</th>
               {(canView || canEdit) && <th className="p-3">Actions</th>}
@@ -1860,6 +1863,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3 whitespace-nowrap">{item.phone}</td>
                   <td className="p-3 capitalize">{item.location}</td>
                   <td className="p-3">{item.installation_type || "—"}</td>
+                  <td className="p-3 whitespace-nowrap">{item.sales_executive_name || "-"}</td>
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3"><StatusBadge status={item.status} /></td>
                   {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`/admin/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
