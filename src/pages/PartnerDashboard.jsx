@@ -15,7 +15,7 @@ export default function PartnerDashboard() {
   const partnerType = ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[user?.partnerType] || "Partner";
   const partnerRoles = [...new Set([user?.partnerType, ...(Array.isArray(user?.partnerRoles) ? user.partnerRoles : [])].filter(Boolean))];
   const partnerRoleLabels = partnerRoles.map((role) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[role] || role);
-  const assignedLocations = [...new Set(Array.isArray(user?.partnerAssignedLocations) ? user.partnerAssignedLocations : [])];
+  const [assignedLocations, setAssignedLocations] = useState(() => [...new Set(Array.isArray(user?.partnerAssignedLocations) ? user.partnerAssignedLocations : [])]);
   const assignedLocationLabels = assignedLocations.map((location) => ({ odisha: "Odisha", west_bengal: "West Bengal" })[location]).filter(Boolean);
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const [section, setSection] = useState("dashboard");
@@ -40,12 +40,14 @@ export default function PartnerDashboard() {
       const children = response.data.children || [];
       setHierarchy(children);
       setIncomingCommission(response.data.partner?.incoming_commission || null);
+      if (Array.isArray(response.data.partner?.assigned_locations)) setAssignedLocations([...new Set(response.data.partner.assigned_locations)]);
       const chain = [response.data.partner, ...children].filter(Boolean);
       const counts = { odisha: 0, west_bengal: 0 };
       chain.forEach((partner) => {
         const state = String(partner.state || "").toLowerCase().replace(/[\s_-]/g, "");
-        if (["odisha", "orissa", "udisa", "odisa"].includes(state)) counts.odisha += 1;
-        if (["westbengal", "westbangol", "westbangal", "kolkata"].includes(state)) counts.west_bengal += 1;
+        const assigned = Array.isArray(partner.assigned_locations) ? partner.assigned_locations : [];
+        if (assigned.includes("odisha") || (!assigned.length && ["odisha", "orissa", "udisa", "odisa"].includes(state))) counts.odisha += 1;
+        if (assigned.includes("west_bengal") || (!assigned.length && ["westbengal", "westbangol", "westbangal", "kolkata"].includes(state))) counts.west_bengal += 1;
       });
       setRegionCounts(counts);
     }).catch(() => {
