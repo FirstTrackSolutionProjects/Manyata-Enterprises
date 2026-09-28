@@ -23,69 +23,10 @@ import {
   Eye,
   Trash2,
 } from "lucide-react";
-import { submitApplication, downloadApplicationPdf } from "../services/api";
+import { submitApplication, downloadApplicationPdf, uploadFilesToS3 } from "../services/api";
+import PartnerNetworkFields from "../components/PartnerNetworkFields";
 
 /* ── Constants ────────────────────────────────────────── */
-
-const ODISHA_SUB_VENDORS = [
-  "MAYADHAR NAYAK",
-  "PRADEEP KUMAR BEHERA",
-  "PRAHFULA NAYAK",
-  "BABUL BEHERA",
-  "TEJASH PAREKH",
-  "TARUN KUMAR BEHERA",
-  "SOURAV KUMAR NAYAK",
-  "ABHISHEK MANDAL",
-  "PRAFULLA KUMAR MAHATA",
-  "ASHOKE BHUNIA",
-  "SIBA PRASAD SAHOO",
-  "MADHUSUDAN ROUT",
-  "NABAJIBAN BHOI",
-  "MAORANJAN SAHOO",
-  "JAYANTI MOHAPATRA",
-  "MD NASIR KHAN",
-  "SANJAYA KUMAR BEHERA",
-  "SHANTUN KUMAR MISHRA",
-  "DEBENDRANATH ACHARAY",
-  "UMESH SING",
-  "SUNAMATI DUTICHAND",
-  "JAGANATHA BEHERA",
-  "SARAT KUMAR SAHOO",
-  "ABHISHEK SAHOO",
-  "AJAYA KUMAR NAYAK",
-  "MANYATA NENTERPRISES",
-  "AJAYA KUAMR GOCHHAYAT",
-  "SUBHASH CHANDRA DASH",
-  "GIRIJA SANKAR SAHOO",
-];
-
-const KOLKATA_SUB_VENDORS = [
-  "PRAFULLA KUMAR MAHATA",
-  "SAILEN TUDU",
-  "SUJIT GHOSH",
-  "ASHOKE BHUNIA",
-  "SUBAJEET BARMAN",
-  "TAPANN KUAMR PRADHAN",
-  "SWARUP MALIK",
-  "SANJOY POREL",
-  "HAWK SAHEB",
-  "SHYAMAL MITRA",
-  "MASKARA BESUNMA",
-  "ARPITA SIKDAR",
-  "UTPAL KOLE",
-  "ARKA PRAVA BHUNIA",
-  "SWAPNA PANDIT",
-  "ASHIS BHATTAACHAJEE",
-  "JAYANTA BERA",
-  "KOUSTAV BISWAS",
-  "SUMNARRAYAN DEY",
-  "RINKU DAS",
-  "MAHABUL ALAM",
-  "MANIRUL ISLAM LASKAR",
-  "SATYA RANJAN SARDAR",
-  "PRABIR SABUD",
-  "JAVED MONDAL",
-];
 
 const SYSTEM_TYPES = [
   { value: "on-grid", label: "On-Grid System" },
@@ -105,6 +46,8 @@ const DRAFT_KEY = "manyata_apply_draft_v1";
 const initialState = {
   systemType: "",
   systemSize: "",
+  superVendorName: "",
+  vendorName: "",
   subVendorName: "",
   salesExecutiveName: "",
   incomeSource: "",
@@ -161,6 +104,7 @@ const STEPS = [
 const TOTAL_STEPS = 15;
 
 /* ── Main Component ──────────────────────────────────── */
+const selectedFiles = {};
 
 export default function Apply() {
   const navigate = useNavigate();
@@ -240,11 +184,13 @@ export default function Apply() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleLocationSelect = (loc) => {
+  const handleLocationSelect = (locations) => {
+    const selected = Array.isArray(locations) ? locations : [locations];
+    const loc = selected.length > 1 ? "both" : selected[0];
     setLocation(loc);
     setForm((prev) => ({
       ...prev,
-      state: loc === "odisha" ? "Odisha" : "West Bengal",
+      state: selected.length > 1 ? "" : loc === "odisha" ? "Odisha" : "West Bengal",
     }));
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -271,27 +217,20 @@ export default function Apply() {
     setSubmitError("");
 
     try {
-      const fd = new FormData();
-      fd.append("location", location);
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          fd.append(key, String(value));
-        }
-      });
-      fd.append("currentStep", String(TOTAL_STEPS));
-      fd.append("isComplete", "true");
+            const fileMap = { ...selectedFiles };
 
-      const formEl = formRef.current;
-      if (formEl) {
-        const fileInputs = formEl.querySelectorAll('input[type="file"]');
-        fileInputs.forEach((input) => {
-          if (input.files?.[0]) {
-            fd.append(input.name, input.files[0]);
-          }
-        });
-      }
+      // 2. Upload files directly to S3 via presigned URLs
+      const uploadedFiles = await uploadFilesToS3("applications", fileMap);
 
-      const res = await submitApplication(fd);
+      // 3. Submit JSON payload with S3 keys
+      const payload = {
+        location,
+        ...form,
+        currentStep: TOTAL_STEPS,
+        isComplete: true,
+        files: uploadedFiles,
+      };
+      const res = await submitApplication(payload);
       setSubmitted({
         id: res.data.id,
         applicationNo: res.data.applicationNo,
@@ -463,10 +402,10 @@ function LocationStep({ onSelect }) {
             />
             <LocationCard
               icon={MapIcon}
-              title="Kolkata"
-              subtitle="For customers from Kolkata / West Bengal"
-              description="Apply for rooftop solar installation services in Kolkata and West Bengal."
-              buttonText="Apply from Kolkata"
+              title="West Bengal"
+              subtitle="For customers from West Bengal"
+              description="Apply for rooftop solar installation services in West Bengal."
+              buttonText="Apply from West Bengal"
               onClick={() => onSelect("kolkata")}
             />
           </div>
@@ -518,7 +457,7 @@ function WizardShell({
                 Exit
               </button>
               <span className="text-xs font-semibold text-amber">
-                {location === "odisha" ? "Odisha" : "Kolkata"} Application
+                {location === "both" ? "Odisha & West Bengal" : location === "odisha" ? "Odisha" : "West Bengal"} Application
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs">
@@ -675,27 +614,15 @@ function SystemSizeStep({ form, onChange }) {
 /* ── Step 4: Vendor ──────────────────────────────────── */
 
 function VendorStep({ form, location, onChange }) {
-  const vendors =
-    location === "odisha" ? ODISHA_SUB_VENDORS : KOLKATA_SUB_VENDORS;
   return (
     <FormCard icon={User} title="Vendor & Sales Details">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <SelectField
-          label="Sub Vendor Name"
-          name="subVendorName"
-          value={form.subVendorName}
-          onChange={onChange}
-          options={vendors}
-          placeholder="Choose"
-        />
-        <Field
-          label="Sales Executive Name"
-          name="salesExecutiveName"
-          value={form.salesExecutiveName}
-          onChange={onChange}
-          placeholder="Enter sales executive name"
-        />
-      </div>
+      <PartnerNetworkFields
+        location={location}
+        form={form}
+        onChange={onChange}
+        fields={[["subVendorName", "Partner Name", "allPartners"]]}
+        textFields={[["salesExecutiveName", "Sales Executive"]]}
+      />
     </FormCard>
   );
 }
@@ -756,19 +683,16 @@ function PersonalStep({ form, onChange }) {
 /* ── Step 6: Address ─────────────────────────────────── */
 
 function AddressStep({ form, location, onChange }) {
+  const isBoth = location === "both";
+  const isOdishaAddress = form.state === "Odisha" || (location === "odisha" && !isBoth);
+  const isWestBengalAddress = form.state === "West Bengal" || (location === "kolkata" && !isBoth);
   return (
     <FormCard
       icon={location === "odisha" ? MapPin : MapIcon}
       title="Consumer Address Details"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field
-          label="State"
-          name="state"
-          value={form.state}
-          onChange={onChange}
-          readOnly
-        />
+        {isBoth ? <label className="block text-xs font-semibold text-navy/70">State<select name="state" value={form.state} onChange={onChange} required className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose actual site state</option><option value="Odisha">Odisha</option><option value="West Bengal">West Bengal</option></select></label> : <Field label="State" name="state" value={form.state} onChange={onChange} readOnly />}
         <Field
           label="District"
           name="district"
@@ -776,7 +700,7 @@ function AddressStep({ form, location, onChange }) {
           onChange={onChange}
           placeholder="Enter your district"
         />
-        {location === "odisha" ? (
+        {isOdishaAddress ? (
           <>
             <Field
               label="Block"
@@ -793,7 +717,7 @@ function AddressStep({ form, location, onChange }) {
               placeholder="Enter your Gram Panchayat"
             />
           </>
-        ) : (
+        ) : isWestBengalAddress ? (
           <>
             <Field
               label="Municipality / Corporation"
@@ -810,7 +734,7 @@ function AddressStep({ form, location, onChange }) {
               placeholder="Enter ward number"
             />
           </>
-        )}
+        ) : <p className="text-xs text-muted sm:col-span-2">Choose the actual site state to show the matching address fields.</p>}
         <Field
           label="Building / Plot No."
           name="buildingPlot"
@@ -818,7 +742,7 @@ function AddressStep({ form, location, onChange }) {
           onChange={onChange}
           placeholder="Enter building / plot no."
         />
-        {location === "odisha" ? (
+        {isOdishaAddress ? (
           <Field
             label="Village Name"
             name="villageName"
@@ -826,7 +750,7 @@ function AddressStep({ form, location, onChange }) {
             onChange={onChange}
             placeholder="Enter village name"
           />
-        ) : (
+        ) : isWestBengalAddress ? (
           <Field
             label="Street / Locality"
             name="streetLocality"
@@ -834,7 +758,7 @@ function AddressStep({ form, location, onChange }) {
             onChange={onChange}
             placeholder="Enter street / locality"
           />
-        )}
+        ) : null}
         <Field
           label="City"
           name="city"
@@ -902,20 +826,6 @@ function ElectricityStep({ form, onChange }) {
           value={form.consumerNumber}
           onChange={onChange}
           placeholder="Enter your consumer number"
-        />
-        <Field
-          label="Sub Division"
-          name="subDivision"
-          value={form.subDivision}
-          onChange={onChange}
-          placeholder="Enter sub division"
-        />
-        <Field
-          label="Tariff"
-          name="tariff"
-          value={form.tariff}
-          onChange={onChange}
-          placeholder="Enter tariff category"
         />
         <FileUpload
           label="Latest Electricity Bill"
@@ -1070,7 +980,7 @@ function PreviewStep({ form, location, onEdit }) {
       step: 4,
       title: "Vendor",
       rows: [
-        ["Sub Vendor", form.subVendorName],
+        ["Partner Name", form.subVendorName],
         ["Sales Executive", form.salesExecutiveName],
       ],
     },
@@ -1109,8 +1019,6 @@ function PreviewStep({ form, location, onEdit }) {
       title: "Electricity",
       rows: [
         ["Consumer Number", form.consumerNumber],
-        ["Sub Division", form.subDivision],
-        ["Tariff", form.tariff],
       ],
     },
     {
@@ -1163,7 +1071,7 @@ function PreviewStep({ form, location, onEdit }) {
           </button>
         </div>
         <p className="mt-2 text-sm text-navy">
-          {location === "odisha" ? "Odisha" : "Kolkata / West Bengal"}
+          {location === "both" ? "Odisha & West Bengal" : location === "odisha" ? "Odisha" : "West Bengal"}
         </p>
       </div>
 
@@ -1369,40 +1277,14 @@ function ResumePrompt({ onResume, onStartFresh }) {
 
 /* ── Shared subcomponents ────────────────────────────── */
 
-function LocationCard({
-  icon: Icon,
-  title,
-  subtitle,
-  description,
-  buttonText,
-  onClick,
-}) {
+function LocationCard({ icon: Icon, title, subtitle, description, buttonText, onClick }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4 }}
-      transition={{ duration: 0.3 }}
-      className="group rounded-2xl border border-navy/10 bg-white p-5 shadow-sm transition-shadow hover:shadow-lg sm:p-7"
-    >
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-soft text-amber">
-        <Icon size={26} />
-      </div>
-      <h3 className="mt-5 text-xl font-extrabold text-navy sm:text-2xl">
-        {title}
-      </h3>
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} whileHover={{ y: -4 }} transition={{ duration: 0.3 }} className="group rounded-2xl border border-navy/10 bg-white p-5 shadow-sm transition-shadow hover:shadow-lg sm:p-7">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-soft text-amber"><Icon size={26} /></div>
+      <h3 className="mt-5 text-xl font-extrabold text-navy sm:text-2xl">{title}</h3>
       <p className="mt-1 text-sm font-semibold text-amber">{subtitle}</p>
-      <p className="mt-3 min-h-[48px] text-sm leading-6 text-muted">
-        {description}
-      </p>
-      <button
-        type="button"
-        onClick={onClick}
-        className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-bold text-white transition hover:bg-amber hover:text-navy"
-      >
-        {buttonText}
-        <Send size={15} />
-      </button>
+      <p className="mt-3 min-h-[48px] text-sm leading-6 text-muted">{description}</p>
+      <button type="button" onClick={onClick} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-bold text-white transition hover:bg-amber hover:text-navy">{buttonText}<Send size={15} /></button>
     </motion.div>
   );
 }
@@ -1517,9 +1399,11 @@ function RadioOption({ name, value, label, checked, onChange }) {
 function FileUpload({ label, name, required = false }) {
   const [filename, setFilename] = useState("");
 
-  const handleChange = (e) => {
+    const handleChange = (e) => {
     const f = e.target.files?.[0];
     setFilename(f ? f.name : "");
+    if (f) selectedFiles[name] = f;
+    else delete selectedFiles[name];
   };
 
   return (

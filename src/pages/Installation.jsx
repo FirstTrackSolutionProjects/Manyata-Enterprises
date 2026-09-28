@@ -15,6 +15,10 @@ import {
   Battery,
   Zap,
 } from "lucide-react";
+import { uploadFilesToS3 } from "../services/api";
+import PartnerNetworkFields from "../components/PartnerNetworkFields";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 const INSTALLATION_TYPES = [
   "New Installation",
@@ -40,6 +44,10 @@ const initialState = {
   email: "",
   contactPerson: "",
   gender: "",
+  superVendorName: "",
+  vendorName: "",
+  subVendorName: "",
+  salesExecutiveName: "",
 
   // Installation Details
   installationType: "",
@@ -93,20 +101,37 @@ export default function Installation() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: wire this up to your backend / email service.
-    setTimeout(() => {
+    try {
+      if (!API_URL) throw new Error("Server is not configured. Please try again later.");
+
+      const fileMap = {};
+      const fileInputs = e.currentTarget.querySelectorAll('input[type="file"]');
+      fileInputs.forEach((input) => {
+        if (input.name && input.files?.[0]) {
+          fileMap[input.name] = input.files[0];
+        }
+      });
+      const uploadedFiles = await uploadFilesToS3("installations", fileMap);
+      const payload = JSON.stringify({ location: selectedLocation, ...form, files: uploadedFiles });
+
+      const res = await fetch(`${API_URL}/installations`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Installation submission failed.");
+
       setLoading(false);
       setSubmitted(true);
-      console.log("Installation form submitted:", {
-        location: selectedLocation,
-        ...form,
-      });
-      console.log("Uploaded file:", file);
-    }, 800);
+    } catch (error) {
+      setLoading(false);
+      alert(error.message || "Installation submission failed. Please try again.");
+    }
   };
 
   const handleReset = () => {
@@ -169,10 +194,10 @@ export default function Installation() {
 
               <LocationCard
                 icon={Map}
-                title="Kolkata"
-                subtitle="For installations in Kolkata / West Bengal"
-                description="Submit technical installation details for a rooftop solar system in Kolkata and West Bengal."
-                buttonText="Continue with Kolkata"
+                title="West Bengal"
+                subtitle="For installations in West Bengal"
+                description="Submit technical installation details for a rooftop solar system in West Bengal."
+                buttonText="Continue with West Bengal"
                 onClick={() => handleLocationSelect("kolkata")}
               />
             </div>
@@ -213,7 +238,7 @@ export default function Installation() {
 
           <p className="mt-3 text-sm leading-relaxed text-muted">
             Thank you for submitting the installation details for{" "}
-            {selectedLocation === "odisha" ? "Odisha" : "Kolkata"}. Our team
+            {selectedLocation === "odisha" ? "Odisha" : "West Bengal"}. Our team
             will review the information and reach out if required.
           </p>
 
@@ -263,7 +288,7 @@ export default function Installation() {
                 <span className="text-sm font-semibold text-amber">
                   {selectedLocation === "odisha"
                     ? "Odisha Installation"
-                    : "Kolkata Installation"}
+                    : "West Bengal Installation"}
                 </span>
                 <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl">
                   Technical Installation Form
@@ -300,7 +325,7 @@ export default function Installation() {
                   <p className="text-base font-bold text-navy">
                     {selectedLocation === "odisha"
                       ? "Odisha"
-                      : "Kolkata, West Bengal"}
+                      : "West Bengal"}
                   </p>
                 </div>
               </div>
@@ -366,6 +391,10 @@ export default function Installation() {
                 placeholder="Enter contact person"
               />
             </div>
+          </FormCard>
+
+          <FormCard icon={User} title="Partner & Sales Details">
+            <PartnerNetworkFields location={selectedLocation} form={form} onChange={handleChange} />
           </FormCard>
 
           {/* Installation Details */}
@@ -554,6 +583,7 @@ export default function Installation() {
                 </span>
                 <input
                   type="file"
+                  name="otherDocument"
                   onChange={handleFileChange}
                   className="sr-only"
                 />

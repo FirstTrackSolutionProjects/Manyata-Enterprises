@@ -19,12 +19,20 @@ import PasswordGate from "./components/PasswordGate";
 import Installation from "./pages/Installation";
 import Login from "./pages/Login";
 import ChangePassword from "./pages/ChangePassword";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import TrackApplication from "./pages/TrackApplication";
 import Partner from "./pages/Partner";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import Products from "./pages/Products";
+import PartnerDetail from "./pages/PartnerDetail";
+import JoinUsDetail from "./pages/JoinUsDetail";
+import CareerDetail from "./pages/CareerDetail";
+import ContactDetail from "./pages/ContactDetail";
+import InstallationDetail from "./pages/InstallationDetail";
+import PartnerDashboard from "./pages/PartnerDashboard";
 
 export default function App() {
   return (
@@ -48,7 +56,9 @@ export default function App() {
             <Route
               path="/join-us-mnyt2026"
               element={
+                <PasswordGate>
                   <JoinUs />
+                </PasswordGate>
               }
             />
 
@@ -62,6 +72,8 @@ export default function App() {
 
           {/* Auth (no chrome) */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             path="/change-password"
             element={
@@ -83,9 +95,59 @@ export default function App() {
           <Route
             path="/admin/applications/:id"
             element={
-              <ProtectedRoute roles={["owner"]}>
+              <ProtectedRoute permission="applications">
                 <DashboardLayout title="Application Detail">
                   <ApplicationDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/installations/:id"
+            element={
+              <ProtectedRoute permission="installations">
+                <DashboardLayout title="Installation Detail">
+                  <InstallationDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/partners/:id"
+            element={
+              <ProtectedRoute permission="partners">
+                <DashboardLayout title="Partner Detail">
+                  <PartnerDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/join-us/:id"
+            element={
+              <ProtectedRoute permission="submissions">
+                <DashboardLayout title="Join Us Detail">
+                  <JoinUsDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/careers/:id"
+            element={
+              <ProtectedRoute permission="submissions">
+                <DashboardLayout title="Career Application Detail">
+                  <CareerDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/contacts/:id"
+            element={
+              <ProtectedRoute permission="submissions">
+                <DashboardLayout title="Contact Enquiry Detail">
+                  <ContactDetail />
                 </DashboardLayout>
               </ProtectedRoute>
             }
@@ -96,17 +158,26 @@ export default function App() {
             path="/employee"
             element={
               <ProtectedRoute roles={["employee"]}>
-                <EmployeeDashboard />
+                <AdminDashboard />
               </ProtectedRoute>
             }
           />
           <Route
             path="/employee/applications/:id"
             element={
-              <ProtectedRoute roles={["employee"]}>
+              <ProtectedRoute roles={["employee"]} permission="applications">
                 <DashboardLayout title="Application Detail">
                   <ApplicationDetail />
                 </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/partner/dashboard"
+            element={
+              <ProtectedRoute roles={["partner"]}>
+                <PartnerDashboard />
               </ProtectedRoute>
             }
           />

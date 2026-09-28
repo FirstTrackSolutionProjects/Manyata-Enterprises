@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { uploadFilesToS3 } from "../services/api";
 import {
   User,
   Building2,
@@ -14,17 +15,30 @@ import {
 import { submitPartner } from "../services/api";
 
 const PARTNER_TYPES = [
-  { value: "vendor", label: "Vendor" },
   { value: "dealer", label: "Dealer" },
-  { value: "other", label: "Other" },
+  { value: "sub_vendor", label: "Sub-vendor" },
+];
+const COMMISSION_MODELS = [
+  { value: "per_completed_installation", label: "Per completed installation" },
+];
+
+const PARTNER_SYSTEMS = [
+  { value: "on_grid", label: "On-Grid System" },
+  { value: "hybrid", label: "Hybrid System" },
 ];
 
 const initialState = {
-  partnerType: "vendor",
+  partnerType: "sub_vendor",
+  commissionModel: "",
+  commissionRates: { on_grid: "20000", hybrid: "30000" },
+  systemTypes: PARTNER_SYSTEMS.map((system) => system.value),
   companyName: "",
   contactName: "",
   email: "",
   phone: "",
+  aadhaarNumber: "",
+  gender: "",
+  dob: "",
   gstNumber: "",
   panNumber: "",
   msmeNumber: "",
@@ -47,7 +61,12 @@ export default function Partner() {
   const formRef = useRef(null);
 
   const handleChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+      ...(name === "partnerType" ? { commissionModel: value === "sub_vendor" ? "per_completed_installation" : "" } : {}),
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -58,20 +77,22 @@ export default function Partner() {
     setSubmitError("");
 
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => {
-        if (v !== undefined && v !== null) fd.append(k, String(v));
-      });
-
+      // 1. Collect files from the form
       const formEl = formRef.current;
+      const fileMap = {};
       if (formEl) {
         const fileInputs = formEl.querySelectorAll('input[type="file"]');
         fileInputs.forEach((input) => {
-          if (input.files?.[0]) fd.append(input.name, input.files[0]);
+          if (input.files?.[0]) fileMap[input.name] = input.files[0];
         });
       }
 
-      await submitPartner(fd);
+      // 2. Upload files directly to S3 via presigned URLs
+      const uploadedFiles = await uploadFilesToS3("partners", fileMap);
+
+      // 3. Submit JSON payload with S3 keys
+      const payload = { ...form, files: uploadedFiles };
+      await submitPartner(payload);
       setSubmitSuccess(true);
       setForm(initialState);
       formEl?.reset();
@@ -99,7 +120,7 @@ export default function Partner() {
               Become a Manyata Partner
             </h1>
             <p className="mt-3 max-w-xl text-sm text-white/70 sm:text-base">
-              Apply to become a vendor, installer, or dealer. Our team will
+              Apply to become a vendor, dealer, or sub-vendor partner. Our team will
               review your application and reach out.
             </p>
           </motion.div>
@@ -121,6 +142,15 @@ export default function Partner() {
                 onChange={handleChange}
                 options={PARTNER_TYPES}
               />
+              {form.partnerType === "sub_vendor" && (
+                <SelectField
+                  label="Commission"
+                  name="commissionModel"
+                  value={form.commissionModel}
+                  onChange={handleChange}
+                  options={COMMISSION_MODELS}
+                />
+              )}
               <Field
                 label="Company Name"
                 name="companyName"
@@ -184,6 +214,28 @@ export default function Partner() {
                 placeholder="Enter phone number"
                 type="tel"
               />
+              <Field
+                label="Aadhaar Number"
+                name="aadhaarNumber"
+                value={form.aadhaarNumber}
+                onChange={handleChange}
+                placeholder="Enter 12-digit Aadhaar number (optional)"
+                type="text"
+              />
+              <SelectField
+                label="Gender"
+                name="gender"
+                value={form.gender}
+                onChange={handleChange}
+                options={[{ value: "", label: "Select gender (optional)" }, { value: "male", label: "Male" }, { value: "female", label: "Female" }, { value: "other", label: "Other" }]}
+              />
+              <Field
+                label="Date of Birth"
+                name="dob"
+                value={form.dob}
+                onChange={handleChange}
+                type="date"
+              />
             </div>
           </FormCard>
 
@@ -205,12 +257,12 @@ export default function Partner() {
                 onChange={handleChange}
                 placeholder="Enter city"
               />
-              <Field
+              <SelectField
                 label="State"
                 name="state"
                 value={form.state}
                 onChange={handleChange}
-                placeholder="Enter state"
+                options={[{ value: "", label: "Select state" }, { value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]}
               />
               <Field
                 label="PIN Code"
@@ -227,6 +279,7 @@ export default function Partner() {
               <FileUpload label="GST Certificate" name="gstFile" />
               <FileUpload label="PAN Card" name="panFile" />
               <FileUpload label="Aadhaar Card" name="aadhaarFile" />
+              <FileUpload label="Partner Photo" name="photoFile" accept="image/jpeg,image/png,image/webp" />
               <FileUpload label="MSME Certificate" name="msmeFile" />
               <FileUpload label="Business Documents" name="businessDocFile" />
             </div>
@@ -374,7 +427,7 @@ function SelectField({ label, name, value, onChange, options }) {
   );
 }
 
-function FileUpload({ label, name }) {
+function FileUpload({ label, name, accept }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -383,7 +436,7 @@ function FileUpload({ label, name }) {
       <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-xs text-muted transition-colors hover:border-amber hover:text-navy">
         <Upload size={16} />
         Choose File
-        <input type="file" name={name} className="hidden" />
+        <input type="file" name={name} accept={accept} className="hidden" />
       </div>
     </label>
   );

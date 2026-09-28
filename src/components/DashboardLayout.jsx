@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
   LogOut,
@@ -12,21 +12,23 @@ import {
   Users,
   Building2,
   Briefcase,
+  Handshake,
+  Wrench,
+  ChevronDown,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
+import { hasActionPermission } from "../utils/permissions";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
-  { id: "overview", label: "Overview", icon: LayoutDashboard },
-  { id: "applications", label: "Applications", icon: FileText },
+  { id: "overview", label: "Dashboard", icon: LayoutDashboard },
+  { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "West Bengal" }] },
+  { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
   { id: "employees", label: "Employees", icon: Users },
+  { id: "partners", label: "Partners", icon: Handshake },
   { id: "branches", label: "Branches", icon: Building2 },
-  { id: "other", label: "Other Submissions", icon: Briefcase },
-];
-
-const EMPLOYEE_NAV = [
-  { id: "applications", label: "Applications", icon: FileText },
+  { id: "submissions", label: "Submissions", icon: Briefcase },
 ];
 
 export default function DashboardLayout({
@@ -39,10 +41,28 @@ export default function DashboardLayout({
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openMenus, setOpenMenus] = useState(() => ({
+    applications: user?.role === "employee",
+    installations: user?.role === "employee",
+  }));
 
-  const NAV_ITEMS = user?.role === "owner" ? OWNER_NAV : EMPLOYEE_NAV;
-  const dashboardLink = user?.role === "owner" ? "/admin" : "/employee";
-
+  const baseNavItems = user?.role === "owner"
+    ? OWNER_NAV
+    : user?.role === "partner"
+      ? [
+          { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          ...(hasActionPermission(user, "applications", "view") ? [{ id: "applications", label: "Applications", icon: FileText }] : []),
+        ]
+      : OWNER_NAV.filter((item) => item.id !== "overview" && (item.id === "applications" || item.id === "installations"
+        ? hasActionPermission(user, item.id, "view")
+        : (user?.permissions || ["applications"]).includes(item.id)));
+  const NAV_ITEMS = user?.role === "employee" ? baseNavItems.map((item) => {
+    if (!item.children) return item;
+    const module = item.id;
+    const allowed = user?.locationPermissions?.[module];
+    if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };
+    return { ...item, children: item.children.filter((child) => allowed.includes(child.id.endsWith("odisha") ? "odisha" : "west_bengal")) };
+  }) : baseNavItems;
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
 
@@ -53,7 +73,13 @@ export default function DashboardLayout({
 
   const handleNavClick = (id) => {
     setSidebarOpen(false);
-    if (onSectionChange) onSectionChange(id);
+    if (onSectionChange) {
+      onSectionChange(id);
+    } else if (user?.role === "owner") {
+      navigate(`/admin?section=${encodeURIComponent(id)}`);
+    } else {
+      navigate(`/employee?section=${encodeURIComponent(id)}`);
+    }
   };
 
   return (
@@ -100,7 +126,7 @@ export default function DashboardLayout({
           {/* Role badge */}
           <div className="px-5 py-4">
             <span className="inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80">
-              {user?.role === "owner" ? "Owner Panel" : "Employee Panel"}
+              {user?.role === "owner" ? "Owner Panel" : user?.role === "partner" ? "Partner Panel" : "Employee Panel"}
             </span>
           </div>
 
@@ -109,20 +135,23 @@ export default function DashboardLayout({
             <ul className="space-y-1">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
-                const active = activeSection === item.id;
+                const active = activeSection === item.id || item.children?.some((child) => child.id === activeSection);
                 return (
                   <li key={item.id}>
-                    <button
-                      onClick={() => handleNavClick(item.id)}
+                    <div
                       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                         active
                           ? "bg-amber text-navy"
                           : "text-white/80 hover:bg-white/10 hover:text-white"
                       }`}
                     >
-                      <Icon size={16} />
-                      {item.label}
-                    </button>
+                      <button onClick={() => handleNavClick(item.id)} className="flex flex-1 items-center gap-3 text-left">
+                        <Icon size={16} />
+                        {item.label}
+                      </button>
+                      {item.children && <button onClick={() => setOpenMenus((p) => ({ ...p, [item.id]: !p[item.id] }))} className="p-1" aria-label={`Toggle ${item.label} menu`}><ChevronDown size={14} className={`transition-transform ${openMenus[item.id] ? "rotate-180" : ""}`} /></button>}
+                    </div>
+                    {item.children && openMenus[item.id] && <div className="ml-8 mt-1 space-y-1">{item.children.map((child) => <button key={child.id} onClick={() => handleNavClick(child.id)} className={`w-full rounded-md px-3 py-2 text-left text-xs font-semibold ${activeSection === child.id ? "bg-white/15 text-amber" : "text-white/65 hover:text-white"}`}>{child.label}</button>)}</div>}
                   </li>
                 );
               })}
@@ -131,14 +160,6 @@ export default function DashboardLayout({
 
           {/* Bottom actions */}
           <div className="border-t border-white/10 px-3 py-4">
-            <Link
-              to={dashboardLink}
-              onClick={() => setSidebarOpen(false)}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <LayoutDashboard size={16} />
-              Dashboard
-            </Link>
             <Link
               to="/"
               onClick={() => setSidebarOpen(false)}
@@ -165,8 +186,16 @@ export default function DashboardLayout({
 
             {/* User footer */}
             <div className="mt-3 flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber text-navy">
-                <UserIcon size={14} />
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber text-navy">
+                {user?.profilePhoto ? (
+                  <img
+                    src={user.profilePhoto}
+                    alt={`${user?.name || "User"} profile`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <UserIcon size={14} />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="truncate text-xs font-bold text-white">
@@ -194,7 +223,7 @@ export default function DashboardLayout({
         {/* Top bar for mobile (with hamburger) */}
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-navy/10 bg-white px-4 py-3 lg:hidden">
           <Link to="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy p-1">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white p-1 ring-1 ring-navy/10">
               <img
                 src={assets.logoImg}
                 alt="Manyata Enterprises"
@@ -222,7 +251,7 @@ export default function DashboardLayout({
               className="inline-flex items-center gap-3 transition-opacity hover:opacity-80"
               title="Manyata Enterprises — Home"
             >
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-navy p-1">
+              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white p-1 ring-1 ring-navy/10">
                 <img
                   src={assets.logoImg}
                   alt="Manyata Enterprises logo"
@@ -264,7 +293,7 @@ export default function DashboardLayout({
         </main>
 
         <footer className="border-t border-navy/10 bg-white py-4 text-center text-xs text-muted">
-          © {new Date().getFullYear()} Manyata Enterprises · Internal Panel
+          &copy; {new Date().getFullYear()} Manyata Enterprises &middot; Developed by First Track Solution Technologies
         </footer>
       </div>
     </div>

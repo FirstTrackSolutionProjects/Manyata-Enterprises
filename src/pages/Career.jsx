@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { uploadFilesToS3 } from "../services/api";
 import {
   User,
   MapPin,
@@ -39,12 +40,14 @@ const initialState = {
   gender: "Male",
   streetAddress: "",
   city: "",
+  district: "",
   state: "",
   postalCode: "",
   country: "India",
   description: "",
   qualification: "",
   jobrole:"",
+  location: "",
 };
 
 export default function Career() {
@@ -66,24 +69,25 @@ export default function Career() {
     setSubmitError("");
 
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          fd.append(key, String(value));
-        }
-      });
-
+      // 1. Collect files from the form
       const formEl = formRef.current;
+      const fileMap = {};
       if (formEl) {
         const fileInputs = formEl.querySelectorAll('input[type="file"]');
         fileInputs.forEach((input) => {
-          if (input.files?.[0]) fd.append(input.name, input.files[0]);
+          if (input.files?.[0]) fileMap[input.name] = input.files[0];
         });
       }
 
+      // 2. Upload files directly to S3 via presigned URLs
+      const uploadedFiles = await uploadFilesToS3("careers", fileMap);
+
+      // 3. Submit JSON payload with S3 keys
+      const payload = { ...form, files: uploadedFiles };
       const res = await fetch(`${API_URL}/careers`, {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
 
@@ -148,8 +152,9 @@ export default function Career() {
           <FormCard icon={MapPin} title="Address Details">
             <div className="grid grid-cols-1 gap-4">
               <Field label="Street Address" name="streetAddress" value={form.streetAddress} onChange={handleChange} placeholder="Eg: 24 Wallaby Way" />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="City" name="city" value={form.city} onChange={handleChange} placeholder="Eg: Bhubaneswar" />
+                <Field label="District" name="district" value={form.district} onChange={handleChange} placeholder="Eg: Khordha" />
                 <Field label="State" name="state" value={form.state} onChange={handleChange} placeholder="Eg: Odisha" />
                 <Field label="Postal Code" name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="Eg: 751001" />
               </div>
@@ -201,6 +206,9 @@ export default function Career() {
                   onChange={handleChange}
                 />
               ))}
+            </div>
+            <div className="mt-5">
+              <SelectField label="Location" name="location" value={form.location} onChange={handleChange} options={["Odisha", "West Bengal"]} required />
             </div>
           </FormCard>
           {/* Upload CV */}
@@ -284,7 +292,7 @@ function Field({ label, name, value, onChange, placeholder, type = "text" }) {
   );
 }
 
-function SelectField({ label, name, value, onChange, options }) {
+function SelectField({ label, name, value, onChange, options, required = false }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">{label}</span>
@@ -292,8 +300,10 @@ function SelectField({ label, name, value, onChange, options }) {
         name={name}
         value={value}
         onChange={onChange}
+        required={required}
         className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
       >
+        {required && <option value="" disabled>Select location</option>}
         {options.map((opt) => (
           <option key={opt} value={opt}>
             {opt}

@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-export default function ProtectedRoute({ children, roles = [] }) {
+export default function ProtectedRoute({ children, roles = [], permission }) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -25,6 +25,17 @@ export default function ProtectedRoute({ children, roles = [] }) {
           <p className="mt-2 text-sm text-red-600">
             You do not have permission to view this page.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (permission && user.role !== "owner" && !(user.permissions || ["applications"]).includes(permission)) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center bg-offwhite px-5">
+        <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
+          <h2 className="text-lg font-bold text-red-700">Access Denied</h2>
+          <p className="mt-2 text-sm text-red-600">Owner ne aapko is section ka access nahi diya hai.</p>
         </div>
       </div>
     );
