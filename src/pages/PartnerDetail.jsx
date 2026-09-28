@@ -238,6 +238,7 @@ export default function PartnerDetail() {
             ["Commission", partner.commission_model === "per_completed_installation" || partner.partner_type === "sub_vendor_commission" ? "Per completed installation" : "—"], ["Company Name", partner.company_name],
             ["Contact Name", partner.contact_name], ["Phone", partner.phone], ["Email", partner.email],
             ["Aadhaar Number", partner.aadhaar_number], ["Gender", ({ male: "Male", female: "Female", other: "Other" }[partner.gender] || partner.gender)], ["Date of Birth", partner.dob ? String(partner.dob).slice(0, 10) : ""],
+            ["Assigned Locations", (Array.isArray(partner.assigned_locations) ? partner.assigned_locations : []).map((location) => ({ odisha: "Odisha", west_bengal: "West Bengal" })[location]).filter(Boolean).join(", ") || "No locations assigned"],
             ["System Types", (Array.isArray(partner.system_types) ? partner.system_types : []).map((system) => system === "on_grid" ? "On-Grid System" : system === "hybrid" ? "Hybrid System" : system).join(", ")],
             ["Commission Chart", partner.commission_model === "per_completed_installation" || partner.partner_type === "sub_vendor_commission" ? `On-Grid: ₹${Number(partner.commission_rates?.on_grid ?? 20000).toLocaleString("en-IN")} per completed installation · Hybrid: ₹${Number(partner.commission_rates?.hybrid ?? 30000).toLocaleString("en-IN")} per completed installation` : "—"],
             ["Experience", partner.experience_years], ["Business Description", partner.description],
