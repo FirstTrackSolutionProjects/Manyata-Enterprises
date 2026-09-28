@@ -108,9 +108,14 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
   const partnerTypeChanged = form.partnerType !== originalPartnerType;
   const referralChanged = form.referredByPartnerId !== originalParentId;
   const requiresParentSelection = Boolean(requiredParentType && (partnerTypeChanged || referralChanged));
-  const parentOptions = approvedPartners.filter((item) =>
-    Number(item.id) !== Number(partner.id) && normalizePartnerType(item.partner_type) === requiredParentType
-  );
+  const parentOptions = approvedPartners.filter((item) => {
+    let roles = item.partner_roles || [];
+    if (typeof roles === "string") { try { roles = JSON.parse(roles); } catch { roles = []; } }
+    return Number(item.id) !== Number(partner.id)
+      && [normalizePartnerType(item.partner_type), ...(Array.isArray(roles) ? roles : [])]
+        .map(normalizePartnerType)
+        .includes(requiredParentType);
+  });
 
   const save = async (event) => {
     event.preventDefault();
