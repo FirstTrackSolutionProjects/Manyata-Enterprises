@@ -20,7 +20,7 @@ export const apiFetch = async (endpoint, options = {}) => {
   try {
     data = await res.json();
   } catch {
-    data = null;
+    // Keep the initial null value when a response body is not JSON.
   }
 
   if (!res.ok) {
@@ -47,6 +47,18 @@ export const login = (email, password) =>
 
 export const logout = () => apiFetch("/auth/logout", { method: "POST" });
 export const getMe = () => apiFetch("/auth/me");
+
+export const requestPasswordReset = (email) =>
+  apiFetch("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+
+export const resetPassword = (token, newPassword) =>
+  apiFetch("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({ token, newPassword }),
+  });
 
 export const changePassword = (currentPassword, newPassword) =>
   apiFetch("/auth/change-password", {
@@ -114,8 +126,11 @@ export const deleteBranch = (id) =>
 
 /* ── Applications ───────────────────────────────────── */
 
-export const submitApplication = (formData) =>
-  apiFetch("/applications", { method: "POST", body: formData });
+export const submitApplication = (payload) =>
+  apiFetch("/applications", {
+    method: "POST",
+    body: payload instanceof FormData ? payload : JSON.stringify(payload),
+  });
 
 export const trackApplication = (applicationNo, phone) =>
   apiFetch("/applications/track", {
@@ -136,6 +151,12 @@ export const updateApplicationStatus = (id, status, note = "") =>
     body: JSON.stringify({ status, note }),
   });
 
+export const updateApplication = (id, payload) =>
+  apiFetch(`/applications/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
 export const submitToGovt = (id, govtPortalRef, note = "") =>
   apiFetch(`/applications/${id}/submit-to-govt`, {
     method: "POST",
@@ -144,6 +165,18 @@ export const submitToGovt = (id, govtPortalRef, note = "") =>
 
 export const deleteApplication = (id) =>
   apiFetch(`/applications/${id}`, { method: "DELETE" });
+
+export const listInstallations = (location = "", filters = {}) => {
+  const params = new URLSearchParams();
+  if (location) params.set("location", location);
+  Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
+  return apiFetch(`/installations${params.size ? `?${params.toString()}` : ""}`);
+};
+export const getInstallation = (id) => apiFetch(`/installations/${id}`);
+export const downloadInstallationPdf = (id) => window.open(`${API_URL}/installations/${id}/pdf`, "_blank", "noopener,noreferrer");
+export const updateInstallation = (id, payload) => apiFetch(`/installations/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const updateInstallationStatus = (id, status, note = "") => apiFetch(`/installations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) });
+export const deleteInstallation = (id) => apiFetch(`/installations/${id}`, { method: "DELETE" });
 
 export const getApplicationStats = (params = {}) => {
   const q = new URLSearchParams(params).toString();
@@ -176,9 +209,216 @@ export const getDashboardStats = () => apiFetch("/admin/stats");
 export const getEmployeeStats = () => apiFetch("/admin/employee-stats");
 export const getRecentActivity = (limit = 50) =>
   apiFetch(`/admin/activity?limit=${limit}`);
+export const clearRecentActivity = () =>
+  apiFetch("/admin/activity", { method: "DELETE" });
 export const getBranchStats = () => apiFetch("/admin/branch-stats");
 
 /* ── Partner ────────────────────────────────────────── */
 
-export const submitPartner = (formData) =>
-  apiFetch("/partners", { method: "POST", body: formData });
+export const submitPartner = (payload) =>
+  apiFetch("/partners", {
+    method: "POST",
+    body: payload instanceof FormData ? payload : JSON.stringify(payload),
+  });
+
+export const getApprovedSubVendors = (location) =>
+  apiFetch(`/partners/approved-sub-vendors?location=${encodeURIComponent(location)}`, { cache: "no-store" });
+export const getApprovedPartnerNetwork = (location) =>
+  apiFetch(`/partners/approved-network?location=${encodeURIComponent(location)}`, { cache: "no-store" });
+
+export const createPartnerRecord = (payload) =>
+  apiFetch("/admin/partners", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
+export const updatePartner = (id, payload) =>
+  apiFetch(`/admin/partners/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+
+export const getPartnerDetail = (id) => apiFetch(`/admin/partners/${id}`);
+export const setOwnerPartnerCommission = (id, commissionRates) =>
+  apiFetch(`/admin/partners/${id}/commission`, {
+    method: "PUT",
+    body: JSON.stringify({ commissionRates }),
+  });
+
+export const updatePartnerStatus = (id, status, note = "") =>
+  apiFetch(`/admin/partners/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status, note }),
+  });
+export const resetPartnerPassword = (id) =>
+  apiFetch(`/admin/partners/${id}/reset-password`, { method: "POST" });
+export const updatePartnerDashboardAccess = (id, applications) =>
+  apiFetch(`/admin/partners/${id}/dashboard-access`, {
+    method: "PUT",
+    body: JSON.stringify({ applications }),
+  });
+export const getMyPartnerApplications = (params = {}) => {
+  const query = new URLSearchParams(params);
+  return apiFetch(`/partners/my-applications?${query.toString()}`);
+};
+export const getMyPartnerHierarchy = () => apiFetch("/partners/my-hierarchy");
+export const setMyChildPartnerCommission = (id, commissionRates) =>
+  apiFetch(`/partners/${id}/commission`, {
+    method: "PUT",
+    body: JSON.stringify({ commissionRates }),
+  });
+export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
+export const sendPartnerAgreement = resendPartnerAgreement;
+const downloadPartnerAgreementFile = async (id, extension) => {
+  const response = await fetch(`${API_URL}/admin/partners/${id}/agreement.${extension}`, { credentials: "include" });
+  if (!response.ok) {
+    let data = null;
+    try { data = await response.json(); } catch { /* use the HTTP status message */ }
+    throw new Error(data?.message || data?.errors?.[0]?.message || `Agreement download failed (${response.status}).`);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `Sales-Commission-Agreement-${id}.${extension}`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+export const downloadPartnerAgreement = async (id) => {
+  return downloadPartnerAgreementFile(id, "docx");
+};
+export const downloadPartnerAgreementPdf = (id) => downloadPartnerAgreementFile(id, "pdf");
+
+export const getJoinUsDetail = (id) => apiFetch(`/admin/join-us/${id}`);
+export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {
+  method: "PUT",
+  body: JSON.stringify(payload),
+});
+export const deleteJoinUs = (id) => apiFetch(`/admin/join-us/${id}`, { method: "DELETE" });
+export const downloadJoinUsLOA = async (id) => {
+  const response = await fetch(`${API_URL}/admin/join-us/${id}/loa.pdf`, { credentials: "include" });
+  if (!response.ok) {
+    let data = null;
+    try { data = await response.json(); } catch { /* use the HTTP status message */ }
+    throw new Error(data?.message || data?.errors?.[0]?.message || `LOA download failed (${response.status}).`);
+  }
+  const blob = await response.blob();
+  const disposition = response.headers.get("content-disposition") || "";
+  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `loa-join-us-${id}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+export const updateJoinUsStatus = (id, status, note = "") => apiFetch(`/admin/join-us/${id}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status, note }),
+});
+
+export const getCareerDetail = (id) => apiFetch(`/admin/careers/${id}`);
+export const updateCareer = (id, payload) => apiFetch(`/admin/careers/${id}`, {
+  method: "PUT",
+  body: JSON.stringify(payload),
+});
+export const deleteCareer = (id) => apiFetch(`/admin/careers/${id}`, { method: "DELETE" });
+export const updateCareerStatus = (id, status, note = "") => apiFetch(`/admin/careers/${id}/status`, {
+  method: "PATCH",
+  body: JSON.stringify({ status, note }),
+});
+export const getContactDetail = (id) => apiFetch(`/admin/contacts/${id}`);
+export const updateContact = (id, payload) => apiFetch(`/admin/contacts/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const updateContactStatus = (id, status, note = "") => apiFetch(`/admin/contacts/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) });
+export const downloadSubmissionPdf = (type, id) => window.open(`${API_URL}/admin/${type}/${id}/pdf`, "_blank", "noopener,noreferrer");
+
+/* ── S3 presigned uploads ───────────────────────────── */
+
+/**
+ * Request presigned PUT URLs for a set of files.
+ * @param {"applications"|"careers"|"join-us"|"partners"|"installations"|"employee-profiles"} folder
+ * @param {{ inputName: string, filename: string, filetype: string }[]} files
+ * @returns {Promise<Record<string, { uploadUrl: string, fileKey: string }>>}
+ */
+export const getPresignedUploadUrls = (folder, files) =>
+  apiFetch("/uploads/presign", {
+    method: "POST",
+    body: JSON.stringify({ folder, files }),
+  });
+
+/**
+ * PUT a File object directly to an S3 presigned URL.
+ */
+export const putObjectToS3 = async (putURL, file, filetype) => {
+  if (!putURL || !file || !filetype) {
+    throw new Error("putURL, file and filetype are required");
+  }
+  const res = await fetch(putURL, {
+    method: "PUT",
+    headers: { "Content-Type": filetype },
+    body: file,
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("S3 upload failed:", res.status, body);
+    const code = body.match(/<Code>(.*?)<\/Code>/)?.[1];
+    const msg = body.match(/<Message>(.*?)<\/Message>/)?.[1];
+    throw new Error(`Upload failed: ${code || res.status} ${msg || ""}`.trim());
+  }
+  return true;
+};
+
+/**
+ * High-level helper: given a map of { inputName: File }, upload each to S3
+ * and return a map of { inputName: fileKey } ready to embed in JSON payload.
+ *
+ * @param {"applications"|"careers"|"join-us"|"partners"} folder
+ * @param {Record<string, File|null|undefined>} fileMap
+ * @returns {Promise<Record<string, string>>}  { inputName: fileKey }
+ */
+export const uploadFilesToS3 = async (folder, fileMap) => {
+  const entries = Object.entries(fileMap).filter(([, f]) => f instanceof File);
+  if (entries.length === 0) return {};
+
+  const files = entries.map(([inputName, f]) => ({
+    inputName,
+    filename: f.name,
+    filetype: f.type || "application/octet-stream",
+  }));
+
+  try {
+    const res = await getPresignedUploadUrls(folder, files);
+    const presigned = res?.data || res?.files || res?.uploads || res;
+    await Promise.all(entries.map(([inputName, file]) => {
+      const info = presigned?.[inputName];
+      if (!info?.uploadUrl || !info?.fileKey) throw new Error(`Presigned URL missing for "${inputName}"`);
+      return putObjectToS3(info.uploadUrl, file, file.type || "application/octet-stream");
+    }));
+    return Object.fromEntries(entries.map(([inputName]) => [inputName, presigned[inputName].fileKey]));
+  } catch (directUploadError) {
+    console.warn("Direct S3 upload failed; retrying through the API upload endpoint.", directUploadError);
+    const body = new FormData();
+    body.append("folder", folder);
+    entries.forEach(([inputName, file]) => body.append(inputName, file, file.name));
+    let response;
+    try {
+      response = await fetch(`${API_URL}/uploads/proxy`, { method: "POST", credentials: "include", body });
+    } catch {
+      throw new Error("Could not reach the document upload service. Your saved application draft is still available; check the connection and retry.");
+    }
+    let result;
+    try { result = await response.json(); } catch { result = null; }
+    if (!response.ok) throw new Error(result?.message || `Document upload failed (${response.status}). Please retry.`);
+    const uploaded = result?.data || result?.files || result?.uploads || result;
+    if (!uploaded || entries.some(([inputName]) => !uploaded[inputName])) {
+      throw new Error("The server did not confirm every document upload. Please retry before submitting.");
+    }
+    return uploaded;
+  }
+};

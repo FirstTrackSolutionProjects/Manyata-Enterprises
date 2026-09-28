@@ -70,6 +70,8 @@ export default function Navbar() {
       ? "/admin"
       : user?.role === "employee"
       ? "/employee"
+      : user?.role === "partner"
+      ? "/partner/dashboard"
       : null;
 
   return (

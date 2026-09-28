@@ -28,7 +28,7 @@ export default function Login() {
       } else {
         const redirect =
           location.state?.from ||
-          (loggedInUser.role === "owner" ? "/admin" : "/employee");
+          (loggedInUser.role === "owner" ? "/admin" : loggedInUser.role === "partner" ? "/partner/dashboard" : "/employee");
         navigate(redirect, { replace: true });
       }
     } catch (err) {
@@ -40,7 +40,7 @@ export default function Login() {
 
   // If already logged in, redirect away
   if (user) {
-    const dest = user.role === "owner" ? "/admin" : "/employee";
+    const dest = user.role === "owner" ? "/admin" : user.role === "partner" ? "/partner/dashboard" : "/employee";
     navigate(dest, { replace: true });
     return null;
   }
@@ -69,7 +69,7 @@ export default function Login() {
           Staff Login
         </h1>
         <p className="mt-1 text-center text-sm text-muted">
-          Owner and employee access only
+          Owner, employee, sub-vendor, and dealer access
         </p>
 
         {error && (
@@ -81,7 +81,7 @@ export default function Login() {
 
         <label className="mt-6 block">
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
-            Email
+            Login ID or Email
           </span>
           <div className="relative">
             <Mail
@@ -127,10 +127,14 @@ export default function Login() {
           </div>
         </label>
 
+        <Link to="/forgot-password" className="mt-3 block text-right text-xs font-semibold text-amber hover:underline">
+          Forgot password?
+        </Link>
+
         <button
           type="submit"
           disabled={loading}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? (
             <>

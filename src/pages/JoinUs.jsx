@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { uploadFilesToS3 } from "../services/api";
 import {
   User,
   MapPin,
@@ -37,11 +38,17 @@ const initialState = {
   phone: "",
   dob: "",
   gender: "Male",
+  fatherName: "",
+  motherName: "",
   guardianName: "",
+  guardianMobile: "",
+  bloodGroup: "",
   maritalStatus: "",
   streetAddress: "",
   city: "",
+  district: "",
   state: "",
+  location: "",
   postalCode: "",
   country: "India",
   sameAsAbove: false,
@@ -95,24 +102,25 @@ export default function JoinUs() {
     setSubmitError("");
 
     try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          fd.append(key, String(value));
-        }
-      });
-
+      // 1. Collect files from the form
       const formEl = formRef.current;
+      const fileMap = {};
       if (formEl) {
         const fileInputs = formEl.querySelectorAll('input[type="file"]');
         fileInputs.forEach((input) => {
-          if (input.files?.[0]) fd.append(input.name, input.files[0]);
+          if (input.files?.[0]) fileMap[input.name] = input.files[0];
         });
       }
 
+      // 2. Upload files directly to S3 via presigned URLs
+      const uploadedFiles = await uploadFilesToS3("join-us", fileMap);
+
+      // 3. Submit JSON payload with S3 keys
+      const payload = { ...form, files: uploadedFiles };
       const res = await fetch(`${API_URL}/join-us`, {
         method: "POST",
-        body: fd,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
 
@@ -170,7 +178,11 @@ export default function JoinUs() {
               <Field label="Phone Number" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter your phone number" type="tel" />
               <Field label="Date of Birth" name="dob" value={form.dob} onChange={handleChange} type="date" />
               <SelectField label="Gender" name="gender" value={form.gender} onChange={handleChange} options={["Male", "Female", "Other"]} />
-              <Field label="Father's / Husband's Name" name="guardianName" value={form.guardianName} onChange={handleChange} placeholder="Enter name" />
+              <Field label="Father's Name" name="fatherName" value={form.fatherName} onChange={handleChange} placeholder="Enter father's name" />
+              <Field label="Mother's Name" name="motherName" value={form.motherName} onChange={handleChange} placeholder="Enter mother's name" />
+              <SelectField label="Blood Group" name="bloodGroup" value={form.bloodGroup} onChange={handleChange} options={["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"]} placeholder="Select blood group" />
+              <Field label="Guardian Name" name="guardianName" value={form.guardianName} onChange={handleChange} placeholder="Enter guardian name" />
+              <Field label="Guardian Mobile Number" name="guardianMobile" value={form.guardianMobile} onChange={handleChange} placeholder="Enter guardian mobile number" type="tel" />
               <SelectField label="Marital Status" name="maritalStatus" value={form.maritalStatus} onChange={handleChange} options={["Single", "Married"]} placeholder="Select" />
             </div>
           </FormCard>
@@ -179,9 +191,11 @@ export default function JoinUs() {
           <FormCard icon={MapPin} title="Address Details">
             <div className="grid grid-cols-1 gap-4">
               <Field label="Street Address" name="streetAddress" value={form.streetAddress} onChange={handleChange} placeholder="Eg: 24 Wallaby Way" />
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <Field label="City" name="city" value={form.city} onChange={handleChange} placeholder="Eg: Bhubaneswar" />
+                <Field label="District" name="district" value={form.district} onChange={handleChange} placeholder="Eg: Khordha" />
                 <Field label="State" name="state" value={form.state} onChange={handleChange} placeholder="Eg: Odisha" />
+                <Field label="Location / Posting Preference" name="location" value={form.location} onChange={handleChange} placeholder="Eg: Soro, Balasore" />
                 <Field label="Postal Code" name="postalCode" value={form.postalCode} onChange={handleChange} placeholder="Eg: 751001" />
               </div>
               <SelectField label="Country" name="country" value={form.country} onChange={handleChange} options={["India"]} />
@@ -239,6 +253,7 @@ export default function JoinUs() {
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Institution Name" name="institutionName" value={form.institutionName} onChange={handleChange} placeholder="Enter your institution name" />
               <Field label="Year of Passing" name="yearOfPassing" value={form.yearOfPassing} onChange={handleChange} placeholder="Eg: 2023" />
+              {form.experience === "fresher" && <FileUpload label="Education Certificate / Marksheet" name="educationCertificate" />}
             </div>
           </FormCard>
 
@@ -259,6 +274,7 @@ export default function JoinUs() {
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Current / Last Company (optional)" name="companyName" value={form.companyName} onChange={handleChange} placeholder="Enter company name" />
               <Field label="Current / Last Designation (optional)" name="designation" value={form.designation} onChange={handleChange} placeholder="Enter designation" />
+              {form.experience && form.experience !== "fresher" && <FileUpload label="Experience Certificate / Work Proof" name="experienceDocument" />}
             </div>
           </FormCard>
 

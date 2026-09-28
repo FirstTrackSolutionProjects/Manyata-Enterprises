@@ -4,13 +4,13 @@ import {
   Users,
   Building2,
   FileText,
-  Briefcase,
   Handshake,
-  Activity,
+  Wrench,
   Loader2,
   Plus,
   Search,
   Eye,
+  Pencil,
   UserCheck,
   UserX,
   KeyRound,
@@ -20,43 +20,72 @@ import {
   CheckCircle2,
   Filter,
   RotateCcw,
+  Download,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
+import DashboardWelcome from "../components/DashboardWelcome";
+import PartnerDetailsModal from "../components/PartnerDetailsModal";
+import PartnerCreateModal from "../components/PartnerCreateModal";
+import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
+import { useAuth } from "../contexts/AuthContext";
 import {
   getDashboardStats,
   getEmployeeStats,
   getRecentActivity,
+  clearRecentActivity,
   getBranchStats,
   listApplications,
+  listInstallations,
+  getInstallation,
+  updateInstallation,
+  updateInstallationStatus,
+  uploadFilesToS3,
   listUsers,
   listBranches,
   createEmployee,
   updateEmployee,
   resetEmployeePassword,
   setUserStatus,
-  deleteEmployee,
   createBranch,
   updateBranch,
-  deleteBranch,
   apiFetch,
+  downloadApplicationPdf,
+  resetPartnerPassword,
 } from "../services/api";
+import { hasActionPermission } from "../utils/permissions";
+import { formatApplicationLocation } from "../utils/applicationLocation";
 
 export default function AdminDashboard() {
-  const [tab, setTab] = useState("overview");
+  const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const permissions = user?.permissions || ["applications"];
+  const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
+  const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || "no-access");
+  const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
+  const hasAccess = user?.role === "owner" || ((requiredModule === "applications" || requiredModule === "installations")
+    ? hasActionPermission(user, requiredModule, "view")
+    : permissions.includes(requiredModule));
+
+  const handleSectionChange = (section) => {
+    setSearchParams({ section }, { replace: true });
+  };
 
   return (
     <DashboardLayout
-      title="Owner Dashboard"
-      subtitle="Full control over branches, employees, and applications"
       activeSection={tab}
-      onSectionChange={setTab}
+      onSectionChange={handleSectionChange}
     >
-      {tab === "overview" && <OverviewTab />}
-      {tab === "applications" && <ApplicationsTab />}
-      {tab === "employees" && <EmployeesTab />}
-      {tab === "branches" && <BranchesTab />}
-      {tab === "other" && <OtherTab />}
+      {!hasAccess || (tab === "overview" && user?.role !== "owner") ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">Owner ne abhi tak aapko kisi dashboard section ka access nahi diya hai.</div> : null}
+      {hasAccess && tab === "overview" && <OverviewTab />}
+      {hasAccess && tab === "applications" && <ApplicationsTab />}
+      {hasAccess && tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}
+      {hasAccess && tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
+      {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
+      {hasAccess && tab === "employees" && <EmployeesTab />}
+      {hasAccess && tab === "partners" && <PartnersTab />}
+      {hasAccess && tab === "branches" && <BranchesTab />}
+      {hasAccess && tab === "submissions" && <OtherTab />}
     </DashboardLayout>
   );
 }
@@ -70,6 +99,20 @@ function OverviewTab() {
   const [branchStats, setBranchStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [clearingActivity, setClearingActivity] = useState(false);
+
+  const handleClearActivity = async () => {
+    if (!window.confirm("Clear all recent activity entries? This cannot be undone.")) return;
+    setClearingActivity(true);
+    try {
+      await clearRecentActivity();
+      setActivity([]);
+    } catch (err) {
+      alert(err.message || "Could not clear recent activity.");
+    } finally {
+      setClearingActivity(false);
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -109,21 +152,10 @@ function OverviewTab() {
   return (
     <div className="space-y-6">
       {/* ── Welcome banner ── */}
-      <div className="rounded-2xl border border-amber/30 bg-gradient-to-r from-amber-soft to-white p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-amber">
-              Welcome back
-            </p>
-            <h2 className="mt-1 text-xl font-extrabold text-navy sm:text-2xl">
-              Welcome, Manyata Enterprises
-            </h2>
-            <p className="mt-1 text-sm text-muted">
-              Here's a quick overview of your business at a glance.
-            </p>
-          </div>
-        </div>
-      </div>
+      <DashboardWelcome
+        name="Manyata Enterprises"
+        description="Here's a quick overview of your business at a glance."
+      />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <StatCard
@@ -134,6 +166,10 @@ function OverviewTab() {
         <StatCard label="Employees" value={stats.employees} icon={Users} />
         <StatCard label="Branches" value={stats.branches.total} icon={Building2} />
         <StatCard label="Partners" value={stats.partners} icon={Handshake} />
+        <StatCard label="Installations" value={stats.installations.total} icon={Wrench} />
+        <StatCard label="Careers" value={stats.careers} icon={FileText} />
+        <StatCard label="Join Us" value={stats.joinUs} icon={Users} />
+        <StatCard label="Contacts" value={stats.contacts} icon={FileText} />
       </div>
 
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
@@ -149,27 +185,27 @@ function OverviewTab() {
                 <th className="py-2 px-3 whitespace-nowrap">Submitted</th>
                 <th className="py-2 px-3 whitespace-nowrap">Approved</th>
                 <th className="py-2 px-3 whitespace-nowrap">Rejected</th>
+                <th className="py-2 px-3 whitespace-nowrap">Bank Forwarded</th>
+                <th className="py-2 px-3 whitespace-nowrap">Loan Disbursed - Phase 1</th>
+                <th className="py-2 px-3 whitespace-nowrap">Loan Disbursed - Phase 2</th>
               </tr>
             </thead>
             <tbody>
               {branchStats.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-4 text-center text-muted">
-                    No branch data yet.
-                  </td>
-                </tr>
+                <tr><td colSpan={10} className="py-4 text-center text-muted">No branch data yet.</td></tr>
               )}
-              {branchStats.map((b) => (
-                <tr key={b.branch_id} className="border-b border-navy/5">
-                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">
-                    {b.branch_name} ({b.branch_code})
-                  </td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.total || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.pending || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.verified || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.submitted || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.approved || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{b.rejected || 0}</td>
+              {branchStats.map((branch) => (
+                <tr key={branch.branch_id} className="border-b border-navy/5">
+                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">{branch.branch_name} ({branch.branch_code})</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.total || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.pending || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.verified || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.submitted || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.approved || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.rejected || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.bank_forwarded || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.loan_disbursed_phase_1 || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{branch.loan_disbursed_phase_2 || 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -194,26 +230,17 @@ function OverviewTab() {
             </thead>
             <tbody>
               {(empStats?.byEmployee || []).length === 0 && (
-                <tr>
-                  <td colSpan={7} className="py-4 text-center text-muted">
-                    No employees yet.
-                  </td>
-                </tr>
+                <tr><td colSpan={7} className="py-4 text-center text-muted">No employees yet.</td></tr>
               )}
-              {(empStats?.byEmployee || []).map((e) => (
-                <tr key={e.user_id} className="border-b border-navy/5">
-                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">
-                    {e.name}
-                    <span className="ml-1 text-xs text-muted">
-                      ({e.login_id})
-                    </span>
-                  </td>
-                  <td className="py-2 px-3 text-xs whitespace-nowrap">{e.designation || "-"}</td>
-                  <td className="py-2 px-3 text-xs whitespace-nowrap">{e.department || "-"}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.branch_name || "-"}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.total_handled || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.verified_count || 0}</td>
-                  <td className="py-2 px-3 whitespace-nowrap">{e.submitted_count || 0}</td>
+              {(empStats?.byEmployee || []).map((employee) => (
+                <tr key={employee.user_id} className="border-b border-navy/5">
+                  <td className="py-2 pr-4 font-semibold text-navy whitespace-nowrap">{employee.name}<span className="ml-1 text-xs text-muted">({employee.login_id})</span></td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">{employee.designation || "-"}</td>
+                  <td className="py-2 px-3 text-xs whitespace-nowrap">{employee.department || "-"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.branch_name || "-"}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.total_handled || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.verified_count || 0}</td>
+                  <td className="py-2 px-3 whitespace-nowrap">{employee.submitted_count || 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -223,11 +250,14 @@ function OverviewTab() {
 
       {/* ── Recent Activity — FIXED: scrollable container ── */}
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <h2 className="text-sm font-bold text-navy">Recent Activity</h2>
-          <span className="text-xs text-muted">
-            {activity.length} {activity.length === 1 ? "entry" : "entries"}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-muted">{activity.length} {activity.length === 1 ? "entry" : "entries"}</span>
+            <button type="button" onClick={handleClearActivity} disabled={!activity.length || clearingActivity} className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">
+              <Trash2 size={13} /> {clearingActivity ? "Clearing..." : "Clear all"}
+            </button>
+          </div>
         </div>
         <div className="mt-4 max-h-[420px] overflow-y-auto pr-2 scrollbar-light">
           {activity.length === 0 && (
@@ -235,10 +265,7 @@ function OverviewTab() {
           )}
           <div className="space-y-3">
             {activity.map((a) => (
-              <div
-                key={a.id}
-                className="flex items-start gap-3 border-l-2 border-amber/40 pl-4"
-              >
+              <div key={a.id} className="rounded-xl border border-navy/10 bg-offwhite p-3">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-navy">{a.action}</p>
                   <p className="text-xs text-muted">
@@ -283,13 +310,23 @@ const EMPTY_FILTERS = {
   toDate: "",
   sortBy: "created_at",
   sortOrder: "desc",
+  name: "",
+  email: "",
+  phone: "",
 };
 
-function ApplicationsTab() {
+function ApplicationsTab({ initialLocation = "" }) {
+  const { user } = useAuth();
+  const canViewApplications = hasActionPermission(user, "applications", "view");
+  const canEditApplications = hasActionPermission(user, "applications", "edit");
+  const canDownloadApplications = hasActionPermission(user, "applications", "download");
   const [items, setItems] = useState([]);
+  const [locationCounts, setLocationCounts] = useState(null);
+  const [totalApplicationCount, setTotalApplicationCount] = useState(null);
+  const [applicationStatusCounts, setApplicationStatusCounts] = useState({});
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -297,6 +334,7 @@ function ApplicationsTab() {
 
   // Load branches once for the branch filter dropdown
   useEffect(() => {
+    if (user?.role !== "owner" && !(user?.permissions || []).includes("branches")) return;
     (async () => {
       try {
         const res = await listBranches();
@@ -305,7 +343,7 @@ function ApplicationsTab() {
         console.error(err);
       }
     })();
-  }, []);
+  }, [user?.role, user?.permissions]);
 
   const load = async (p = page, overrideFilters) => {
     setLoading(true);
@@ -313,6 +351,9 @@ function ApplicationsTab() {
     try {
       const params = { page: p, limit };
       if (f.search) params.search = f.search;
+      if (f.name) params.name = f.name;
+      if (f.email) params.email = f.email;
+      if (f.phone) params.phone = f.phone;
       if (f.status) params.status = f.status;
       if (f.branchId) params.branchId = f.branchId;
       if (f.location) params.location = f.location;
@@ -339,6 +380,18 @@ function ApplicationsTab() {
     // eslint-disable-next-line
   }, [filters]);
 
+  useEffect(() => {
+    let active = true;
+    const statsParams = new URLSearchParams();
+    if (filters.branchId) statsParams.set("branchId", filters.branchId);
+    if (filters.location) statsParams.set("location", filters.location);
+    const statsQuery = statsParams.size ? `?${statsParams}` : "";
+    apiFetch(`/applications/stats/overview${statsQuery}`)
+      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); setApplicationStatusCounts(res.data.byStatus || {}); } })
+      .catch((err) => console.error(err));
+    return () => { active = false; };
+  }, [filters.branchId, filters.location]);
+
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
   };
@@ -355,6 +408,25 @@ function ApplicationsTab() {
 
   return (
     <div className="space-y-4">
+      {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {[
+          [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
+          ["Pending", Number(applicationStatusCounts.pending || 0)],
+          ["Verified", Number(applicationStatusCounts.verified || 0)],
+          ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
+          ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
+          ["Under Review", Number(applicationStatusCounts.under_review || 0)],
+          ["Electricity Bill - Name Mismatch", Number(applicationStatusCounts.electricity_bill_name_mismatch || 0)],
+          ["Electricity Bill - Ownership Transfer", Number(applicationStatusCounts.electricity_bill_mismatch_ownership_transfer || 0)],
+          ["Customer Side - Login - OTP Pending - Customer Not Responding Call", Number(applicationStatusCounts.customer_side_login_otp_pending_customer_not_responding_call || 0)],
+          ["Vendor Side - Login - OTP Pending - Customer Not Responding Call", Number(applicationStatusCounts.vendor_side_login_otp_pending_customer_not_responding_call || 0)],
+          ["Loan Disbursed - Phase 1", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0)],
+          ["Loan Disbursed - Phase 2", Number(applicationStatusCounts.loan_disbursed_phase_2 || 0)],
+        ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
+      </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
+        {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
+      </div>}
       {/* Top search + filter toggle */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[240px]">
@@ -387,7 +459,17 @@ function ApplicationsTab() {
           )}
         </button>
         <button
-          onClick={() => load(1)}
+          onClick={async () => {
+            await load(1);
+            const statsParams = new URLSearchParams();
+            if (filters.branchId) statsParams.set("branchId", filters.branchId);
+            if (filters.location) statsParams.set("location", filters.location);
+            const statsQuery = statsParams.size ? `?${statsParams}` : "";
+            const statsRes = await apiFetch(`/applications/stats/overview${statsQuery}`);
+            setLocationCounts(statsRes.data.byLocation || null);
+            setTotalApplicationCount(Number(statsRes.data.total || 0));
+            setApplicationStatusCounts(statsRes.data.byStatus || {});
+          }}
           className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light"
         >
           Refresh
@@ -403,23 +485,18 @@ function ApplicationsTab() {
           className="rounded-2xl border border-navy/10 bg-white p-4"
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
+            <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
+            <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <FilterSelect
               label="Status"
               value={filters.status}
               onChange={(v) => updateFilter("status", v)}
-              options={[
-                { value: "pending", label: "Pending" },
-                { value: "under_review", label: "Under Review" },
-                { value: "verified", label: "Verified" },
-                { value: "submitted_to_govt", label: "Submitted to Govt" },
-                { value: "approved", label: "Approved" },
-                { value: "installed", label: "Installed" },
-                { value: "rejected", label: "Rejected" },
-              ]}
+              options={APPLICATION_STATUSES}
               placeholder="All statuses"
             />
 
-            <FilterSelect
+            {user?.role === "owner" && <FilterSelect
               label="Branch"
               value={filters.branchId}
               onChange={(v) => updateFilter("branchId", v)}
@@ -428,7 +505,7 @@ function ApplicationsTab() {
                 label: `${b.name} (${b.code})`,
               }))}
               placeholder="All branches"
-            />
+            />}
 
             <FilterSelect
               label="Location"
@@ -436,7 +513,7 @@ function ApplicationsTab() {
               onChange={(v) => updateFilter("location", v)}
               options={[
                 { value: "odisha", label: "Odisha" },
-                { value: "kolkata", label: "Kolkata / West Bengal" },
+                { value: "kolkata", label: "West Bengal" },
               ]}
               placeholder="All locations"
             />
@@ -473,6 +550,11 @@ function ApplicationsTab() {
                 { value: "updated_at", label: "Last Updated" },
                 { value: "full_name", label: "Applicant Name" },
                 { value: "status", label: "Status" },
+                { value: "super_vendor_name", label: "Super-vendor" },
+                { value: "vendor_name", label: "Vendor" },
+                { value: "sub_vendor_name", label: "Sub-vendor" },
+                { value: "dealer_name", label: "Dealer" },
+                { value: "sales_executive_name", label: "Sales Executive" },
               ]}
               placeholder="Sort by"
             />
@@ -530,13 +612,14 @@ function ApplicationsTab() {
               <thead>
                 <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
                   <th className="p-3 whitespace-nowrap">App No</th>
+                  <th className="p-3 whitespace-nowrap">Created</th>
                   <th className="p-3 whitespace-nowrap">Name</th>
                   <th className="p-3 whitespace-nowrap">Phone</th>
                   <th className="p-3 whitespace-nowrap">Location</th>
                   <th className="p-3 whitespace-nowrap">Branch</th>
                   <th className="p-3 whitespace-nowrap">System</th>
                   <th className="p-3 whitespace-nowrap">Status</th>
-                  <th className="p-3 whitespace-nowrap">Created</th>
+                  <th className="p-3 whitespace-nowrap">Updated</th>
                   <th className="p-3 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -546,12 +629,15 @@ function ApplicationsTab() {
                     <td className="p-3 font-mono text-xs text-navy whitespace-nowrap">
                       {a.application_no}
                     </td>
+                    <td className="p-3 text-xs text-muted whitespace-nowrap">
+                      {formatDateTime(a.created_at)}
+                    </td>
                     <td className="p-3 font-semibold text-navy whitespace-nowrap">
                       {a.full_name}
                     </td>
                     <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
-                    <td className="p-3 text-xs capitalize whitespace-nowrap">{a.location}</td>
-                    <td className="p-3 text-xs whitespace-nowrap">{a.branch_name || "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{formatApplicationLocation(a.location)}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.branch_name ? a.branch_name.replace(/\bKolkata\b/gi, "West Bengal") : "-"}</td>
                     <td className="p-3 text-xs capitalize whitespace-nowrap">
                       {a.system_size} · {a.system_type}
                     </td>
@@ -559,15 +645,22 @@ function ApplicationsTab() {
                       <StatusBadge status={a.status} />
                     </td>
                     <td className="p-3 text-xs text-muted whitespace-nowrap">
-                      {new Date(a.created_at).toLocaleDateString("en-IN")}
+                      {a.last_updated_by_name ? <><span className="block font-semibold text-navy">{a.last_updated_by_name}</span>{formatDateTime(a.last_updated_by_at)}</> : "Not edited"}
                     </td>
                     <td className="p-3 whitespace-nowrap">
-                      <Link
+                      {canViewApplications && <Link
                         to={`/admin/applications/${a.id}`}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"
                       >
                         <Eye size={14} /> View
-                      </Link>
+                      </Link>}
+                      {canEditApplications && <Link
+                        to={`/admin/applications/${a.id}`}
+                        className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
+                      >
+                        <Pencil size={14} /> Edit
+                      </Link>}
+                      {canDownloadApplications && <button onClick={() => downloadApplicationPdf(a.id)} className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-navy hover:underline"><Download size={14} /> Download</button>}
                     </td>
                   </tr>
                 ))}
@@ -647,7 +740,11 @@ function FilterSelect({ label, value, onChange, options, placeholder }) {
   );
 }
 
-function StatusBadge({ status }) {
+function formatDateTime(value) {
+  return value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "medium" }) : "-";
+}
+
+function StatusBadge({ status, isPartner = false }) {
   const styles = {
     pending: "bg-amber-50 text-amber-700",
     under_review: "bg-blue-50 text-blue-700",
@@ -661,7 +758,15 @@ function StatusBadge({ status }) {
     reviewed: "bg-blue-50 text-blue-700",
     shortlisted: "bg-indigo-50 text-indigo-700",
     onboarded: "bg-emerald-50 text-emerald-700",
+    rewarded: "bg-emerald-50 text-emerald-700",
     interview: "bg-indigo-50 text-indigo-700",
+    interview_scheduled: "bg-indigo-50 text-indigo-700",
+    review: "bg-blue-50 text-blue-700",
+    rehired: "bg-emerald-50 text-emerald-700",
+    terminated: "bg-red-50 text-red-700",
+    resigned: "bg-orange-50 text-orange-700",
+    on_leave: "bg-amber-50 text-amber-700",
+    salary_success: "bg-emerald-50 text-emerald-700",
     hired: "bg-emerald-50 text-emerald-700",
     contacted: "bg-blue-50 text-blue-700",
     converted: "bg-emerald-50 text-emerald-700",
@@ -680,19 +785,33 @@ function StatusBadge({ status }) {
     reviewed: "Reviewed",
     shortlisted: "Shortlisted",
     onboarded: "Onboarded",
+    rewarded: "Rewarded",
+    terminated: "Terminated",
+    resigned: "Resigned",
+    on_leave: "On Leave",
+    salary_success: "Salary Success",
+    terminated: "Terminated",
+    resigned: "Resigned",
+    on_leave: "On Leave",
+    salary_success: "Salary Success",
     interview: "Interview",
+    interview_scheduled: "Interview Scheduled",
+    review: "Review",
+    rehired: "Re-Hired",
     hired: "Hired",
     contacted: "Contacted",
     converted: "Converted",
     closed: "Closed",
   };
+  if (isPartner && status === "new") labels.new = "Submitted";
+  if (isPartner && status === "reviewed") labels.reviewed = "Under Review";
   return (
     <span
       className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
         styles[status] || "bg-slate-100 text-slate-700"
       }`}
     >
-      {labels[status] || status}
+      {labels[status] || applicationStatusLabel(status)}
     </span>
   );
 }
@@ -700,6 +819,8 @@ function StatusBadge({ status }) {
 /* ── Employees ────────────────────────────────────── */
 
 function EmployeesTab() {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -707,16 +828,25 @@ function EmployeesTab() {
   const [editing, setEditing] = useState(null);
   const [credentials, setCredentials] = useState(null);
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [branchFilter, setBranchFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const load = async () => {
     setLoading(true);
     try {
-      const [u, b] = await Promise.all([
-        listUsers({ role: "employee" }),
-        listBranches(),
-      ]);
-      setUsers(u.data.items || []);
-      setBranches(b.data.items || []);
+      const [u, b] = await Promise.allSettled([listUsers({ role: "employee" }), listBranches()]);
+      if (u.status === "fulfilled") setUsers(u.value.data.items || []);
+      else throw u.reason;
+      setBranches(b.status === "fulfilled" ? b.value.data.items || [] : []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -727,16 +857,6 @@ function EmployeesTab() {
   useEffect(() => {
     load();
   }, []);
-
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this employee? This cannot be undone.")) return;
-    try {
-      await deleteEmployee(id);
-      load();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
 
   const handleResetPassword = async (u) => {
     if (!confirm(`Reset password for ${u.name}?`)) return;
@@ -763,24 +883,19 @@ function EmployeesTab() {
     }
   };
 
-  const filteredUsers = users.filter((u) => {
-    if (!search) return true;
-    const s = search.toLowerCase();
-    return (
-      u.name.toLowerCase().includes(s) ||
-      u.email.toLowerCase().includes(s) ||
-      (u.user_id || "").toLowerCase().includes(s) ||
-      (u.designation || "").toLowerCase().includes(s) ||
-      (u.department || "").toLowerCase().includes(s)
-    );
-  });
+  const filteredUsers = applyDateSort(users.filter((u) => {
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || [u.name, u.email, u.user_id, u.designation, u.department, u.branch_name, u.branch_code]
+      .some((value) => String(value || "").toLowerCase().includes(term));
+    return matchesSearch && (!nameFilter || String(u.name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(u.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(u.phone || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!branchFilter || String(u.branch_id) === branchFilter) && (!locationFilter || (u.city || u.state) === locationFilter) && (!statusFilter || u.status === statusFilter);
+  }), { fromDate, toDate, sortBy, sortOrder });
+  const activeFilterCount = Number(Boolean(branchFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-navy">Employees</h2>
-        <div className="flex flex-1 flex-wrap gap-3 sm:justify-end">
-          <div className="relative min-w-[200px] flex-1 sm:max-w-xs">
+      <h2 className="text-sm font-bold text-navy">Employees</h2>
+      <div className="flex w-full flex-wrap gap-3">
+          <div className="relative min-w-[240px] flex-1">
             <Search
               size={16}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-muted"
@@ -792,7 +907,11 @@ function EmployeesTab() {
               className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none"
             />
           </div>
-          <button
+          <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}>
+            <Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}
+          </button>
+          <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+          {isOwner && <button
             onClick={() => {
               setEditing(null);
               setShowModal(true);
@@ -800,9 +919,22 @@ function EmployeesTab() {
             className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"
           >
             <Plus size={14} /> Add Employee
-          </button>
-        </div>
+          </button>}
       </div>
+
+      {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2">
+        <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
+        <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
+        <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
+        <FilterSelect label="Branch" value={branchFilter} onChange={setBranchFilter} options={branches.map((branch) => ({ value: String(branch.id), label: `${branch.name} (${branch.code})` }))} placeholder="All branches" />
+        <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(users.map((employee) => employee.city || employee.state).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All locations" />
+        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "active", label: "Active" }, { value: "suspended", label: "Suspended" }]} placeholder="All statuses" />
+        <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
+        <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
+        <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "name", label: "Name" }, { value: "last_login_at", label: "Last Login" }]} placeholder="Sort by" />
+        <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setBranchFilter(""); setLocationFilter(""); setStatusFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      </div>}
 
       {loading ? (
         <div className="flex justify-center py-12">
@@ -817,27 +949,49 @@ function EmployeesTab() {
           <table className="w-full min-w-[1100px] text-sm">
             <thead>
               <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
-                <th className="p-3 whitespace-nowrap">User ID</th>
+                <th className="p-3 whitespace-nowrap">Employee ID</th>
                 <th className="p-3 whitespace-nowrap">Name</th>
                 <th className="p-3 whitespace-nowrap">Email</th>
                 <th className="p-3 whitespace-nowrap">Designation</th>
                 <th className="p-3 whitespace-nowrap">Department</th>
                 <th className="p-3 whitespace-nowrap">Branch</th>
+                <th className="p-3 whitespace-nowrap">Dashboard Access</th>
                 <th className="p-3 whitespace-nowrap">Status</th>
                 <th className="p-3 whitespace-nowrap">Last Login</th>
-                <th className="p-3 whitespace-nowrap">Actions</th>
+                <th className="p-3 whitespace-nowrap">Last Logout</th>
+                {isOwner && <th className="p-3 whitespace-nowrap">Actions</th>}
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((u) => (
                 <tr key={u.id} className="border-b border-navy/5">
                   <td className="p-3 font-mono text-xs whitespace-nowrap">{u.user_id}</td>
-                  <td className="p-3 font-semibold text-navy whitespace-nowrap">{u.name}</td>
+                  <td className="p-3 font-semibold text-navy whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber-soft text-xs font-bold text-navy">
+                        {u.profilePhoto ? (
+                          <img src={u.profilePhoto} alt={`${u.name} profile`} className="h-full w-full object-cover" />
+                        ) : (
+                          u.name?.charAt(0)?.toUpperCase() || "E"
+                        )}
+                      </div>
+                      <span>{u.name}</span>
+                    </div>
+                  </td>
                   <td className="p-3 text-xs whitespace-nowrap">{u.email}</td>
                   <td className="p-3 text-xs whitespace-nowrap">{u.designation || "-"}</td>
                   <td className="p-3 text-xs whitespace-nowrap">{u.department || "-"}</td>
                   <td className="p-3 text-xs whitespace-nowrap">
                     {u.branch_name} ({u.branch_code})
+                  </td>
+                  <td className="p-3 text-xs">
+                    {(u.permissions || []).length
+                      ? u.permissions.map((permission) => ({ applications: "Applications", installations: "Installation", employees: "Employees", partners: "Partners", branches: "Branches", submissions: "Submissions" }[permission] || permission)).join(", ")
+                      : "No dashboard access"}
+                    {u.actionPermissions && <div className="mt-1 text-[11px] leading-4 text-muted">{["applications", "installations"].filter((module) => u.permissions?.includes(module)).map((module) => {
+                      const granted = ["view", "edit", "download"].filter((action) => u.actionPermissions?.[module]?.[action]).map((action) => action[0].toUpperCase() + action.slice(1));
+                      return `${module === "applications" ? "Applications" : "Installation"}: ${granted.join(" / ") || "No actions"}`;
+                    }).join(" · ")}</div>}
                   </td>
                   <td className="p-3 whitespace-nowrap">
                     <span
@@ -855,7 +1009,12 @@ function EmployeesTab() {
                       ? new Date(u.last_login_at).toLocaleString("en-IN")
                       : "Never"}
                   </td>
-                  <td className="p-3">
+                  <td className="p-3 text-xs text-muted whitespace-nowrap">
+                    {u.last_logout_at
+                      ? new Date(u.last_logout_at).toLocaleString("en-IN")
+                      : "Never"}
+                  </td>
+                  {isOwner && <td className="p-3">
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() => {
@@ -884,14 +1043,8 @@ function EmployeesTab() {
                           <UserCheck size={12} />
                         )}
                       </button>
-                      <button
-                        onClick={() => handleDelete(u.id)}
-                        className="rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
-                      >
-                        <Trash2 size={12} />
-                      </button>
                     </div>
-                  </td>
+                  </td>}
                 </tr>
               ))}
             </tbody>
@@ -926,6 +1079,12 @@ function EmployeesTab() {
 
 function EmployeeModal({ employee, branches, onClose, onSaved }) {
   const isEdit = !!employee;
+  const existingModules = employee?.permissions || ["applications"];
+  const initialActionPermissions = Object.fromEntries(["applications", "installations"].map((module) => [module, {
+    view: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.view) : existingModules.includes(module),
+    edit: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.edit) : existingModules.includes(module),
+    download: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.download) : existingModules.includes(module),
+  }]));
   const [form, setForm] = useState({
     name: employee?.name || "",
     email: employee?.email || "",
@@ -933,6 +1092,10 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     branchId: employee?.branch_id || "",
     designation: employee?.designation || "",
     department: employee?.department || "",
+    permissions: Array.isArray(employee?.permissions) ? employee.permissions : ["applications"],
+    actionPermissions: initialActionPermissions,
+    locationPermissions: employee?.locationPermissions || { applications: [], installations: [] },
+    userId: employee?.user_id || "",
     address: employee?.address || "",
     city: employee?.city || "",
     state: employee?.state || "",
@@ -940,17 +1103,64 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [profilePhoto, setProfilePhoto] = useState(null);
+
+  const toggleModule = (module, checked) => setForm((current) => ({
+    ...current,
+    permissions: checked ? [...new Set([...current.permissions, module])] : current.permissions.filter((permission) => permission !== module),
+    ...(["applications", "installations"].includes(module) ? {
+      actionPermissions: { ...current.actionPermissions, [module]: checked ? { view: true, edit: true, download: true } : { view: false, edit: false, download: false } },
+    } : {}),
+  }));
+
+  const toggleAction = (module, action, checked) => setForm((current) => {
+    const next = { ...current.actionPermissions[module], [action]: checked };
+    let permissions = current.permissions;
+    if (action === "view" && !checked) {
+      Object.assign(next, { edit: false, download: false });
+      permissions = permissions.filter((permission) => permission !== module);
+    }
+    if (action !== "view" && checked) next.view = true;
+    if (action !== "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
+    if (action === "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
+    return { ...current, permissions, actionPermissions: { ...current.actionPermissions, [module]: next } };
+  });
+
+  const toggleLocationPermission = (module, location, checked) => setForm((current) => {
+    const selected = current.locationPermissions?.[module] || [];
+    return {
+      ...current,
+      locationPermissions: {
+        ...current.locationPermissions,
+        [module]: checked ? [...new Set([...selected, location])] : selected.filter((item) => item !== location),
+      },
+    };
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
+      let profilePhotoKey = form.profilePhoto;
+      if (profilePhoto) {
+        if (!profilePhoto.type.startsWith("image/")) {
+          throw new Error("Profile photo must be an image file");
+        }
+        if (profilePhoto.size > 5 * 1024 * 1024) {
+          throw new Error("Profile photo must be 5 MB or smaller");
+        }
+        const uploaded = await uploadFilesToS3("employee-profiles", {
+          profilePhoto,
+        });
+        profilePhotoKey = uploaded.profilePhoto;
+      }
+      const payload = { ...form, ...(profilePhotoKey ? { profilePhoto: profilePhotoKey } : {}) };
       if (isEdit) {
-        await updateEmployee(employee.id, form);
+        await updateEmployee(employee.id, payload);
         onSaved(null);
       } else {
-        const res = await createEmployee(form);
+        const res = await createEmployee(payload);
         onSaved({
           userId: res.data.userId || res.data.user_id,
           email: res.data.email,
@@ -1008,6 +1218,30 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             required
           />
 
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold text-navy/70">
+              Profile Photo (optional)
+            </span>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber-soft text-sm font-bold text-navy">
+                {profilePhoto ? (
+                  <img src={URL.createObjectURL(profilePhoto)} alt="Selected profile" className="h-full w-full object-cover" />
+                ) : employee?.profilePhoto ? (
+                  <img src={employee.profilePhoto} alt={`${employee.name} profile`} className="h-full w-full object-cover" />
+                ) : (
+                  (form.name || "E").charAt(0).toUpperCase()
+                )}
+              </div>
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => setProfilePhoto(e.target.files?.[0] || null)}
+                className="block w-full text-xs text-muted file:mr-3 file:rounded-full file:border-0 file:bg-amber-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-navy"
+              />
+            </div>
+            <span className="mt-1 block text-[11px] text-muted">PNG, JPG, or WebP; maximum 5 MB.</span>
+          </label>
+
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input
               label="Designation"
@@ -1022,6 +1256,32 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
               placeholder="e.g. Sales / Field Ops"
             />
           </div>
+
+          <Input
+            label="Employee ID"
+            value={form.userId}
+            onChange={(v) => setForm({ ...form, userId: v })}
+            placeholder={isEdit ? "" : "Leave blank to generate automatically"}
+            readOnly={isEdit}
+            maxLength={30}
+          />
+
+          <fieldset className="rounded-xl border border-navy/10 p-4">
+            <legend className="px-1 text-sm font-bold text-navy">Dashboard access</legend>
+            <p className="mb-3 text-xs text-muted">Choose dashboard sections and set Applications/Installations actions separately.</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {[["applications", "Applications"], ["installations", "Installation"], ["employees", "Employees"], ["partners", "Partners"], ["branches", "Branches"], ["submissions", "Submissions"]].map(([value, label]) => (
+                <div key={value} className="rounded-lg bg-offwhite p-3">
+                  <label className="flex items-center gap-2 text-sm font-semibold text-navy">
+                    <input type="checkbox" checked={form.permissions.includes(value)} onChange={(event) => toggleModule(value, event.target.checked)} className="accent-amber" />
+                    {label}
+                  </label>
+                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div></div>}
+                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{[["view", "View"], ["edit", "Edit"], ["download", "Download"]].map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
+                </div>
+              ))}
+            </div>
+          </fieldset>
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -1164,7 +1424,7 @@ function CredentialsModal({ creds, onClose }) {
   );
 }
 
-function Input({ label, value, onChange, type = "text", required, placeholder }) {
+function Input({ label, value, onChange, type = "text", required, placeholder, readOnly = false, maxLength }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -1175,8 +1435,10 @@ function Input({ label, value, onChange, type = "text", required, placeholder })
         value={value}
         required={required}
         placeholder={placeholder}
+        readOnly={readOnly}
+        maxLength={maxLength}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none"
+        className={`w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none ${readOnly ? "bg-slate-50 text-muted" : ""}`}
       />
     </label>
   );
@@ -1185,10 +1447,16 @@ function Input({ label, value, onChange, type = "text", required, placeholder })
 /* ── Branches ─────────────────────────────────────── */
 
 function BranchesTab() {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
 
   const load = async () => {
     setLoading(true);
@@ -1206,21 +1474,25 @@ function BranchesTab() {
     load();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm("Delete this branch?")) return;
-    try {
-      await deleteBranch(id);
-      load();
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  const filteredBranches = branches.filter((branch) =>
+    [branch.name, branch.code, branch.state, branch.district, branch.phone]
+      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
+    (!statusFilter || branch.status === statusFilter) &&
+    (!stateFilter || branch.state === stateFilter)
+  );
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(stateFilter));
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between">
-        <h2 className="text-sm font-bold text-navy">Branches</h2>
-        <button
+      <h2 className="text-sm font-bold text-navy">Branches</h2>
+      <div className="flex w-full flex-wrap gap-3">
+        <div className="relative min-w-[240px] flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search branches..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
+        </div>
+        <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
+        <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+        {isOwner && <button
           onClick={() => {
             setEditing(null);
             setShowModal(true);
@@ -1228,20 +1500,26 @@ function BranchesTab() {
           className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"
         >
           <Plus size={14} /> Add Branch
-        </button>
+        </button>}
       </div>
+
+      {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2">
+        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} placeholder="All statuses" />
+        <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={[...new Set(branches.map((branch) => branch.state).filter(Boolean))].sort().map((state) => ({ value: state, label: state }))} placeholder="All states" />
+        <button onClick={() => { setStatusFilter(""); setStateFilter(""); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      </div>}
 
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 className="animate-spin text-amber" />
         </div>
-      ) : branches.length === 0 ? (
+      ) : filteredBranches.length === 0 ? (
         <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
-          No branches yet.
+          {search ? "No matching branches found." : "No branches yet."}
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {branches.map((b) => (
+          {filteredBranches.map((b) => (
             <div
               key={b.id}
               className="rounded-2xl border border-navy/10 bg-white p-5"
@@ -1280,7 +1558,7 @@ function BranchesTab() {
                   <p className="text-muted">Applications</p>
                 </div>
               </div>
-              <div className="mt-4 flex gap-2">
+              {isOwner && <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => {
                     setEditing(b);
@@ -1290,13 +1568,7 @@ function BranchesTab() {
                 >
                   Edit
                 </button>
-                <button
-                  onClick={() => handleDelete(b.id)}
-                  className="rounded-lg bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+              </div>}
             </div>
           ))}
         </div>
@@ -1431,12 +1703,210 @@ function BranchModal({ branch, onClose, onSaved }) {
 
 /* ── Other Submissions ────────────────────────────── */
 
+function InstallationsTab({ location }) {
+  const { user } = useAuth();
+  const canView = hasActionPermission(user, "installations", "view");
+  const canEdit = hasActionPermission(user, "installations", "edit");
+  const canDownload = hasActionPermission(user, "installations", "download");
+  const [items, setItems] = useState([]);
+  const [locationCounts, setLocationCounts] = useState(null);
+  const [totalInstallationCount, setTotalInstallationCount] = useState(null);
+  const [installationStatusCounts, setInstallationStatusCounts] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await listInstallations(location, { fromDate, toDate, sortBy, sortOrder, limit: "500" });
+      setItems(res.data.items || []);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Could not load installations.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    load();
+  }, [location, fromDate, toDate, sortBy, sortOrder]);
+
+  useEffect(() => {
+    let active = true;
+    const statsQuery = location ? `?location=${encodeURIComponent(location)}` : "";
+    apiFetch(`/installations/stats/overview${statsQuery}`)
+      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalInstallationCount(Number(res.data.total || 0)); setInstallationStatusCounts(res.data.byStatus || {}); } })
+      .catch((err) => console.error(err));
+    return () => { active = false; };
+  }, [location]);
+
+  const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "West Bengal Installations" : "All Installations";
+  const filteredItems = applyDateSort(items.filter((item) =>
+    [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status]
+      .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
+    (!nameFilter || String(item.customer_name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) &&
+    (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) &&
+    (!phoneFilter || String(item.phone || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) &&
+    (!statusFilter || item.status === statusFilter) &&
+    (!typeFilter || item.installation_type === typeFilter) &&
+    (!locationFilter || item.location === locationFilter)
+  ), { fromDate, toDate, sortBy, sortOrder, nameKey: "customer_name" });
+  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
+  if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
+  return <div className="space-y-4">
+    <h2 className="text-xl font-extrabold text-navy">{title}</h2>
+    <div className={`grid grid-cols-2 gap-3 ${location ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+      {location ? <>
+        {[
+          [`Total Installations - ${location === "odisha" ? "Odisha" : "West Bengal"}`, totalInstallationCount],
+          ["Pending", installationStatusCounts.pending],
+          ["Reviewed", installationStatusCounts.reviewed],
+          ["Completed", installationStatusCounts.completed],
+        ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
+      </> : <>
+        <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Installations</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalInstallationCount ?? "—"}</p></div>
+        {[["Odisha Installations", "odisha"], ["West Bengal Installations", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
+      </>}
+    </div>
+    <div className="flex w-full flex-wrap gap-3">
+      <div className="relative min-w-[240px] flex-1">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
+      </div>
+      <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
+      <button onClick={async () => { await load(); const statsQuery = location ? `?location=${encodeURIComponent(location)}` : ""; const statsRes = await apiFetch(`/installations/stats/overview${statsQuery}`); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); setInstallationStatusCounts(statsRes.data.byStatus || {}); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+    </div>
+    {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
+      <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
+      <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
+      <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
+      <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "pending", label: "Pending" }, { value: "reviewed", label: "Reviewed" }, { value: "completed", label: "Completed" }]} placeholder="All statuses" />
+      <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
+      <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
+      <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
+      <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
+      <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "customer_name", label: "Customer Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
+      <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
+      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+    </div>}
+    {filteredItems.length === 0 ? (
+      <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
+        {search ? "No matching installations found." : "No installation submissions found."}
+      </p>
+    ) : (
+      <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
+        <table className="w-full min-w-[1100px] text-sm">
+          <thead>
+            <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
+              <th className="p-3">Created</th>
+              <th className="p-3">Updated</th>
+              <th className="p-3">Customer</th>
+              <th className="p-3">Phone</th>
+              <th className="p-3">Location</th>
+              <th className="p-3">Installation</th>
+              <th className="p-3">City</th>
+              <th className="p-3">Status</th>
+              {(canView || canEdit) && <th className="p-3">Actions</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {filteredItems.map((item) => {
+              return (
+                <tr key={item.id} className="border-b border-navy/5">
+                  <td className="p-3 text-xs whitespace-nowrap">{formatDateTime(item.created_at)}</td>
+                  <td className="p-3 text-xs whitespace-nowrap">{item.updated_at ? formatDateTime(item.updated_at) : "—"}</td>
+                  <td className="p-3 font-semibold text-navy">{item.customer_name}</td>
+                  <td className="p-3 whitespace-nowrap">{item.phone}</td>
+                  <td className="p-3 capitalize">{item.location}</td>
+                  <td className="p-3">{item.installation_type || "—"}</td>
+                  <td className="p-3">{item.city || "—"}</td>
+                  <td className="p-3"><StatusBadge status={item.status} /></td>
+                  {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`/admin/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+    {selected && <InstallationModal id={selected.id} initialMode={selected.mode} canEdit={canEdit} canDownload={canDownload} onClose={() => setSelected(null)} onSaved={async () => { setSelected(null); await load(); }} />}
+  </div>;
+}
+
+const recordTimestamp = (value) => {
+  if (!value) return NaN;
+  return new Date(String(value).replace(" ", "T")).getTime();
+};
+
+function applyDateSort(items, { fromDate, toDate, sortBy, sortOrder, nameKey = "name" }) {
+  const from = fromDate ? new Date(`${fromDate}T00:00:00`).getTime() : -Infinity;
+  const to = toDate ? new Date(`${toDate}T23:59:59.999`).getTime() : Infinity;
+  const field = sortBy === "name" ? nameKey : sortBy || "created_at";
+  return items.filter((item) => {
+    const timestamp = recordTimestamp(item.created_at);
+    return (!fromDate && !toDate) || (Number.isFinite(timestamp) && timestamp >= from && timestamp <= to);
+  }).slice().sort((a, b) => {
+    const left = field === "name" ? a[nameKey] : a[field];
+    const right = field === "name" ? b[nameKey] : b[field];
+    const comparison = field.endsWith("_at")
+      ? recordTimestamp(left) - recordTimestamp(right)
+      : String(left ?? "").localeCompare(String(right ?? ""), undefined, { numeric: true, sensitivity: "base" });
+    return (sortOrder === "asc" ? 1 : -1) * (Number.isNaN(comparison) ? 0 : comparison);
+  });
+}
+
+function InstallationModal({ id, initialMode, canEdit, canDownload, onClose, onSaved }) {
+  const [item, setItem] = useState(null);
+  const [form, setForm] = useState(null);
+  const [files, setFiles] = useState({});
+  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [mode, setMode] = useState(initialMode);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError("");
+    getInstallation(id)
+      .then((res) => {
+        if (!active) return;
+        const x = res.data.installation;
+        if (!x) throw new Error("Installation record was not found.");
+        setItem(x);
+        setForm({ location: x.location, customerName: x.customer_name, phone: x.phone, email: x.email, gender: x.gender, companyName: x.company_name, contactPerson: x.contact_person, installationType: x.installation_type, installationDate: x.installation_date, electricianName: x.electrician_name, technicianName: x.technician_name, solarPanelType: x.solar_panel_type, connectionType: x.connection_type, state: x.state, address: x.address, city: x.city, pincode: x.pincode, notes: x.notes });
+      })
+      .catch((err) => { if (active) setLoadError(err.message || "Could not load installation details."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [id, reloadKey]);
+
+  if (loading) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60"><Loader2 className="animate-spin text-amber" /></div>;
+  if (loadError) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60 p-4"><div role="alert" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"><h3 className="text-lg font-bold text-navy">Could not open installation</h3><p className="mt-2 text-sm text-red-700">{loadError}</p><div className="mt-5 flex justify-end gap-3"><button onClick={onClose} className="rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy">Close</button><button onClick={() => setReloadKey((key) => key + 1)} className="rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy">Try again</button></div></div></div>;
+  if (!form || !item) return null;
+  const editing = canEdit && mode === "edit";
+  const fields = [["customerName","Customer Name"],["phone","Phone"],["email","Email"],["companyName","Company"],["contactPerson","Contact Person"],["location","Location"],["installationType","Installation Type"],["installationDate","Installation Date","date"],["electricianName","Electrician"],["technicianName","Technician"],["solarPanelType","Solar Panel Type"],["connectionType","Connection Type"],["state","State"],["address","Address"],["city","City"],["pincode","PIN Code"],["notes","Notes"]];
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><div className="mx-auto my-5 max-w-3xl rounded-2xl bg-white p-6"><div className="flex justify-between"><h3 className="text-xl font-extrabold text-navy">Installation Details</h3><div className="flex gap-3">{canEdit && <button onClick={() => setMode(editing ? "view" : "edit")} className="text-sm font-bold text-blue-600">{editing ? "View mode" : "Edit"}</button>}<button onClick={onClose}>Close</button></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{fields.map(([key,label,type]) => <div key={key} className="text-xs font-semibold text-navy/70">{label}{editing ? <input type={type || "text"} value={form[key] || ""} onChange={(e) => setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /> : <p className="mt-1 min-h-10 rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">{form[key] || "—"}</p>}</div>)}</div><div className="mt-4"><p className="text-sm font-bold text-navy">Documents</p><div className="mt-2 flex flex-wrap gap-2">{Object.entries(item.documents || {}).map(([name,url]) => url && canDownload ? <a key={name} href={url} target="_blank" rel="noreferrer" className="rounded bg-amber-soft px-3 py-2 text-xs font-semibold text-navy">Download {name}</a> : <span key={name} className="rounded bg-slate-100 px-3 py-2 text-xs text-muted">{name}{canDownload ? "" : " · no download access"}</span>)}{!Object.keys(item.documents || {}).length && <span className="text-xs text-muted">No saved documents.</span>}</div>{editing && <><p className="mt-3 text-xs text-muted">Choose a file only to replace that document.</p><div className="mt-2 grid grid-cols-2 gap-2">{["aadhaarPhoto","fullSetupPhoto","panelSerialPhoto1","panelSerialPhoto2","panelSerialPhoto3","panelSerialPhoto4","panelSerialPhoto5","panelSerialPhoto6","inverterSerialPhoto","earthingPhoto1","earthingPhoto2","earthingPhoto3","laCableConnectorPhoto","earthingArresterSpikePhoto","inverterAcdbDcdbPhoto","batteryPhoto1","batteryPhoto2","otherDocument"].map((name) => <label key={name} className="text-[10px] text-muted">{name}<input type="file" className="mt-1 block w-full text-xs" onChange={(e) => e.target.files?.[0] && setFiles({...files,[name]:e.target.files[0]})} /></label>)}</div></>}</div>{editing && <div className="mt-5 flex items-center gap-3"><select value={item.status} onChange={async (e) => { try { await updateInstallationStatus(id, e.target.value); const res = await getInstallation(id); setItem(res.data.installation); } catch (err) { alert(err.message || "Could not update installation status."); } }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="pending">Pending</option><option value="reviewed">Reviewed</option><option value="completed">Completed</option></select><button disabled={saving} onClick={async () => { setSaving(true); try { const uploaded = Object.keys(files).length ? await uploadFilesToS3("installations", files) : {}; await updateInstallation(id, {...form, files: uploaded}); onSaved(); } catch (err) { alert(err.message || "Could not save installation."); } finally { setSaving(false); } }} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy">{saving ? "Saving..." : "Save Changes"}</button></div>}</div></div>;
+}
+
 function OtherTab() {
   const [tab, setTab] = useState("careers");
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        {["careers", "join-us", "contacts", "partners"].map((k) => (
+        {["careers", "join-us", "contacts"].map((k) => (
           <button
             key={k}
             onClick={() => setTab(k)}
@@ -1455,16 +1925,61 @@ function OtherTab() {
   );
 }
 
+function PartnersTab() {
+  return <SubmissionList type="partners" />;
+}
+
 function SubmissionList({ type }) {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
   const [items, setItems] = useState([]);
+  const [partnerCounts, setPartnerCounts] = useState(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [selectedPartner, setSelectedPartner] = useState(null);
+  const [showPartnerCreate, setShowPartnerCreate] = useState(false);
+  const [showPartnerOnboard, setShowPartnerOnboard] = useState(false);
+  const [onboardItems, setOnboardItems] = useState([]);
+  const [onboardLoading, setOnboardLoading] = useState(false);
+  const [onboardType, setOnboardType] = useState("super_vendor");
+  const [onboardPartnerId, setOnboardPartnerId] = useState("");
+  const [onboardParentId, setOnboardParentId] = useState("");
+  const [onboardCredentials, setOnboardCredentials] = useState(null);
+  const [onboardError, setOnboardError] = useState("");
+  const [onboardSaving, setOnboardSaving] = useState(false);
+  const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
+  const [systemTypeFilter, setSystemTypeFilter] = useState("");
+  const [systemSizeFilter, setSystemSizeFilter] = useState("");
+  const [partnerTypeFilter, setPartnerTypeFilter] = useState("");
+  const [nameFilter, setNameFilter] = useState("");
+  const [emailFilter, setEmailFilter] = useState("");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sortBy, setSortBy] = useState("created_at");
+  const [sortOrder, setSortOrder] = useState("desc");
 
   const load = async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`/admin/${type}?limit=100`);
+      const query = new URLSearchParams({ limit: "100" });
+      if (nameFilter.trim()) query.set("name", nameFilter.trim());
+      if (emailFilter.trim()) query.set("email", emailFilter.trim());
+      if (phoneFilter.trim()) query.set("phone", phoneFilter.trim());
+      if (fromDate) query.set("fromDate", fromDate);
+      if (toDate) query.set("toDate", toDate);
+      query.set("sortBy", sortBy);
+      query.set("sortOrder", sortOrder);
+      const res = await apiFetch(`/admin/${type}?${query.toString()}`);
       setItems(res.data.items || []);
+      if (type === "partners") {
+        const counts = await apiFetch("/admin/partners/stats");
+        setPartnerCounts(counts.data || null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -1473,17 +1988,33 @@ function SubmissionList({ type }) {
   };
 
   useEffect(() => {
-    load();
+    const timer = setTimeout(() => load(), 250);
+    return () => clearTimeout(timer);
     // eslint-disable-next-line
-  }, [type]);
+  }, [type, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (!showPartnerOnboard || !isOwner || type !== "partners") return;
+    let active = true;
+    setOnboardLoading(true);
+    apiFetch("/admin/partners?limit=100&status=approved")
+      .then((res) => { if (active) setOnboardItems(res.data.items || []); })
+      .catch((err) => { if (active) setOnboardError(err.message || "Could not load approved partners."); })
+      .finally(() => { if (active) setOnboardLoading(false); });
+    return () => { active = false; };
+  }, [showPartnerOnboard, isOwner, type]);
 
   const updateStatus = async (id, status) => {
     setUpdating(true);
     try {
-      await apiFetch(`/admin/${type}/${id}/status`, {
+      const response = await apiFetch(`/admin/${type}/${id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
       });
+      const credentials = response.data?.accountCredentials;
+      if (credentials) {
+        window.alert(`Partner approved. Login ID: ${credentials.loginId}\nTemporary password: ${credentials.password}\nShare these credentials with the partner. They must change the password after signing in.`);
+      }
       await load();
     } catch (err) {
       alert(err.message);
@@ -1492,6 +2023,75 @@ function SubmissionList({ type }) {
     }
   };
 
+  const isPartners = type === "partners";
+  const isJoinUs = type === "join-us";
+  const isCareers = type === "careers";
+  const isContacts = type === "contacts";
+  const onboardPartners = onboardItems.filter((item) => {
+    return item.status === "approved";
+  });
+  const parentTypeByChildType = { super_vendor: null, vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
+  const onboardParentType = parentTypeByChildType[onboardType];
+  const onboardParents = onboardItems.filter((item) => {
+    const normalizedType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
+    return normalizedType === onboardParentType && item.status === "approved";
+  });
+  const selectedOnboardPartner = onboardPartners.find((item) => String(item.id) === onboardPartnerId) || null;
+
+  const handlePartnerOnboard = async () => {
+    if (!selectedOnboardPartner || onboardSaving) return;
+    setOnboardSaving(true);
+    setOnboardError("");
+    setOnboardCredentials(null);
+    try {
+      let credentials;
+      await apiFetch(`/admin/partners/${selectedOnboardPartner.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ partnerType: onboardType, referredByPartnerId: onboardParentId || null }),
+      });
+      if (selectedOnboardPartner.partner_login_id) {
+        const response = await resetPartnerPassword(selectedOnboardPartner.id);
+        credentials = response.data;
+      } else {
+        const response = await apiFetch(`/admin/partners/${selectedOnboardPartner.id}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "approved" }),
+        });
+        credentials = response.data?.accountCredentials;
+      }
+      if (!credentials) throw new Error("Could not create credentials. Refresh the list and try again.");
+      setOnboardCredentials(credentials);
+      await load();
+    } catch (err) {
+      setOnboardError(err.message || "Could not onboard this partner.");
+    } finally {
+      setOnboardSaving(false);
+    }
+  };
+  const availableStatuses = [...new Set(items.map((item) => item.status).filter(Boolean))].sort();
+  const availableLocations = [...new Set(items.map((item) => item.location || item.city).filter(Boolean))].sort();
+  const availableStates = [...new Set(items.map((item) => item.state).filter(Boolean))].sort();
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredItems = applyDateSort(items.filter((item) => {
+    const fullName = `${item.first_name || ""} ${item.last_name || ""}`;
+    const matchesSearch = !normalizedSearch || [item.id, item.name, item.full_name, item.company_name, item.contact_name, fullName, item.email, item.phone, item.phone_number, item.location, item.state, item.district, item.subject, item.message, item.status]
+      .some((value) => String(value || "").toLowerCase().includes(normalizedSearch));
+    const recordName = [item.name, item.full_name, item.company_name, item.contact_name, fullName].filter(Boolean).join(" ").toLowerCase();
+    const partnerSystemTypes = Array.isArray(item.system_types) ? item.system_types : [];
+    const normalizedPartnerType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
+    const partnerRoles = Array.isArray(item.partner_roles) ? item.partner_roles : [normalizedPartnerType];
+    let assignedLocations = item.assigned_locations || [];
+    if (typeof assignedLocations === "string") { try { assignedLocations = JSON.parse(assignedLocations); } catch { assignedLocations = []; } }
+    const normalizedAssignedLocations = (Array.isArray(assignedLocations) ? assignedLocations : []).map((location) => String(location).trim().toLowerCase().replace(/[\s-]+/g, "_"));
+    const stateMatches = !stateFilter || (isPartners
+      ? normalizedAssignedLocations.length
+        ? normalizedAssignedLocations.includes(stateFilter.toLowerCase() === "west bengal" ? "west_bengal" : "odisha")
+        : String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase()
+      : String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase());
+    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || String(item.location || item.city || "").toLowerCase().includes(locationFilter.trim().toLowerCase())) && stateMatches && (!systemTypeFilter || partnerSystemTypes.includes(systemTypeFilter)) && (!systemSizeFilter || String(item.system_size || "") === systemSizeFilter) && (!partnerTypeFilter || partnerRoles.includes(partnerTypeFilter));
+  }), { fromDate, toDate, sortBy, sortOrder, nameKey: isPartners ? "company_name" : isContacts ? "name" : "first_name" });
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter)) + Number(Boolean(partnerTypeFilter));
+
   if (loading)
     return (
       <div className="flex justify-center py-12">
@@ -1499,50 +2099,95 @@ function SubmissionList({ type }) {
       </div>
     );
 
-  if (items.length === 0)
-    return (
-      <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
-        No submissions.
-      </p>
-    );
-
-  const isPartners = type === "partners";
-
   return (
-    <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-      <table className="w-full min-w-[760px] text-sm">
+    <div className="space-y-4">
+      <h2 className="text-sm font-bold text-navy">{isPartners ? "Partners" : isJoinUs ? "Join Us Submissions" : isCareers ? "Career Applications" : "Contact Submissions"}</h2>
+      {isPartners && <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+        {[["Total Partners", "total"], ["Super-vendors", "super_vendor"], ["Vendors", "vendor"], ["Sub-vendors", "sub_vendor"], ["Dealers", "dealer"], ["Odisha", "odisha"], ["West Bengal", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{partnerCounts?.[key] ?? "—"}</p></div>)}
+      </div>}
+      <div className="flex w-full flex-wrap gap-3">
+          <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
+          <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
+          <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+          {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
+          {isPartners && isOwner && <button onClick={() => { setShowPartnerOnboard(true); setOnboardCredentials(null); setOnboardError(""); setOnboardPartnerId(""); }} className="flex items-center gap-1.5 rounded-full border border-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-soft"><UserCheck size={15} /> Onboard Partner</button>}
+      </div>
+
+      {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
+        <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
+        <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
+        <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
+        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={availableStatuses.map((value) => ({ value, label: isPartners && value === "new" ? "Submitted" : isPartners && value === "reviewed" ? "Under Review" : value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) }))} placeholder="All statuses" />
+        {isPartners && <FilterInput label="Location" value={locationFilter} onChange={setLocationFilter} />}
+        {(isJoinUs || isCareers || isContacts) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
+        {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
+        {isPartners && <FilterSelect label="Assigned Location" value={stateFilter} onChange={setStateFilter} options={[{ value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]} placeholder="All assigned locations" />}
+        {isPartners && <FilterSelect label="Partner Type" value={partnerTypeFilter} onChange={setPartnerTypeFilter} options={[{ value: "super_vendor", label: "Super-vendor" }, { value: "vendor", label: "Vendor" }, { value: "sub_vendor", label: "Sub-vendor" }, { value: "dealer", label: "Dealer" }]} placeholder="All partner types" />}
+        {isPartners && <FilterSelect label="System Type" value={systemTypeFilter} onChange={setSystemTypeFilter} options={[{ value: "on_grid", label: "On-Grid" }, { value: "hybrid", label: "Hybrid" }]} placeholder="All types" />}
+        {isContacts && <FilterSelect label="System Size" value={systemSizeFilter} onChange={setSystemSizeFilter} options={[...new Set(items.map((item) => item.system_size).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All sizes" />}
+        <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
+        <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
+        <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "name", label: "Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
+        <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); setSystemTypeFilter(""); setSystemSizeFilter(""); setPartnerTypeFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      </div>}
+      {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search || activeFilterCount ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
+      {filteredItems.length > 0 && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
+      <table className={`w-full ${isPartners ? "min-w-[1120px]" : isCareers ? "min-w-[1180px]" : isJoinUs ? "min-w-[1180px]" : isContacts ? "min-w-[900px]" : "min-w-[760px]"} text-sm`}>
         <thead>
           <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
             <th className="p-3 whitespace-nowrap">ID</th>
-            <th className="p-3 whitespace-nowrap">Name</th>
+            <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact Person" : "Name"}</th>
             <th className="p-3 whitespace-nowrap">Phone</th>
+            {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
+            {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
+            {isPartners && <><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Assigned Locations</th><th className="p-3 whitespace-nowrap">Referred By</th></>}
             <th className="p-3 whitespace-nowrap">Status</th>
             <th className="p-3 whitespace-nowrap">Created</th>
-            {isPartners && <th className="p-3 whitespace-nowrap">Actions</th>}
+            {isPartners && <th className="p-3 whitespace-nowrap">Updated</th>}
+            {isJoinUs && <th className="p-3 whitespace-nowrap">Updated</th>}
+            {isCareers && <th className="p-3 whitespace-nowrap">Updated</th>}
+            {isContacts && <th className="p-3 whitespace-nowrap">Updated</th>}
+            {(isPartners || isJoinUs || isCareers || isContacts) && <th className="p-3 whitespace-nowrap">Actions</th>}
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => (
+          {filteredItems.map((it) => (
             <tr key={it.id} className="border-b border-navy/5">
               <td className="p-3 font-mono text-xs whitespace-nowrap">{it.id}</td>
               <td className="p-3 font-semibold text-navy whitespace-nowrap">
-                {it.name ||
+                {isPartners ? (
+                  <><span>{it.company_name || "-"}</span><span className="block text-xs font-normal text-muted">{it.contact_name || "-"}</span></>
+                ) : it.name ||
                   it.full_name ||
                   it.company_name ||
                   `${it.first_name || ""} ${it.last_name || ""}`.trim() ||
                   "-"}
               </td>
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
+              {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
+              {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
+              {isPartners && <><td className="p-3 whitespace-nowrap">{(Array.isArray(it.partner_roles) ? [...new Set([it.partner_type, ...it.partner_roles])] : [it.partner_type]).map((role) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[role] || role).filter(Boolean).join(" · ") || "-"}</td><td className="p-3 whitespace-nowrap">{(() => { let locations = it.assigned_locations || []; if (typeof locations === "string") { try { locations = JSON.parse(locations); } catch { locations = []; } } return (Array.isArray(locations) ? locations : []).map((location) => ({ odisha: "Odisha", west_bengal: "West Bengal" })[String(location).toLowerCase().replace(/[\s-]+/g, "_")]).filter(Boolean).join(" · ") || "-"; })()}</td><td className="p-3 whitespace-nowrap">{it.referrer_company_name || it.referrer_contact_name || "Owner / Not assigned"}</td></>}
               <td className="p-3 whitespace-nowrap">
-                <StatusBadge status={it.status} />
+                <StatusBadge status={it.status} isPartner={isPartners} />
               </td>
               <td className="p-3 text-xs text-muted whitespace-nowrap">
-                {new Date(it.created_at).toLocaleDateString("en-IN")}
+                {formatDateTime(it.created_at)}
               </td>
+              {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
+               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
+              {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
+               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
+              {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
+              {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
+              {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isPartners && (
                 <td className="p-3 whitespace-nowrap">
                   <div className="flex flex-wrap gap-1.5">
-                    {it.status !== "approved" && (
+                    <Link to={`/admin/partners/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13} /> View</Link>
+                     {isOwner && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
+                    </>}
+                    {isOwner && it.status !== "approved" && (
                       <button
                         disabled={updating}
                         onClick={() => updateStatus(it.id, "approved")}
@@ -1551,7 +2196,7 @@ function SubmissionList({ type }) {
                         Approve
                       </button>
                     )}
-                    {it.status !== "rejected" && (
+                    {isOwner && it.status !== "rejected" && (
                       <button
                         disabled={updating}
                         onClick={() => updateStatus(it.id, "rejected")}
@@ -1560,7 +2205,7 @@ function SubmissionList({ type }) {
                         Reject
                       </button>
                     )}
-                    {it.status !== "reviewed" &&
+                    {isOwner && it.status !== "reviewed" &&
                       it.status !== "approved" &&
                       it.status !== "rejected" && (
                         <button
@@ -1568,7 +2213,7 @@ function SubmissionList({ type }) {
                           onClick={() => updateStatus(it.id, "reviewed")}
                           className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200 disabled:opacity-50"
                         >
-                          Mark Reviewed
+                          Mark Under Review
                         </button>
                       )}
                   </div>
@@ -1578,6 +2223,31 @@ function SubmissionList({ type }) {
           ))}
         </tbody>
       </table>
+      </div>
+      }
+      {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
+      {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Owner assigns the partner level, referral parent, and login access here.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
+        {onboardError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{onboardError}</p>}
+        <label className="mt-5 block text-xs font-semibold text-navy/70">New Partner Type<select value={onboardType} onChange={(event) => { setOnboardType(event.target.value); setOnboardPartnerId(""); setOnboardParentId(""); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select></label>
+        {onboardParentType && <label className="mt-4 block text-xs font-semibold text-navy/70">Referred by ({onboardParentType.replace("_", "-")})<select value={onboardParentId} onChange={(event) => setOnboardParentId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose referring partner</option>{onboardParents.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id}</option>)}</select></label>}
+        <label className="mt-4 block text-xs font-semibold text-navy/70">Approved Partner to assign<select value={onboardPartnerId} onChange={(event) => { setOnboardPartnerId(event.target.value); const chosen = onboardPartners.find((partner) => String(partner.id) === event.target.value); if (chosen?.referred_by_partner_id) setOnboardParentId(String(chosen.referred_by_partner_id)); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose a partner</option>{onboardPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} · #{partner.id} (currently {({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[partner.partner_type] || partner.partner_type})</option>)}</select></label>
+        {onboardLoading && <p className="mt-2 text-xs text-muted">Loading approved partners…</p>}
+        {!onboardLoading && !onboardPartners.length && <p className="mt-2 text-xs text-muted">No approved {{ super_vendor: "super-vendors", vendor: "vendors", sub_vendor: "sub-vendors", dealer: "dealers" }[onboardType]} found.</p>}
+        {selectedOnboardPartner && <p className="mt-3 rounded-lg bg-amber-soft p-3 text-xs text-navy">{selectedOnboardPartner.partner_login_id ? `Login ${selectedOnboardPartner.partner_login_id} exists. Continue to reset its password.` : `A new login will be created for ${selectedOnboardPartner.company_name || selectedOnboardPartner.contact_name}.`}</p>}
+        {onboardCredentials && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-sm font-bold text-emerald-900">Credentials ready — share securely</p><p className="mt-2 text-sm text-emerald-900">Login ID: <strong>{onboardCredentials.loginId}</strong></p><p className="mt-1 text-sm text-emerald-900">Temporary password: <strong>{onboardCredentials.password}</strong></p><p className="mt-2 text-xs text-emerald-800">The partner must change the password at first sign-in.</p><button onClick={() => navigator.clipboard?.writeText(`Login ID: ${onboardCredentials.loginId}\nTemporary password: ${onboardCredentials.password}`)} className="mt-3 rounded-full border border-emerald-300 px-4 py-2 text-xs font-bold text-emerald-900">Copy Credentials</button></div>}
+        <div className="mt-6 flex justify-end gap-3"><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-bold text-navy">Close</button><button onClick={handlePartnerOnboard} disabled={!selectedOnboardPartner || (Boolean(onboardParentType) && !onboardParentId) || onboardLoading || onboardSaving || Boolean(onboardCredentials)} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50">{onboardSaving ? "Processing..." : selectedOnboardPartner?.partner_login_id ? "Reset Password" : "Create Login"}</button></div>
+      </div></div>}
+      {isPartners && selectedPartner && (
+        <PartnerDetailsModal
+          key={`${selectedPartner.partner.id}-${selectedPartner.editing ? "edit" : "view"}`}
+          partner={selectedPartner.partner}
+          editing={selectedPartner.editing}
+          isOwner={isOwner}
+          onClose={() => setSelectedPartner(null)}
+          onEdit={() => setSelectedPartner({ ...selectedPartner, editing: true })}
+          onSaved={async () => { setSelectedPartner(null); await load(); }}
+        />
+      )}
     </div>
   );
 }
