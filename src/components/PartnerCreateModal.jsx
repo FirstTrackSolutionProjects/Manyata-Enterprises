@@ -114,12 +114,22 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select label="Partner Type" value={form.partnerType} onChange={(value) => updateField("partnerType", value)} options={[["super_vendor", "Super-vendor"], ["vendor", "Vendor"], ["sub_vendor", "Sub-vendor"], ["dealer", "Dealer"]]} />
           {form.partnerType === "sub_vendor" && <Select label="Commission (optional)" value={form.commissionModel} required={false} onChange={(value) => updateField("commissionModel", value)} options={[["", "Set later"], ["per_completed_installation", "Per completed installation"]]} />}
+          {parentRole && (
+            <label className="rounded-xl border border-amber/40 bg-amber-50/50 p-4 text-xs font-semibold text-navy/70 sm:col-span-2">
+              Referred by ({PARTNER_ROLES.find(([value]) => value === parentRole)?.[1]}) <span className="text-red-600">*</span>
+              <select required value={form.referredByPartnerId} onChange={(event) => updateField("referredByPartnerId", event.target.value)} disabled={loadingPartners} className="mt-2 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm font-normal text-navy disabled:bg-slate-100">
+                <option value="">{loadingPartners ? "Loading approved partners..." : "Choose " + PARTNER_ROLES.find(([value]) => value === parentRole)?.[1]}</option>
+                {parentOptions.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} (ID {partner.id})</option>)}
+              </select>
+              <span className="mt-1 block font-normal text-muted">Required to connect this partner to the referral chain. Choose the person who referred them.</span>
+              {!loadingPartners && parentOptions.length === 0 && <span className="mt-1 block font-normal text-red-700">No approved {PARTNER_ROLES.find(([role]) => role === parentRole)?.[1]} accounts are available. Approve or assign that role to a partner first.</span>}
+            </label>
+          )}
           <section className="rounded-xl border border-navy/10 p-4 sm:col-span-2">
             <h3 className="text-sm font-bold text-navy">Multi-role access</h3>
             <p className="mt-1 text-xs text-muted">Choose every role this partner should have. Partner Type remains the primary role.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">{PARTNER_ROLES.map(([value, label]) => <label key={value} className="flex items-center gap-2 rounded-lg border border-navy/10 p-3 text-sm text-navy"><input type="checkbox" checked={form.partnerRoles.includes(value)} disabled={value === form.partnerType} onChange={() => updateField("partnerRoles", form.partnerRoles.includes(value) ? form.partnerRoles.filter((role) => role !== value) : [...form.partnerRoles, value])} className="accent-amber" />{label}{value === form.partnerType ? " (primary)" : ""}</label>)}</div>
           </section>
-          {parentRole && <label className="text-xs font-semibold text-navy/70 sm:col-span-2">Referred by ({PARTNER_ROLES.find(([value]) => value === parentRole)?.[1]})<select required value={form.referredByPartnerId} onChange={(event) => updateField("referredByPartnerId", event.target.value)} disabled={loadingPartners} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm font-normal text-navy disabled:bg-slate-100"><option value="">{loadingPartners ? "Loading approved partners…" : `Choose ${PARTNER_ROLES.find(([value]) => value === parentRole)?.[1]}`}</option>{parentOptions.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} (ID {partner.id})</option>)}</select><span className="mt-1 block font-normal text-muted">Choose the direct parent in the referral chain. The Owner can change this mapping later.</span></label>}
           {INPUTS.map(([name, label, required, type]) => <Field key={name} label={label} value={form[name]} required={required} type={type || "text"} onChange={(value) => updateField(name, value)} />)}
           <Select label="State" value={form.state} onChange={(value) => updateField("state", value)} options={[["", "Select state"], ["Odisha", "Odisha"], ["West Bengal", "West Bengal"]]} />
           <Select label="Gender" value={form.gender} required={false} onChange={(value) => updateField("gender", value)} options={[["", "Select gender (optional)"], ["male", "Male"], ["female", "Female"], ["other", "Other"]]} />
