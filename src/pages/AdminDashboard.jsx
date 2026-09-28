@@ -2080,7 +2080,15 @@ function SubmissionList({ type }) {
     const partnerSystemTypes = Array.isArray(item.system_types) ? item.system_types : [];
     const normalizedPartnerType = item.partner_type === "sub_vendor_commission" ? "sub_vendor" : item.partner_type;
     const partnerRoles = Array.isArray(item.partner_roles) ? item.partner_roles : [normalizedPartnerType];
-    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || String(item.location || item.city || "").toLowerCase().includes(locationFilter.trim().toLowerCase())) && (!stateFilter || String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase()) && (!systemTypeFilter || partnerSystemTypes.includes(systemTypeFilter)) && (!systemSizeFilter || String(item.system_size || "") === systemSizeFilter) && (!partnerTypeFilter || partnerRoles.includes(partnerTypeFilter));
+    let assignedLocations = item.assigned_locations || [];
+    if (typeof assignedLocations === "string") { try { assignedLocations = JSON.parse(assignedLocations); } catch { assignedLocations = []; } }
+    const normalizedAssignedLocations = (Array.isArray(assignedLocations) ? assignedLocations : []).map((location) => String(location).trim().toLowerCase().replace(/[\s-]+/g, "_"));
+    const stateMatches = !stateFilter || (isPartners
+      ? normalizedAssignedLocations.length
+        ? normalizedAssignedLocations.includes(stateFilter.toLowerCase() === "west bengal" ? "west_bengal" : "odisha")
+        : String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase()
+      : String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase());
+    return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || String(item.location || item.city || "").toLowerCase().includes(locationFilter.trim().toLowerCase())) && stateMatches && (!systemTypeFilter || partnerSystemTypes.includes(systemTypeFilter)) && (!systemSizeFilter || String(item.system_size || "") === systemSizeFilter) && (!partnerTypeFilter || partnerRoles.includes(partnerTypeFilter));
   }), { fromDate, toDate, sortBy, sortOrder, nameKey: isPartners ? "company_name" : isContacts ? "name" : "first_name" });
   const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter)) + Number(Boolean(partnerTypeFilter));
 
@@ -2113,7 +2121,7 @@ function SubmissionList({ type }) {
         {isPartners && <FilterInput label="Location" value={locationFilter} onChange={setLocationFilter} />}
         {(isJoinUs || isCareers || isContacts) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
         {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
-        {isPartners && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={[{ value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]} placeholder="All states" />}
+        {isPartners && <FilterSelect label="Assigned Location" value={stateFilter} onChange={setStateFilter} options={[{ value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]} placeholder="All assigned locations" />}
         {isPartners && <FilterSelect label="Partner Type" value={partnerTypeFilter} onChange={setPartnerTypeFilter} options={[{ value: "super_vendor", label: "Super-vendor" }, { value: "vendor", label: "Vendor" }, { value: "sub_vendor", label: "Sub-vendor" }, { value: "dealer", label: "Dealer" }]} placeholder="All partner types" />}
         {isPartners && <FilterSelect label="System Type" value={systemTypeFilter} onChange={setSystemTypeFilter} options={[{ value: "on_grid", label: "On-Grid" }, { value: "hybrid", label: "Hybrid" }]} placeholder="All types" />}
         {isContacts && <FilterSelect label="System Size" value={systemSizeFilter} onChange={setSystemSizeFilter} options={[...new Set(items.map((item) => item.system_size).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All sizes" />}
@@ -2133,7 +2141,7 @@ function SubmissionList({ type }) {
             <th className="p-3 whitespace-nowrap">Phone</th>
             {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
-            {isPartners && <><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Referred By</th></>}
+            {isPartners && <><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Assigned Locations</th><th className="p-3 whitespace-nowrap">Referred By</th></>}
             <th className="p-3 whitespace-nowrap">Status</th>
             <th className="p-3 whitespace-nowrap">Created</th>
             {isPartners && <th className="p-3 whitespace-nowrap">Updated</th>}
@@ -2159,7 +2167,7 @@ function SubmissionList({ type }) {
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
               {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
-              {isPartners && <><td className="p-3 whitespace-nowrap">{(Array.isArray(it.partner_roles) ? [...new Set([it.partner_type, ...it.partner_roles])] : [it.partner_type]).map((role) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[role] || role).filter(Boolean).join(" · ") || "-"}</td><td className="p-3 whitespace-nowrap">{it.referrer_company_name || it.referrer_contact_name || "Owner / Not assigned"}</td></>}
+              {isPartners && <><td className="p-3 whitespace-nowrap">{(Array.isArray(it.partner_roles) ? [...new Set([it.partner_type, ...it.partner_roles])] : [it.partner_type]).map((role) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[role] || role).filter(Boolean).join(" · ") || "-"}</td><td className="p-3 whitespace-nowrap">{(() => { let locations = it.assigned_locations || []; if (typeof locations === "string") { try { locations = JSON.parse(locations); } catch { locations = []; } } return (Array.isArray(locations) ? locations : []).map((location) => ({ odisha: "Odisha", west_bengal: "West Bengal" })[String(location).toLowerCase().replace(/[\s-]+/g, "_")]).filter(Boolean).join(" · ") || "-"; })()}</td><td className="p-3 whitespace-nowrap">{it.referrer_company_name || it.referrer_contact_name || "Owner / Not assigned"}</td></>}
               <td className="p-3 whitespace-nowrap">
                 <StatusBadge status={it.status} isPartner={isPartners} />
               </td>
