@@ -428,6 +428,7 @@ function SelectField({ label, name, value, onChange, options }) {
 }
 
 function FileUpload({ label, name, accept }) {
+  const [filename, setFilename] = useState("");
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -435,8 +436,8 @@ function FileUpload({ label, name, accept }) {
       </span>
       <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-xs text-muted transition-colors hover:border-amber hover:text-navy">
         <Upload size={16} />
-        Choose File
-        <input type="file" name={name} accept={accept} className="hidden" />
+        <span className="min-w-0 truncate">{filename ? `Selected: ${filename}` : "Choose File"}</span>
+        <input type="file" name={name} accept={accept} onChange={(event) => setFilename(event.target.files?.[0]?.name || "")} className="hidden" />
       </div>
     </label>
   );

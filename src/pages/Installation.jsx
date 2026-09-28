@@ -575,8 +575,8 @@ export default function Installation() {
               </span>
               <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-8 text-center text-xs text-muted transition-colors hover:border-amber hover:text-navy">
                 <Upload size={20} />
-                <span className="font-semibold text-navy">
-                  Click to upload
+                <span className="max-w-full truncate font-semibold text-navy">
+                  {file?.name || "Click to upload"}
                 </span>
                 <span className="text-muted">
                   PDF, JPG, PNG or other supported file
@@ -745,6 +745,7 @@ function SelectField({ label, name, value, onChange, options, placeholder, requi
 ========================================================= */
 
 function FileUpload({ label, name, required = false }) {
+  const [filename, setFilename] = useState("");
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -753,8 +754,8 @@ function FileUpload({ label, name, required = false }) {
       </span>
       <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-center text-xs text-muted transition-colors hover:border-amber hover:text-navy">
         <Upload size={16} />
-        <span>Click to upload a file</span>
-        <input type="file" name={name} required={required} className="sr-only" />
+        <span className="max-w-full truncate">{filename ? `Selected: ${filename}` : "Click to upload a file"}</span>
+        <input type="file" name={name} required={required} onChange={(event) => setFilename(event.target.files?.[0]?.name || "")} className="sr-only" />
       </div>
     </label>
   );

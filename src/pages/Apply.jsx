@@ -105,6 +105,7 @@ const TOTAL_STEPS = 15;
 
 /* ── Main Component ──────────────────────────────────── */
 const selectedFiles = {};
+const clearSelectedFiles = () => Object.keys(selectedFiles).forEach((key) => delete selectedFiles[key]);
 
 export default function Apply() {
   const navigate = useNavigate();
@@ -172,6 +173,7 @@ export default function Apply() {
 
   const startFresh = () => {
     clearDraft();
+    clearSelectedFiles();
     setForm(initialState);
     setLocation("");
     setStep(1);
@@ -236,6 +238,7 @@ export default function Apply() {
         applicationNo: res.data.applicationNo,
       });
       clearDraft();
+      clearSelectedFiles();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setSubmitError(err.message || "Something went wrong. Please try again.");
@@ -257,6 +260,7 @@ export default function Apply() {
         applicationId={submitted.id}
         onTrack={() => navigate("/track")}
         onNew={() => {
+          clearSelectedFiles();
           setSubmitted(null);
           setForm(initialState);
           setLocation("");
@@ -1397,7 +1401,7 @@ function RadioOption({ name, value, label, checked, onChange }) {
 }
 
 function FileUpload({ label, name, required = false }) {
-  const [filename, setFilename] = useState("");
+  const [filename, setFilename] = useState(() => selectedFiles[name]?.name || "");
 
     const handleChange = (e) => {
     const f = e.target.files?.[0];
@@ -1414,7 +1418,7 @@ function FileUpload({ label, name, required = false }) {
       </span>
       <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-center text-xs text-muted transition-colors hover:border-amber hover:text-navy">
         <Upload size={16} />
-        <span>{filename ? filename : "Click to upload a file"}</span>
+        <span>{filename ? `Selected: ${filename}` : "Click to upload a file"}</span>
         <input
           type="file"
           name={name}

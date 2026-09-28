@@ -288,7 +288,7 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
               <div key={key} className="rounded-lg border border-navy/10 p-3">
                 <p className="text-xs font-semibold text-navy">{label}</p>
                 {partner.documentUrls?.[urlKey] ? <a href={fileUrl(partner.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-amber hover:underline">View uploaded document</a> : <p className="mt-1 text-xs text-muted">No document uploaded</p>}
-                {editing && <input type="file" accept={key === "photoFile" ? "image/jpeg,image/png,image/webp" : undefined} onChange={(event) => setFiles({ ...files, [key]: event.target.files?.[0] || null })} className="mt-2 block w-full text-xs" />}
+                {editing && <><input type="file" accept={key === "photoFile" ? "image/jpeg,image/png,image/webp" : undefined} onChange={(event) => setFiles((current) => ({ ...current, [key]: event.target.files?.[0] || null }))} className="mt-2 block w-full text-xs" />{files[key] && <p className="mt-1 truncate text-xs font-medium text-emerald-700">Selected: {files[key].name}</p>}</>}
               </div>
             ))}
           </div>
