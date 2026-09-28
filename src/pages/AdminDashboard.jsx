@@ -52,6 +52,7 @@ import {
   apiFetch,
   downloadApplicationPdf,
   resetPartnerPassword,
+  downloadCsvExport,
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
@@ -320,6 +321,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const canEditApplications = hasActionPermission(user, "applications", "edit");
   const canDownloadApplications = hasActionPermission(user, "applications", "download");
+  const canExportApplications = hasActionPermission(user, "applications", "export");
   const [items, setItems] = useState([]);
   const [locationCounts, setLocationCounts] = useState(null);
   const [totalApplicationCount, setTotalApplicationCount] = useState(null);
@@ -474,6 +476,12 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           Refresh
         </button>
+        {canExportApplications && <button onClick={async () => {
+          try {
+            const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== ""));
+            await downloadCsvExport(`/applications/export.csv?${params}`, "applications.csv");
+          } catch (error) { window.alert(error.message || "Could not download applications."); }
+        }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
       </div>
 
       {/* Filter panel */}
@@ -988,9 +996,10 @@ function EmployeesTab() {
                     {(u.permissions || []).length
                       ? u.permissions.map((permission) => ({ applications: "Applications", installations: "Installation", employees: "Employees", partners: "Partners", branches: "Branches", submissions: "Submissions" }[permission] || permission)).join(", ")
                       : "No dashboard access"}
-                    {u.actionPermissions && <div className="mt-1 text-[11px] leading-4 text-muted">{["applications", "installations"].filter((module) => u.permissions?.includes(module)).map((module) => {
-                      const granted = ["view", "edit", "download"].filter((action) => u.actionPermissions?.[module]?.[action]).map((action) => action[0].toUpperCase() + action.slice(1));
-                      return `${module === "applications" ? "Applications" : "Installation"}: ${granted.join(" / ") || "No actions"}`;
+                    {u.actionPermissions && <div className="mt-1 text-[11px] leading-4 text-muted">{["applications", "installations", "partners"].filter((module) => u.permissions?.includes(module)).map((module) => {
+                      const actionList = module === "partners" ? ["export"] : ["view", "edit", "download", "export"];
+                      const granted = actionList.filter((action) => u.actionPermissions?.[module]?.[action]).map((action) => action === "export" ? "Excel export" : action[0].toUpperCase() + action.slice(1));
+                      return `${module === "applications" ? "Applications" : module === "installations" ? "Installation" : "Partners"}: ${granted.join(" / ") || "No actions"}`;
                     }).join(" · ")}</div>}
                   </td>
                   <td className="p-3 whitespace-nowrap">
@@ -1084,7 +1093,9 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     view: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.view) : existingModules.includes(module),
     edit: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.edit) : existingModules.includes(module),
     download: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.download) : existingModules.includes(module),
+    export: Boolean(employee?.actionPermissions?.[module]?.export),
   }]));
+  initialActionPermissions.partners = { export: Boolean(employee?.actionPermissions?.partners?.export) };
   const [form, setForm] = useState({
     name: employee?.name || "",
     email: employee?.email || "",
@@ -1110,7 +1121,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     permissions: checked ? [...new Set([...current.permissions, module])] : current.permissions.filter((permission) => permission !== module),
     ...(["applications", "installations"].includes(module) ? {
       actionPermissions: { ...current.actionPermissions, [module]: checked ? { view: true, edit: true, download: true } : { view: false, edit: false, download: false } },
-    } : {}),
+    } : module === "partners" && !checked ? { actionPermissions: { ...current.actionPermissions, partners: { export: false } } } : {}),
   }));
 
   const toggleAction = (module, action, checked) => setForm((current) => {
@@ -1120,7 +1131,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
       Object.assign(next, { edit: false, download: false });
       permissions = permissions.filter((permission) => permission !== module);
     }
-    if (action !== "view" && checked) next.view = true;
+    if (module !== "partners" && action !== "view" && checked) next.view = true;
     if (action !== "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
     if (action === "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
     return { ...current, permissions, actionPermissions: { ...current.actionPermissions, [module]: next } };
@@ -1268,7 +1279,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
 
           <fieldset className="rounded-xl border border-navy/10 p-4">
             <legend className="px-1 text-sm font-bold text-navy">Dashboard access</legend>
-            <p className="mb-3 text-xs text-muted">Choose dashboard sections and set Applications/Installations actions separately.</p>
+            <p className="mb-3 text-xs text-muted">Choose dashboard sections and grant Excel export separately for Applications, Installations, and Partners.</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {[["applications", "Applications"], ["installations", "Installation"], ["employees", "Employees"], ["partners", "Partners"], ["branches", "Branches"], ["submissions", "Submissions"]].map(([value, label]) => (
                 <div key={value} className="rounded-lg bg-offwhite p-3">
@@ -1277,7 +1288,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
                     {label}
                   </label>
                   {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div></div>}
-                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{[["view", "View"], ["edit", "Edit"], ["download", "Download"]].map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
+                  {["applications", "installations", "partners"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{(value === "partners" ? [["export", "Excel export"]] : [["view", "View"], ["edit", "Edit"], ["download", "PDF download"], ["export", "Excel export"]]).map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={value !== "partners" && action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
                 </div>
               ))}
             </div>
@@ -1708,6 +1719,7 @@ function InstallationsTab({ location }) {
   const canView = hasActionPermission(user, "installations", "view");
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
+  const canExport = hasActionPermission(user, "installations", "export");
   const [items, setItems] = useState([]);
   const [locationCounts, setLocationCounts] = useState(null);
   const [totalInstallationCount, setTotalInstallationCount] = useState(null);
@@ -1786,6 +1798,24 @@ function InstallationsTab({ location }) {
       </div>
       <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
       <button onClick={async () => { await load(); const statsQuery = location ? `?location=${encodeURIComponent(location)}` : ""; const statsRes = await apiFetch(`/installations/stats/overview${statsQuery}`); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); setInstallationStatusCounts(statsRes.data.byStatus || {}); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+      {canExport && <button onClick={async () => {
+        try {
+          const params = new URLSearchParams();
+          const selectedLocation = locationFilter || location;
+          if (selectedLocation) params.set("location", selectedLocation === "west_bengal" ? "kolkata" : selectedLocation);
+          if (search.trim()) params.set("search", search.trim());
+          if (nameFilter.trim()) params.set("name", nameFilter.trim());
+          if (emailFilter.trim()) params.set("email", emailFilter.trim());
+          if (phoneFilter.trim()) params.set("phone", phoneFilter.trim());
+          if (statusFilter) params.set("status", statusFilter);
+          if (typeFilter) params.set("installationType", typeFilter);
+          if (fromDate) params.set("fromDate", fromDate);
+          if (toDate) params.set("toDate", toDate);
+          params.set("sortBy", sortBy);
+          params.set("sortOrder", sortOrder);
+          await downloadCsvExport(`/installations/export.csv?${params}`, "installations.csv");
+        } catch (error) { window.alert(error.message || "Could not download installations."); }
+      }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
     </div>
     {showFilters && <div className="grid gap-3 rounded-2xl border border-navy/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
@@ -2027,6 +2057,7 @@ function SubmissionList({ type }) {
   const isJoinUs = type === "join-us";
   const isCareers = type === "careers";
   const isContacts = type === "contacts";
+  const canExportPartners = isPartners && hasActionPermission(user, "partners", "export");
   const onboardPartners = onboardItems.filter((item) => {
     return item.status === "approved";
   });
@@ -2109,6 +2140,25 @@ function SubmissionList({ type }) {
           <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
           <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
           <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+          {canExportPartners && <button onClick={async () => {
+            try {
+              const params = new URLSearchParams();
+              const exportName = nameFilter.trim() || search.trim();
+              if (exportName) params.set(search.trim() && !nameFilter.trim() ? "search" : "name", exportName);
+              if (emailFilter.trim()) params.set("email", emailFilter.trim());
+              if (phoneFilter.trim()) params.set("phone", phoneFilter.trim());
+              if (locationFilter.trim()) params.set("city", locationFilter.trim());
+              if (statusFilter) params.set("status", statusFilter);
+              if (partnerTypeFilter) params.set("partnerType", partnerTypeFilter);
+              if (systemTypeFilter) params.set("systemType", systemTypeFilter);
+              if (stateFilter) params.set("location", stateFilter === "West Bengal" ? "west_bengal" : "odisha");
+              if (fromDate) params.set("fromDate", fromDate);
+              if (toDate) params.set("toDate", toDate);
+              params.set("sortBy", sortBy);
+              params.set("sortOrder", sortOrder);
+              await downloadCsvExport(`/admin/partners/export.csv?${params}`, "partners.csv");
+            } catch (error) { window.alert(error.message || "Could not download partners."); }
+          }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
           {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
           {isPartners && isOwner && <button onClick={() => { setShowPartnerOnboard(true); setOnboardCredentials(null); setOnboardError(""); setOnboardPartnerId(""); }} className="flex items-center gap-1.5 rounded-full border border-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-soft"><UserCheck size={15} /> Onboard Partner</button>}
       </div>

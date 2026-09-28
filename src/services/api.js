@@ -172,6 +172,24 @@ export const listInstallations = (location = "", filters = {}) => {
   Object.entries(filters).forEach(([key, value]) => { if (value) params.set(key, value); });
   return apiFetch(`/installations${params.size ? `?${params.toString()}` : ""}`);
 };
+
+export const downloadCsvExport = async (endpoint, filename) => {
+  const response = await fetch(`${API_URL}${endpoint}`, { credentials: "include" });
+  if (!response.ok) {
+    let message = "Could not download Excel file.";
+    try { const body = await response.json(); message = body.message || message; } catch { /* keep default */ }
+    throw new Error(message);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
 export const getInstallation = (id) => apiFetch(`/installations/${id}`);
 export const downloadInstallationPdf = (id) => window.open(`${API_URL}/installations/${id}/pdf`, "_blank", "noopener,noreferrer");
 export const updateInstallation = (id, payload) => apiFetch(`/installations/${id}`, { method: "PUT", body: JSON.stringify(payload) });
