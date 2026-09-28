@@ -48,7 +48,7 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/career" element={<Career />} />
-<Route path="/products" element={<Products />} />
+            <Route path="/products" element={<Products />} />
             {/* Join Us is password-gated.
                 To make it public, wrap JoinUs directly without PasswordGate:
                   element={<JoinUs />}
