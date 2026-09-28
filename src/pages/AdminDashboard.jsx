@@ -1968,6 +1968,9 @@ function SubmissionList({ type }) {
   const isOwner = user?.role === "owner";
   const [items, setItems] = useState([]);
   const [partnerCounts, setPartnerCounts] = useState(null);
+  const [partnerTotal, setPartnerTotal] = useState(0);
+  const [partnerPage, setPartnerPage] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -1997,11 +2000,20 @@ function SubmissionList({ type }) {
   const [toDate, setToDate] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
+  const isPartners = type === "partners";
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (requestedPage = 1, append = false) => {
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     try {
-      const query = new URLSearchParams({ limit: "100" });
+      const query = new URLSearchParams({ limit: isPartners ? "10" : "100" });
+      if (isPartners) query.set("page", String(requestedPage));
+      if (isPartners && search.trim()) query.set("search", search.trim());
+      if (isPartners && statusFilter) query.set("status", statusFilter);
+      if (isPartners && locationFilter.trim()) query.set("city", locationFilter.trim());
+      if (isPartners && stateFilter) query.set("location", stateFilter === "West Bengal" ? "west_bengal" : "odisha");
+      if (isPartners && partnerTypeFilter) query.set("partnerType", partnerTypeFilter);
+      if (isPartners && systemTypeFilter) query.set("systemType", systemTypeFilter);
       if (nameFilter.trim()) query.set("name", nameFilter.trim());
       if (emailFilter.trim()) query.set("email", emailFilter.trim());
       if (phoneFilter.trim()) query.set("phone", phoneFilter.trim());
@@ -2010,16 +2022,22 @@ function SubmissionList({ type }) {
       query.set("sortBy", sortBy);
       query.set("sortOrder", sortOrder);
       const res = await apiFetch(`/admin/${type}?${query.toString()}`);
-      setItems(res.data.items || []);
-      if (type === "partners") {
+      const pageItems = res.data.items || [];
+      setItems((current) => append ? [...current, ...pageItems] : pageItems);
+      if (isPartners) {
+        setPartnerTotal(Number(res.data.total || 0));
+        setPartnerPage(Number(res.data.page || requestedPage));
         const counts = await apiFetch("/admin/partners/stats");
         setPartnerCounts(counts.data || null);
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
-      setHasLoaded(true);
+      if (append) setLoadingMore(false);
+      else {
+        setLoading(false);
+        setHasLoaded(true);
+      }
     }
   };
 
@@ -2027,7 +2045,7 @@ function SubmissionList({ type }) {
     const timer = setTimeout(() => load(), 250);
     return () => clearTimeout(timer);
     // eslint-disable-next-line
-  }, [type, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder]);
+  }, [type, search, statusFilter, locationFilter, stateFilter, systemTypeFilter, partnerTypeFilter, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder]);
 
   useEffect(() => {
     if (!showPartnerOnboard || !isOwner || type !== "partners") return;
@@ -2059,7 +2077,6 @@ function SubmissionList({ type }) {
     }
   };
 
-  const isPartners = type === "partners";
   const isJoinUs = type === "join-us";
   const isCareers = type === "careers";
   const isContacts = type === "contacts";
@@ -2173,7 +2190,7 @@ function SubmissionList({ type }) {
         <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
         <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
         <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
-        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={availableStatuses.map((value) => ({ value, label: isPartners && value === "new" ? "Submitted" : isPartners && value === "reviewed" ? "Under Review" : value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) }))} placeholder="All statuses" />
+        <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={(isPartners ? ["new", "reviewed", "approved", "rejected"] : availableStatuses).map((value) => ({ value, label: isPartners && value === "new" ? "Submitted" : isPartners && value === "reviewed" ? "Under Review" : value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) }))} placeholder="All statuses" />
         {isPartners && <FilterInput label="Location" value={locationFilter} onChange={setLocationFilter} />}
         {(isJoinUs || isCareers || isContacts) && <FilterSelect label={isContacts ? "City" : "Location"} value={locationFilter} onChange={setLocationFilter} options={availableLocations.map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : value === "odisha" ? "Odisha" : value }))} placeholder="All locations" />}
         {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
@@ -2284,6 +2301,10 @@ function SubmissionList({ type }) {
       </table>
       </div>
       }
+      {isPartners && items.length > 0 && <div className="flex flex-col items-center gap-2 py-2 sm:flex-row sm:justify-between">
+        <p className="text-xs text-muted">Showing {items.length} of {partnerTotal} partners</p>
+        {items.length < partnerTotal && <button onClick={() => load(partnerPage + 1, true)} disabled={loadingMore || loading} className="rounded-full border border-amber bg-white px-6 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft disabled:cursor-wait disabled:opacity-60">{loadingMore ? "Loading..." : "Load More"}</button>}
+      </div>}
       {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
       {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Owner assigns the partner level, referral parent, and login access here.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
         {onboardError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{onboardError}</p>}
