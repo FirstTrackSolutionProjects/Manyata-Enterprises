@@ -26,6 +26,7 @@ import Partner from "./pages/Partner";
 import AdminDashboard from "./pages/AdminDashboard";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ApplicationDetail from "./pages/ApplicationDetail";
+import Products from "./pages/Products";
 import PartnerDetail from "./pages/PartnerDetail";
 import JoinUsDetail from "./pages/JoinUsDetail";
 import CareerDetail from "./pages/CareerDetail";
@@ -47,7 +48,7 @@ export default function App() {
             <Route path="/contact" element={<Contact />} />
             <Route path="/apply" element={<Apply />} />
             <Route path="/career" element={<Career />} />
-
+<Route path="/products" element={<Products />} />
             {/* Join Us is password-gated.
                 To make it public, wrap JoinUs directly without PasswordGate:
                   element={<JoinUs />}
