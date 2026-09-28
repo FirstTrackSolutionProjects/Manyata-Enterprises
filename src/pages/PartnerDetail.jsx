@@ -218,6 +218,7 @@ export default function PartnerDetail() {
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <button onClick={() => navigate(-1)} className="mb-3 inline-flex items-center gap-2 rounded-full border border-navy/20 px-4 py-2 text-xs font-semibold text-navy hover:border-amber"><ArrowLeft size={14} />Back</button>
+          {partner.documentUrls?.Photo && <a href={fileUrl(partner.documentUrls.Photo)} target="_blank" rel="noreferrer" aria-label="Open partner profile image" className="mb-3 inline-block"><img src={fileUrl(partner.documentUrls.Photo)} alt="Partner profile" className="h-24 w-24 rounded-xl border border-navy/10 object-cover shadow-sm" /></a>}
           <p className="font-mono text-xs text-amber">Partner #{partner.id}</p>
           <h2 className="mt-1 text-2xl font-extrabold text-navy">{partner.company_name}</h2>
           <p className="mt-1 text-sm text-muted">{partner.contact_name} · {partner.phone} · {partner.email}</p>

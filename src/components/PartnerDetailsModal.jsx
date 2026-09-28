@@ -29,7 +29,7 @@ const FIELDS = [
 ];
 const DOCUMENTS = [
   ["gstFile", "GST Certificate", "GST"], ["panFile", "PAN Card", "PAN"],
-  ["aadhaarFile", "Aadhaar", "Aadhaar"], ["photoFile", "Partner Photo", "Photo"], ["msmeFile", "MSME Certificate", "MSME"],
+  ["aadhaarFile", "Aadhaar", "Aadhaar"], ["photoFile", "Profile Image", "Photo"], ["msmeFile", "MSME Certificate", "MSME"],
   ["businessDocFile", "Business Document", "Business Document"],
   ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"],
 ];
