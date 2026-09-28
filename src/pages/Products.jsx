@@ -10,21 +10,39 @@ import {
   Package,
 } from "lucide-react";
 
-// Files live in /public, so they're served from the site root.
-// encodeURI handles the spaces in file names (e.g. "jsw panel frame").
-// ⚠️ Change each extension (.png / .jpg / .webp) to match your actual files.
+
 const img = (file) => encodeURI(`/${file}`);
 
 const IMAGES = {
-  adaniPanel: img("Adani-Bifacial-Solar-Panel.png"),
+  // ── Solar Panels ──
   tataPv: img("tata_pv.png"),
   tataRooftop: img("TATA-Solar-On-Grid-Rooftop-Power-Plant.jpg"),
+  adaniPanel: img("Adani-Bifacial-Solar-Panel.png"),
   waaree1: img("waaree1.jpg"),
   waaree2: img("waaree2.png"),
+
+  // ── Inverters ──
   microtekInverter: img("Microtek inverter.png"),
+  luminousInverter: img("luminous inverter.png"),
+
+  // ── Batteries ──
   luminousBattery: img("luminous battery.jpg"),
   microtekBattery: img("microtek battery.jpg"),
+  vtBattery: img("VT-battery.png"),
+
+  // ── Cables ──
   microtekCable: img("microtek cable.png"),
+  finolexDC: img("finolex dc cable.png"),
+  finolexAC: img("finolex-ac.png"),
+  finolexEarthing: img("finolex earthing.png"),
+  havellsDC: img("havells-dc.png"),
+  havellsAC: img("havells-ac-cable.png"),
+  havellsEarthing: img("havells-earthing.png"),
+  polycabDC: img("polycab-dc-cable.jpg"),
+  polycabAC: img("polycab-ac.png"),
+  polycabEarthing: img("polycab-earthing-cable.png"),
+
+  // ── Panel Structures ──
   tataFrame: img("tata panel frame.jpg"),
   jswFrame: img("jsw_panel_frame.png"),
   jindalFrame: img("jindal panel frame.jpeg"),
@@ -38,113 +56,39 @@ const CATEGORIES = [
   { id: "panel-structure", label: "Panel Structure", icon: Layers },
 ];
 
-// Placeholder specs — replace "Spec details coming soon" with real details later.
 const PRODUCTS = [
-  // Solar Panels
-  {
-    id: "tata-pv",
-    category: "solar-panel",
-    brand: "Tata Power Solar",
-    name: "Tata Power Solar PV Module",
-    spec: "Spec details coming soon",
-    image: IMAGES.tataPv,
-  },
-  {
-    id: "tata-rooftop",
-    category: "solar-panel",
-    brand: "Tata Power Solar",
-    name: "Tata Power Solar On-Grid Rooftop Power Plant",
-    spec: "Spec details coming soon",
-    image: IMAGES.tataRooftop,
-  },
-  {
-    id: "adani-bifacial",
-    category: "solar-panel",
-    brand: "Adani",
-    name: "Adani Bifacial Solar Panel",
-    spec: "Spec details coming soon",
-    image: IMAGES.adaniPanel,
-  },
-  {
-    id: "waaree-1",
-    category: "solar-panel",
-    brand: "Waaree",
-    name: "Waaree Solar Panel",
-    spec: "Spec details coming soon",
-    image: IMAGES.waaree1,
-  },
-  {
-    id: "waaree-2",
-    category: "solar-panel",
-    brand: "Waaree",
-    name: "Waaree Solar Panel Range",
-    spec: "Spec details coming soon",
-    image: IMAGES.waaree2,
-  },
+  // ── Solar Panels ──
+  { id: "tata-pv", category: "solar-panel", brand: "Tata Power Solar", name: "Tata Power Solar PV Module", spec: "Spec details coming soon", image: IMAGES.tataPv },
+  { id: "tata-rooftop", category: "solar-panel", brand: "Tata Power Solar", name: "Tata Power Solar On-Grid Rooftop Power Plant", spec: "Spec details coming soon", image: IMAGES.tataRooftop },
+  { id: "adani-bifacial", category: "solar-panel", brand: "Adani", name: "Adani Bifacial Solar Panel", spec: "Spec details coming soon", image: IMAGES.adaniPanel },
+  { id: "waaree-1", category: "solar-panel", brand: "Waaree", name: "Waaree Solar Panel", spec: "Spec details coming soon", image: IMAGES.waaree1 },
+  { id: "waaree-2", category: "solar-panel", brand: "Waaree", name: "Waaree Solar Panel Range", spec: "Spec details coming soon", image: IMAGES.waaree2 },
 
-  // Inverter
-  {
-    id: "microtek-inverter",
-    category: "inverter",
-    brand: "Microtek",
-    name: "Microtek Solar Inverter",
-    spec: "Spec details coming soon",
-    image: IMAGES.microtekInverter,
-  },
+  // ── Inverters ──
+  { id: "microtek-inverter", category: "inverter", brand: "Microtek", name: "Microtek Solar Inverter", spec: "Spec details coming soon", image: IMAGES.microtekInverter },
+  { id: "luminous-inverter", category: "inverter", brand: "Luminous", name: "Luminous Solar Inverter", spec: "Spec details coming soon", image: IMAGES.luminousInverter },
 
-  // Battery
-  {
-    id: "luminous-battery",
-    category: "battery",
-    brand: "Luminous",
-    name: "Luminous Solar Battery",
-    spec: "Spec details coming soon",
-    image: IMAGES.luminousBattery,
-  },
-  {
-    id: "microtek-battery",
-    category: "battery",
-    brand: "Microtek",
-    name: "Microtek Battery",
-    spec: "Spec details coming soon",
-    image: IMAGES.microtekBattery,
-  },
+  // ── Batteries ──
+  { id: "luminous-battery", category: "battery", brand: "Luminous", name: "Luminous Solar Battery", spec: "Spec details coming soon", image: IMAGES.luminousBattery },
+  { id: "microtek-battery", category: "battery", brand: "Microtek", name: "Microtek Battery", spec: "Spec details coming soon", image: IMAGES.microtekBattery },
+  { id: "vt-battery", category: "battery", brand: "VT", name: "VT Battery", spec: "Spec details coming soon", image: IMAGES.vtBattery },
 
-  // Cable
-  {
-    id: "microtek-cable",
-    category: "cable",
-    brand: "Microtek",
-    name: "Microtek Solar Cable",
-    spec: "Spec details coming soon",
-    image: IMAGES.microtekCable,
-  },
+  // ── Cables ──
+  { id: "microtek-cable", category: "cable", brand: "Microtek", name: "Microtek Solar Cable", spec: "Spec details coming soon", image: IMAGES.microtekCable },
+  { id: "finolex-dc", category: "cable", brand: "Finolex", name: "Finolex DC Cable", spec: "Spec details coming soon", image: IMAGES.finolexDC },
+  { id: "finolex-ac", category: "cable", brand: "Finolex", name: "Finolex AC Cable", spec: "Spec details coming soon", image: IMAGES.finolexAC },
+  { id: "finolex-earthing", category: "cable", brand: "Finolex", name: "Finolex Earthing Cable", spec: "Spec details coming soon", image: IMAGES.finolexEarthing },
+  { id: "havells-dc", category: "cable", brand: "Havells", name: "Havells DC Cable", spec: "Spec details coming soon", image: IMAGES.havellsDC },
+  { id: "havells-ac", category: "cable", brand: "Havells", name: "Havells AC Cable", spec: "Spec details coming soon", image: IMAGES.havellsAC },
+  { id: "havells-earthing", category: "cable", brand: "Havells", name: "Havells Earthing Cable", spec: "Spec details coming soon", image: IMAGES.havellsEarthing },
+  { id: "polycab-dc", category: "cable", brand: "Polycab", name: "Polycab DC Cable", spec: "Spec details coming soon", image: IMAGES.polycabDC },
+  { id: "polycab-ac", category: "cable", brand: "Polycab", name: "Polycab AC Cable", spec: "Spec details coming soon", image: IMAGES.polycabAC },
+  { id: "polycab-earthing", category: "cable", brand: "Polycab", name: "Polycab Earthing Cable", spec: "Spec details coming soon", image: IMAGES.polycabEarthing },
 
-  // Panel Structure
-  {
-    id: "tata-frame",
-    category: "panel-structure",
-    brand: "Tata",
-    name: "Tata Panel Mounting Structure",
-    spec: "Spec details coming soon",
-    image: IMAGES.tataFrame,
-  },
-  {
-    id: "jsw-frame",
-    category: "panel-structure",
-    brand: "JSW",
-    name: "JSW Panel Mounting Structure",
-    spec: "Spec details coming soon",
-    image: IMAGES.jswFrame,
-  },
-  {
-    id: "jindal-frame",
-    category: "panel-structure",
-    brand: "Jindal",
-    name: "Jindal Panel Mounting Structure",
-    spec: "Spec details coming soon",
-    image: IMAGES.jindalFrame,
-  },
+  // ── Panel Structures ──
+  { id: "tata-frame", category: "panel-structure", brand: "Tata", name: "Tata Panel Mounting Structure", spec: "Spec details coming soon", image: IMAGES.tataFrame },
+  { id: "jsw-frame", category: "panel-structure", brand: "JSW", name: "JSW Panel Mounting Structure", spec: "Spec details coming soon", image: IMAGES.jswFrame },
+  { id: "jindal-frame", category: "panel-structure", brand: "Jindal", name: "Jindal Panel Mounting Structure", spec: "Spec details coming soon", image: IMAGES.jindalFrame },
 ];
 
 export default function Products() {
