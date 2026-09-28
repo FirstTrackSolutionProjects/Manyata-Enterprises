@@ -1969,6 +1969,7 @@ function SubmissionList({ type }) {
   const [items, setItems] = useState([]);
   const [partnerCounts, setPartnerCounts] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [showPartnerCreate, setShowPartnerCreate] = useState(false);
@@ -2018,6 +2019,7 @@ function SubmissionList({ type }) {
       console.error(err);
     } finally {
       setLoading(false);
+      setHasLoaded(true);
     }
   };
 
@@ -2127,7 +2129,7 @@ function SubmissionList({ type }) {
   }), { fromDate, toDate, sortBy, sortOrder, nameKey: isPartners ? "company_name" : isContacts ? "name" : "first_name" });
   const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter)) + Number(Boolean(partnerTypeFilter));
 
-  if (loading)
+  if (loading && !hasLoaded)
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="animate-spin text-amber" />
@@ -2211,7 +2213,10 @@ function SubmissionList({ type }) {
               <td className="p-3 font-mono text-xs whitespace-nowrap">{it.id}</td>
               <td className="p-3 font-semibold text-navy whitespace-nowrap">
                 {isPartners ? (
-                  <><span>{it.company_name || "-"}</span><span className="block text-xs font-normal text-muted">{it.contact_name || "-"}</span></>
+                  <div className="flex items-center gap-3">
+                    {it.documentUrls?.Photo && <img src={it.documentUrls.Photo} alt={`${it.company_name || it.contact_name || "Partner"} profile`} loading="lazy" className="h-10 w-10 shrink-0 rounded-full border border-navy/10 object-cover" />}
+                    <div><span>{it.company_name || "-"}</span><span className="block text-xs font-normal text-muted">{it.contact_name || "-"}</span></div>
+                  </div>
                 ) : it.name ||
                   it.full_name ||
                   it.company_name ||
