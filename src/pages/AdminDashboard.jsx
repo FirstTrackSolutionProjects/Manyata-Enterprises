@@ -1968,6 +1968,8 @@ function SubmissionList({ type }) {
   const isOwner = user?.role === "owner";
   const [items, setItems] = useState([]);
   const [partnerCounts, setPartnerCounts] = useState(null);
+  const [partnerCredentials, setPartnerCredentials] = useState(null);
+  const [credentialsCopied, setCredentialsCopied] = useState(false);
   const [partnerTotal, setPartnerTotal] = useState(0);
   const [partnerPage, setPartnerPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -2067,7 +2069,9 @@ function SubmissionList({ type }) {
       });
       const credentials = response.data?.accountCredentials;
       if (credentials) {
-        window.alert(`Partner approved. Login ID: ${credentials.loginId}\nTemporary password: ${credentials.password}\nShare these credentials with the partner. They must change the password after signing in.`);
+        const approvedPartner = items.find((item) => Number(item.id) === Number(id));
+        setPartnerCredentials({ ...credentials, partnerName: approvedPartner?.company_name || approvedPartner?.contact_name || "Partner" });
+        setCredentialsCopied(false);
       }
       await load();
     } catch (err) {
@@ -2328,6 +2332,24 @@ function SubmissionList({ type }) {
           onSaved={async () => { setSelectedPartner(null); await load(); }}
         />
       )}
+      {isPartners && partnerCredentials && <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-navy/60 p-4" role="presentation">
+        <section role="dialog" aria-modal="true" aria-labelledby="partner-credentials-title" className="w-full max-w-lg rounded-2xl border border-navy/10 bg-white p-6 shadow-2xl">
+          <div className="flex items-start gap-4">
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-emerald-50 text-emerald-700"><KeyRound size={21} /></div>
+            <div className="min-w-0 flex-1"><p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Partner approved</p><h3 id="partner-credentials-title" className="mt-1 text-xl font-extrabold text-navy">Login credentials created</h3><p className="mt-1 text-sm text-muted">{partnerCredentials.partnerName} can now sign in with these details.</p></div>
+            <button onClick={() => setPartnerCredentials(null)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button>
+          </div>
+          <div className="mt-5 space-y-3 rounded-xl border border-navy/10 bg-slate-50 p-4">
+            <div><p className="text-xs font-semibold text-muted">Login ID</p><p className="mt-1 select-all font-mono text-base font-bold text-navy">{partnerCredentials.loginId}</p></div>
+            <div className="border-t border-navy/10 pt-3"><p className="text-xs font-semibold text-muted">Temporary password</p><p className="mt-1 select-all font-mono text-base font-bold text-navy">{partnerCredentials.password}</p></div>
+          </div>
+          <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-navy">Share these credentials privately. The partner will be asked to change the temporary password after signing in.</p>
+          <div className="mt-5 flex flex-col-reverse justify-end gap-2 sm:flex-row">
+            <button onClick={() => setPartnerCredentials(null)} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-bold text-navy hover:bg-slate-50">Close</button>
+            <button onClick={async () => { try { await navigator.clipboard.writeText(`Login ID: ${partnerCredentials.loginId}\nTemporary password: ${partnerCredentials.password}`); setCredentialsCopied(true); } catch { setCredentialsCopied(false); } }} className="inline-flex items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Copy size={15} />{credentialsCopied ? "Copied" : "Copy credentials"}</button>
+          </div>
+        </section>
+      </div>}
     </div>
   );
 }
