@@ -1094,6 +1094,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     department: employee?.department || "",
     permissions: Array.isArray(employee?.permissions) ? employee.permissions : ["applications"],
     actionPermissions: initialActionPermissions,
+    locationPermissions: employee?.locationPermissions || { applications: [], installations: [] },
     userId: employee?.user_id || "",
     address: employee?.address || "",
     city: employee?.city || "",
@@ -1123,6 +1124,17 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     if (action !== "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
     if (action === "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
     return { ...current, permissions, actionPermissions: { ...current.actionPermissions, [module]: next } };
+  });
+
+  const toggleLocationPermission = (module, location, checked) => setForm((current) => {
+    const selected = current.locationPermissions?.[module] || [];
+    return {
+      ...current,
+      locationPermissions: {
+        ...current.locationPermissions,
+        [module]: checked ? [...new Set([...selected, location])] : selected.filter((item) => item !== location),
+      },
+    };
   });
 
   const handleSubmit = async (e) => {
@@ -1264,6 +1276,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
                     <input type="checkbox" checked={form.permissions.includes(value)} onChange={(event) => toggleModule(value, event.target.checked)} className="accent-amber" />
                     {label}
                   </label>
+                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div></div>}
                   {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{[["view", "View"], ["edit", "Edit"], ["download", "Download"]].map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
                 </div>
               ))}
