@@ -392,29 +392,33 @@ export const uploadFilesToS3 = async (folder, fileMap) => {
     filetype: f.type || "application/octet-stream",
   }));
 
-  const res = await getPresignedUploadUrls(folder, files);
-
-  // Backend response ko wrapper se bahar nikalo (data / files / uploads / direct)
-  const presigned = res?.data || res?.files || res?.uploads || res;
-  
-
-  await Promise.all(
-    entries.map(([inputName, f]) => {
+  try {
+    const res = await getPresignedUploadUrls(folder, files);
+    const presigned = res?.data || res?.files || res?.uploads || res;
+    await Promise.all(entries.map(([inputName, file]) => {
       const info = presigned?.[inputName];
-      if (!info?.uploadUrl || !info?.fileKey) {
-        throw new Error(`Presigned URL missing for "${inputName}"`);
-      }
-      return putObjectToS3(
-        info.uploadUrl,
-        f,
-        f.type || "application/octet-stream"
-      );
-    })
-  );
-
-  const result = {};
-  for (const [inputName] of entries) {
-    result[inputName] = presigned[inputName].fileKey;
+      if (!info?.uploadUrl || !info?.fileKey) throw new Error(`Presigned URL missing for "${inputName}"`);
+      return putObjectToS3(info.uploadUrl, file, file.type || "application/octet-stream");
+    }));
+    return Object.fromEntries(entries.map(([inputName]) => [inputName, presigned[inputName].fileKey]));
+  } catch (directUploadError) {
+    console.warn("Direct S3 upload failed; retrying through the API upload endpoint.", directUploadError);
+    const body = new FormData();
+    body.append("folder", folder);
+    entries.forEach(([inputName, file]) => body.append(inputName, file, file.name));
+    let response;
+    try {
+      response = await fetch(`${API_URL}/uploads/proxy`, { method: "POST", credentials: "include", body });
+    } catch {
+      throw new Error("Could not reach the document upload service. Your saved application draft is still available; check the connection and retry.");
+    }
+    let result;
+    try { result = await response.json(); } catch { result = null; }
+    if (!response.ok) throw new Error(result?.message || `Document upload failed (${response.status}). Please retry.`);
+    const uploaded = result?.data || result?.files || result?.uploads || result;
+    if (!uploaded || entries.some(([inputName]) => !uploaded[inputName])) {
+      throw new Error("The server did not confirm every document upload. Please retry before submitting.");
+    }
+    return uploaded;
   }
-  return result;
 };
