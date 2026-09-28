@@ -60,6 +60,7 @@ const readPartnerRoles = (partner) => {
   const primary = normalizePartnerType(partner.partner_type);
   return [...new Set([primary, ...(Array.isArray(roles) ? roles : [])].filter((role) => PARTNER_TYPES.some(([value]) => value === role)))];
 };
+const partnerHasRole = (partner, role) => readPartnerRoles(partner).map(normalizePartnerType).includes(role);
 
 export default function PartnerDetailsModal({ partner, editing, isOwner = false, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
@@ -198,7 +199,7 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
                     setForm({
                       ...form,
                       partnerType,
-                      referredByPartnerId: nextParentType && normalizePartnerType(currentParent?.partner_type) === nextParentType ? form.referredByPartnerId : "",
+                      referredByPartnerId: nextParentType && currentParent && partnerHasRole(currentParent, nextParentType) ? form.referredByPartnerId : "",
                       commissionModel: partnerType === "sub_vendor" ? (form.commissionModel || COMMISSION_MODELS[0][0]) : "",
                     });
                   }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
