@@ -54,7 +54,6 @@ const readAssignedLocations = (partner) => {
 const normalizePartnerType = (type) => type === "sub_vendor_commission" ? "sub_vendor" : type;
 const PARENT_TYPE_BY_PARTNER_TYPE = { vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
 const PARTNER_TYPE_LABELS = { super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" };
-const MULTI_ROLE_NAMES = new Set(["MANYATA ENTERPRISES", "TEJASH PAREKH", "SUDHIR JENA"]);
 const readPartnerRoles = (partner) => {
   let roles = partner.partner_roles || [];
   if (typeof roles === "string") { try { roles = JSON.parse(roles); } catch { roles = []; } }
@@ -62,7 +61,7 @@ const readPartnerRoles = (partner) => {
   return [...new Set([primary, ...(Array.isArray(roles) ? roles : [])].filter((role) => PARTNER_TYPES.some(([value]) => value === role)))];
 };
 
-export default function PartnerDetailsModal({ partner, editing, onClose, onEdit, onSaved }) {
+export default function PartnerDetailsModal({ partner, editing, isOwner = false, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
     partnerType: partner.partner_type === "sub_vendor_commission" ? "sub_vendor" : PARTNER_TYPES.some(([value]) => value === partner.partner_type) ? partner.partner_type : "",
     partnerRoles: readPartnerRoles(partner),
@@ -82,10 +81,11 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
   });
   const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
+  const [savingRoles, setSavingRoles] = useState(false);
   const [error, setError] = useState("");
   const [approvedPartners, setApprovedPartners] = useState([]);
   const [loadingPartners, setLoadingPartners] = useState(false);
-  const canAssignMultipleRoles = [partner.company_name, partner.contact_name].some((name) => MULTI_ROLE_NAMES.has(String(name || "").trim().toUpperCase()));
+  const canAssignMultipleRoles = Boolean(isOwner && editing);
 
   useEffect(() => {
     if (!editing) return undefined;
@@ -135,7 +135,8 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
     try {
       const uploaded = await uploadFilesToS3("partners", files);
       const payload = { ...form, files: uploaded };
-      if (canAssignMultipleRoles) payload.partnerRoles = form.partnerRoles;
+      // Role access is saved separately so it never depends on hierarchy or
+      // unrelated partner form fields being complete.
       if (partnerTypeChanged || referralChanged) payload.referredByPartnerId = form.referredByPartnerId || null;
       else delete payload.referredByPartnerId;
       await updatePartner(partner.id, payload);
@@ -144,6 +145,19 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
       setError(err.message || "Could not update partner details.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const savePartnerRoles = async () => {
+    setSavingRoles(true);
+    setError("");
+    try {
+      await updatePartner(partner.id, { partnerRoles: form.partnerRoles });
+      await onSaved();
+    } catch (err) {
+      setError(err.message || "Could not update partner access.");
+    } finally {
+      setSavingRoles(false);
     }
   };
 
@@ -198,9 +212,9 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                 </>
               ) : type === "partner-roles" ? (
                 <>
-                  <p className="mt-1 text-xs font-normal text-muted">Owner can assign these extra roles to you.</p>
+                  <p className="mt-1 text-xs font-normal text-muted">Owner can assign one or more roles to this partner. The primary Partner Type and referral chain stay unchanged.</p>
                   <span className="mt-2 grid gap-2 sm:grid-cols-3">
-                    {PARTNER_TYPES.filter(([value]) => value !== "dealer").map(([value, optionLabel]) => {
+                    {PARTNER_TYPES.map(([value, optionLabel]) => {
                       const isPrimary = normalizePartnerType(partner.partner_type) === value;
                       return <label key={value} className="flex items-center gap-2 rounded-lg border border-navy/10 p-3 text-sm font-normal text-navy">
                         <input type="checkbox" checked={form.partnerRoles.includes(value)} disabled={isPrimary} onChange={() => setForm({ ...form, partnerRoles: form.partnerRoles.includes(value) ? form.partnerRoles.filter((role) => role !== value) : [...form.partnerRoles, value] })} className="accent-amber" />
@@ -208,6 +222,9 @@ export default function PartnerDetailsModal({ partner, editing, onClose, onEdit,
                       </label>;
                     })}
                   </span>
+                  <button type="button" onClick={savePartnerRoles} disabled={savingRoles} className="mt-3 rounded-full border border-amber px-4 py-2 text-xs font-bold text-navy hover:bg-amber-soft disabled:opacity-50">
+                    {savingRoles ? "Saving access..." : "Save Role Access"}
+                  </button>
                 </>
               ) : type === "gender" ? (
                 <select value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">

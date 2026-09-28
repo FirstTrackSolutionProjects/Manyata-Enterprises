@@ -228,7 +228,7 @@ export default function PartnerDetail() {
 
       {error && <p role="alert" className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="mb-4 rounded-lg bg-green-50 p-3 text-sm text-green-800">{notice}</p>}
-      {editOpen && <PartnerDetailsModal partner={partner} editing onClose={() => setEditOpen(false)} onEdit={() => {}} onSaved={async () => { setEditOpen(false); await load(); }} />}
+      {editOpen && <PartnerDetailsModal partner={partner} editing isOwner={isOwner} onClose={() => setEditOpen(false)} onEdit={() => {}} onSaved={async () => { setEditOpen(false); await load(); }} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

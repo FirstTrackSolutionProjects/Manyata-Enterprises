@@ -2221,6 +2221,7 @@ function SubmissionList({ type }) {
           key={`${selectedPartner.partner.id}-${selectedPartner.editing ? "edit" : "view"}`}
           partner={selectedPartner.partner}
           editing={selectedPartner.editing}
+          isOwner={isOwner}
           onClose={() => setSelectedPartner(null)}
           onEdit={() => setSelectedPartner({ ...selectedPartner, editing: true })}
           onSaved={async () => { setSelectedPartner(null); await load(); }}
