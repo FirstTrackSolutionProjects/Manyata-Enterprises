@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, Clock3, Loader2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CalendarDays, Check, ChevronDown, Clock3, Loader2, X } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import {
   cancelMyLeaveRequest,
@@ -22,6 +22,57 @@ const STATUSES = { pending: "Pending review", approved: "Approved", rejected: "R
 const isHR = (user) => String(user?.name || "").trim().toLowerCase() === "tejash parekh";
 const inputDate = (value) => value ? String(value).slice(0, 10) : "";
 const dateLabel = (value) => value ? new Date(`${inputDate(value)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
+
+function LeaveTypeSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const rootRef = useRef(null);
+  const options = Object.entries(TYPES);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
+
+  const handleKeyDown = (event) => {
+    if (["ArrowDown", "ArrowUp", "Enter", " "].includes(event.key)) event.preventDefault();
+    if (event.key === "Escape") { setOpen(false); return; }
+    if (event.key === "ArrowDown") {
+      if (!open) { setActiveIndex(Math.max(0, options.findIndex(([key]) => key === value))); setOpen(true); }
+      else setActiveIndex((index) => (index + 1) % options.length);
+    } else if (event.key === "ArrowUp") {
+      if (!open) { setActiveIndex(Math.max(0, options.findIndex(([key]) => key === value))); setOpen(true); }
+      else setActiveIndex((index) => (index - 1 + options.length) % options.length);
+    } else if (event.key === "Enter" || event.key === " ") {
+      if (!open) {
+        setActiveIndex(Math.max(0, options.findIndex(([key]) => key === value)));
+        setOpen(true);
+      } else {
+        const option = options[activeIndex];
+        if (option) onChange(option[0]);
+        setOpen(false);
+      }
+    }
+  };
+
+  return <div className="relative mt-1" ref={rootRef}>
+    <button type="button" aria-haspopup="listbox" aria-expanded={open} onKeyDown={handleKeyDown} onClick={() => {
+      setActiveIndex(Math.max(0, options.findIndex(([key]) => key === value)));
+      setOpen((current) => !current);
+    }} className="flex w-full items-center justify-between rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-left text-sm text-navy outline-none transition focus:border-amber focus:ring-2 focus:ring-amber/20">
+      <span>{TYPES[value] || "Select leave type"}</span><ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}/>
+    </button>
+    {open && <div role="listbox" aria-label="Leave type" className="absolute left-0 right-0 top-full z-30 mt-1 max-h-60 overflow-y-auto overscroll-contain rounded-xl border border-navy/10 bg-white p-1 shadow-xl">
+      {options.map(([key, label], index) => <button key={key} type="button" role="option" aria-selected={value === key} onMouseEnter={() => setActiveIndex(index)} onClick={() => { onChange(key); setOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm ${activeIndex === index ? "bg-amber/15 text-navy" : "text-navy hover:bg-slate-50"}`}>
+        <span>{label}</span>{value === key && <Check size={16} className="text-amber"/>}
+      </button>)}
+    </div>}
+  </div>;
+}
 
 export default function LeaveRequests() {
   const { user } = useAuth();
@@ -110,7 +161,7 @@ export default function LeaveRequests() {
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-navy/10 bg-white p-5">
         <div><h2 className="flex items-center gap-2 font-bold text-navy"><CalendarDays size={18} className="text-amber"/>{editingId ? "Edit leave request" : "Request leave"}</h2><p className="mt-1 text-xs text-muted">Requests go to the owner and HR, Tejash Parekh. Select the closest applicable category; approval remains subject to company policy. Duration uses calendar days; half-day leave is available for one date.</p></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="text-xs font-semibold text-muted">Leave type<select value={form.leaveType} onChange={(e) => setForm({ ...form, leaveType: e.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy">{Object.entries(TYPES).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+          <div className="text-xs font-semibold text-muted"><span>Leave type</span><LeaveTypeSelect value={form.leaveType} onChange={(leaveType) => setForm({ ...form, leaveType })}/></div>
           <label className="text-xs font-semibold text-muted">Start date<input required type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value, ...(form.endDate && e.target.value > form.endDate ? { endDate: e.target.value } : {}) })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy"/></label>
           <label className="text-xs font-semibold text-muted">End date<input required type="date" min={form.startDate || undefined} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy"/></label>
           <label className="text-xs font-semibold text-muted">Duration<select value={form.dayPart} onChange={(e) => setForm({ ...form, dayPart: e.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"><option value="full_day">Full day(s)</option><option value="first_half">First half</option><option value="second_half">Second half</option></select></label>
