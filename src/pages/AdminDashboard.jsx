@@ -84,7 +84,7 @@ export default function AdminDashboard() {
       activeSection={tab}
       onSectionChange={handleSectionChange}
     >
-      {!hasAccess || (tab === "overview" && user?.role !== "owner") ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">Owner ne abhi tak aapko kisi dashboard section ka access nahi diya hai.</div> : null}
+      {!hasAccess || (tab === "overview" && user?.role !== "owner") ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">The owner has not granted you access to any dashboard sections yet.</div> : null}
       {hasAccess && tab === "overview" && <OverviewTab />}
       {hasAccess && tab === "applications" && <ApplicationsTab />}
       {hasAccess && tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}

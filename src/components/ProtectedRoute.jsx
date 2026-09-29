@@ -35,7 +35,7 @@ export default function ProtectedRoute({ children, roles = [], permission }) {
       <div className="flex min-h-[60vh] items-center justify-center bg-offwhite px-5">
         <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">
           <h2 className="text-lg font-bold text-red-700">Access Denied</h2>
-          <p className="mt-2 text-sm text-red-600">Owner ne aapko is section ka access nahi diya hai.</p>
+          <p className="mt-2 text-sm text-red-600">The owner has not granted you access to this section.</p>
         </div>
       </div>
     );
