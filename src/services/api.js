@@ -102,6 +102,7 @@ export const deleteEmployee = (id) =>
 
 export const generateEmployeeSalarySlip = (payload) =>
   apiFetch("/salaries", { method: "POST", body: JSON.stringify(payload) });
+export const getSalaryEmployees = () => apiFetch("/salaries/employees");
 export const getMySalarySlips = () => apiFetch("/salaries/my");
 export const downloadSalarySlip = async (id) => {
   const response = await fetch(`${API_URL}/salaries/${id}/pdf`, { credentials: "include" });

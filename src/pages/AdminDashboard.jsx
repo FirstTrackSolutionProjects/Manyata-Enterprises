@@ -56,6 +56,7 @@ import {
   resetPartnerPassword,
   downloadCsvExport,
   generateEmployeeSalarySlip,
+  getSalaryEmployees,
   getMySalarySlips,
   downloadSalarySlip,
   listCommissionPayouts,
@@ -68,12 +69,13 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const permissions = user?.permissions || ["applications"];
+  const isHr = user?.role === "employee" && String(user?.name || "").trim().toLowerCase() === "tejash parekh";
   const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
   const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || "no-access");
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
   const hasAccess = user?.role === "owner" || ((requiredModule === "applications" || requiredModule === "installations")
     ? hasActionPermission(user, requiredModule, "view")
-    : ((tab === "salary-slips" || tab === "leave-requests") && user?.role === "employee") ? true : permissions.includes(requiredModule));
+    : ((tab === "salary-slips" || tab === "leave-requests") && user?.role === "employee") || (tab === "salary-management" && isHr) ? true : permissions.includes(requiredModule));
 
   const handleSectionChange = (section) => {
     setSearchParams({ section }, { replace: true });
@@ -92,6 +94,7 @@ export default function AdminDashboard() {
       {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <EmployeeSalarySlipsTab />}
+      {hasAccess && tab === "salary-management" && isHr && <SalaryManagementTab />}
       {hasAccess && tab === "commission-payouts" && user?.role === "owner" && <CommissionPayoutsTab />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
       {hasAccess && tab === "partners" && <PartnersTab />}
@@ -123,6 +126,43 @@ function EmployeeSalarySlipsTab() {
         <div><p className="font-semibold text-navy">{new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(Number(slip.pay_year), Number(slip.pay_month) - 1, 1))}</p><p className="mt-1 text-xs text-muted">Net salary: ₹{Number(slip.net_salary || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
         <button onClick={() => downloadSalarySlip(slip.id).catch((err) => alert(err.message))} className="inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2 text-xs font-bold text-white hover:bg-navy-light"><Download size={14}/>Download PDF</button>
       </div>)}</div>}
+  </section>;
+}
+
+function SalaryManagementTab() {
+  const [employees, setEmployees] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await getSalaryEmployees();
+      setEmployees(response.data?.items || []);
+    } catch (err) {
+      setError(err.message || "Could not load employees for salary management.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => {
+    let active = true;
+    getSalaryEmployees()
+      .then((response) => { if (active) setEmployees(response.data?.items || []); })
+      .catch((err) => { if (active) setError(err.message || "Could not load employees for salary management."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+  const term = search.trim().toLowerCase();
+  const filtered = employees.filter((employee) => [employee.name, employee.user_id, employee.email, employee.department, employee.designation, employee.branch_name]
+    .some((value) => String(value || "").toLowerCase().includes(term)));
+
+  return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Generate or update a monthly salary slip for an active employee.</p></div><div className="flex gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
+    {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : error ? <p className="p-5 text-sm text-red-600">{error}</p> : !filtered.length ? <p className="p-5 text-sm text-muted">No active employees match your search.</p> : <div className="divide-y divide-navy/5">{filtered.map((employee) => <div key={employee.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold text-navy">{employee.name} <span className="font-mono text-xs text-muted">· {employee.user_id}</span></p><p className="mt-1 text-xs text-muted">{employee.designation || "Employee"} · {employee.department || "No department"} · {employee.branch_name || "No branch"}</p></div><button onClick={() => setSelectedEmployee(employee)} className="inline-flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Generate salary</button></div>)}</div>}
+    {selectedEmployee && <SalarySlipModal employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} onGenerate={generateEmployeeSalarySlip}/>}
   </section>;
 }
 

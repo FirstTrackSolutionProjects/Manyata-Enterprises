@@ -61,13 +61,14 @@ export default function DashboardLayout({
       : OWNER_NAV.filter((item) => item.id !== "overview" && (item.id === "applications" || item.id === "installations"
         ? hasActionPermission(user, item.id, "view")
         : (user?.permissions || ["applications"]).includes(item.id)));
+  const isHr = user?.role === "employee" && String(user?.name || "").trim().toLowerCase() === "tejash parekh";
   const NAV_ITEMS = user?.role === "employee" ? [...baseNavItems.map((item) => {
     if (!item.children) return item;
     const module = item.id;
     const allowed = user?.locationPermissions?.[module];
     if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };
     return { ...item, children: item.children.filter((child) => allowed.includes(child.id.endsWith("odisha") ? "odisha" : "west_bengal")) };
-  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }] : baseNavItems;
+  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, ...(isHr ? [{ id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
 
