@@ -1182,17 +1182,35 @@ function EmployeesTab() {
 
 function SalarySlipModal({ employee, onClose, onGenerate }) {
   const now = new Date();
-  const [form, setForm] = useState({ month: String(now.getMonth() + 1), year: String(now.getFullYear()), basicSalary: "", allowances: "0", deductions: "0" });
+  const [form, setForm] = useState({
+    month: String(now.getMonth() + 1), year: String(now.getFullYear()), grossSalary: "",
+    incentive: "0", bonus: "0", employerEpf: "0", employerEsi: "0", termLifeInsurance: "0",
+    healthInsurance: "0", employeeEpf: "0", employeeEsi: "0", professionalTax: "0", advanceSalary: "0",
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const netSalary = Number(form.basicSalary || 0) + Number(form.allowances || 0) - Number(form.deductions || 0);
+  const gross = Number(form.grossSalary || 0);
+  const basic = Math.round(gross * 50) / 100;
+  const hra = Math.round(gross * 40) / 100;
+  const allowance = Math.round((gross - basic - hra) * 100) / 100;
+  const incentive = Number(form.incentive || 0);
+  const bonus = Number(form.bonus || 0);
+  const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0);
+  const totalEarnings = gross + incentive + bonus;
+  const netSalary = totalEarnings - deductions;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const submit = async (event) => {
     event.preventDefault();
     setSaving(true);
     setError("");
     try {
-      await onGenerate({ employeeId: employee.id, month: Number(form.month), year: Number(form.year), basicSalary: Number(form.basicSalary), allowances: Number(form.allowances), deductions: Number(form.deductions) });
+      await onGenerate({
+        employeeId: employee.id, month: Number(form.month), year: Number(form.year), grossSalary: gross,
+        incentive, bonus, employerEpf: Number(form.employerEpf), employerEsi: Number(form.employerEsi),
+        termLifeInsurance: Number(form.termLifeInsurance), healthInsurance: Number(form.healthInsurance),
+        employeeEpf: Number(form.employeeEpf), employeeEsi: Number(form.employeeEsi),
+        professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary),
+      });
       alert("Salary slip generated. The employee can now download it from their dashboard.");
       onClose();
     } catch (err) {
@@ -1202,23 +1220,25 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     }
   };
   const inputClass = "w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm focus:border-amber focus:outline-none";
+  const amountInput = (key, label) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" value={form[key]} onChange={(event) => update(key, event.target.value)} className={`${inputClass} mt-1`} /></label>;
+  const readOnlyAmount = (label, value) => <div key={label} className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] text-muted">{label}</p><p className="mt-1 text-sm font-bold text-navy">Rs. {value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>;
+  const money = (value) => `Rs. ${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-    <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl">
+    <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
       <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-bold text-navy">Generate Salary Slip</h2><p className="mt-1 text-sm text-muted">{employee.name} · {employee.user_id}</p></div><button type="button" onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-slate-100" aria-label="Close"><X size={20} /></button></div>
       <div className="grid grid-cols-2 gap-3">
-        <label className="text-xs font-semibold text-navy/70">Month<select required value={form.month} onChange={(event) => update("month", event.target.value)} className={`${inputClass} mt-1`}>
-          {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(2025, index, 1))}</option>)}
-        </select></label>
+        <label className="text-xs font-semibold text-navy/70">Month<select required value={form.month} onChange={(event) => update("month", event.target.value)} className={`${inputClass} mt-1`}>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(2025, index, 1))}</option>)}</select></label>
         <label className="text-xs font-semibold text-navy/70">Year<input required type="number" min="2000" max="2100" value={form.year} onChange={(event) => update("year", event.target.value)} className={`${inputClass} mt-1`} /></label>
-        {[["basicSalary", "Basic salary"], ["allowances", "Allowances"], ["deductions", "Deductions"]].map(([key, label]) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (₹)<input required type="number" min="0" step="0.01" value={form[key]} onChange={(event) => update(key, event.target.value)} className={`${inputClass} mt-1`} /></label>)}
       </div>
-      <div className="rounded-xl bg-amber-soft p-4"><p className="text-xs font-semibold text-navy/70">Net salary</p><p className="mt-1 text-xl font-extrabold text-navy">₹{netSalary.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
+      <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Basic, HRA and allowance are calculated as 50%, 40% and 10% of gross salary. Incentive and bonus are added separately.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Basic salary · 50%", basic)}{readOnlyAmount("HRA · 40%", hra)}{readOnlyAmount("Allowance · 10%", allowance)}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
+      <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3><p className="mt-1 text-xs text-muted">Shown separately; these amounts are not deducted from employee net pay.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
+      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}{amountInput("advanceSalary", "Advance salary recovery")}</div></section>
+      <div className="grid gap-3 rounded-xl bg-amber-soft p-4 sm:grid-cols-3"><div><p className="text-xs font-semibold text-navy/70">Total earnings</p><p className="mt-1 font-bold text-navy">{money(totalEarnings)}</p></div><div><p className="text-xs font-semibold text-navy/70">Total deductions</p><p className="mt-1 font-bold text-navy">{money(deductions)}</p></div><div><p className="text-xs font-semibold text-navy/70">Net salary payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div></div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !form.basicSalary || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Generating..." : "Generate Slip"}</button></div>
+      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !form.grossSalary || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Generating..." : "Generate Slip"}</button></div>
     </form>
   </div>;
 }
-
 function EmployeeModal({ employee, branches, onClose, onSaved }) {
   const isEdit = !!employee;
   const existingModules = employee?.permissions || ["applications"];
