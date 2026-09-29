@@ -73,7 +73,7 @@ export default function AdminDashboard() {
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
   const hasAccess = user?.role === "owner" || ((requiredModule === "applications" || requiredModule === "installations")
     ? hasActionPermission(user, requiredModule, "view")
-    : tab === "salary-slips" && user?.role === "employee" ? true : permissions.includes(requiredModule));
+    : ((tab === "salary-slips" || tab === "leave-requests") && user?.role === "employee") ? true : permissions.includes(requiredModule));
 
   const handleSectionChange = (section) => {
     setSearchParams({ section }, { replace: true });
@@ -93,7 +93,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <EmployeeSalarySlipsTab />}
       {hasAccess && tab === "commission-payouts" && user?.role === "owner" && <CommissionPayoutsTab />}
-      {hasAccess && tab === "leave-requests" && user?.role === "owner" && <LeaveRequests />}
+      {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}
