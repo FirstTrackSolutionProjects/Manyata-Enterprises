@@ -21,6 +21,7 @@ import {
   Filter,
   RotateCcw,
   Download,
+  Banknote,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
@@ -53,6 +54,9 @@ import {
   downloadApplicationPdf,
   resetPartnerPassword,
   downloadCsvExport,
+  generateEmployeeSalarySlip,
+  getMySalarySlips,
+  downloadSalarySlip,
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
@@ -66,7 +70,7 @@ export default function AdminDashboard() {
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
   const hasAccess = user?.role === "owner" || ((requiredModule === "applications" || requiredModule === "installations")
     ? hasActionPermission(user, requiredModule, "view")
-    : permissions.includes(requiredModule));
+    : tab === "salary-slips" && user?.role === "employee" ? true : permissions.includes(requiredModule));
 
   const handleSectionChange = (section) => {
     setSearchParams({ section }, { replace: true });
@@ -84,6 +88,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
       {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
+      {hasAccess && tab === "salary-slips" && user?.role === "employee" && <EmployeeSalarySlipsTab />}
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}
@@ -92,6 +97,29 @@ export default function AdminDashboard() {
 }
 
 /* ── Overview ─────────────────────────────────────── */
+
+function EmployeeSalarySlipsTab() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    getMySalarySlips()
+      .then((response) => setItems(response.data?.items || []))
+      .catch((err) => setError(err.message || "Could not load salary slips."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+    <div className="flex items-center gap-2 border-b border-navy/10 px-5 py-4"><Banknote size={18} className="text-amber"/><h2 className="font-bold text-navy">My Salary Slips</h2></div>
+    {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div>
+      : error ? <p className="p-5 text-sm text-red-600">{error}</p>
+      : items.length === 0 ? <p className="p-5 text-sm text-muted">No salary slips have been generated for you yet.</p>
+      : <div className="divide-y divide-navy/5">{items.map((slip) => <div key={slip.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <div><p className="font-semibold text-navy">{new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(Number(slip.pay_year), Number(slip.pay_month) - 1, 1))}</p><p className="mt-1 text-xs text-muted">Net salary: ₹{Number(slip.net_salary || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
+        <button onClick={() => downloadSalarySlip(slip.id).catch((err) => alert(err.message))} className="inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2 text-xs font-bold text-white hover:bg-navy-light"><Download size={14}/>Download PDF</button>
+      </div>)}</div>}
+  </section>;
+}
 
 function OverviewTab() {
   const [stats, setStats] = useState(null);
@@ -836,6 +864,7 @@ function EmployeesTab() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [salaryEmployee, setSalaryEmployee] = useState(null);
   const [credentials, setCredentials] = useState(null);
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -1044,6 +1073,13 @@ function EmployeesTab() {
                         <KeyRound size={12} />
                       </button>
                       <button
+                        onClick={() => setSalaryEmployee(u)}
+                        className="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"
+                        title="Generate Salary Slip"
+                      >
+                        <Banknote size={12} /> Salary
+                      </button>
+                      <button
                         onClick={() => handleToggleStatus(u)}
                         className="rounded bg-slate-100 px-2 py-1 text-xs font-semibold hover:bg-slate-200"
                         title={u.status === "active" ? "Suspend" : "Activate"}
@@ -1084,8 +1120,48 @@ function EmployeesTab() {
           onClose={() => setCredentials(null)}
         />
       )}
+      {salaryEmployee && <SalarySlipModal employee={salaryEmployee} onClose={() => setSalaryEmployee(null)} onGenerate={generateEmployeeSalarySlip} />}
     </div>
   );
+}
+
+function SalarySlipModal({ employee, onClose, onGenerate }) {
+  const now = new Date();
+  const [form, setForm] = useState({ month: String(now.getMonth() + 1), year: String(now.getFullYear()), basicSalary: "", allowances: "0", deductions: "0" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const netSalary = Number(form.basicSalary || 0) + Number(form.allowances || 0) - Number(form.deductions || 0);
+  const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const submit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await onGenerate({ employeeId: employee.id, month: Number(form.month), year: Number(form.year), basicSalary: Number(form.basicSalary), allowances: Number(form.allowances), deductions: Number(form.deductions) });
+      alert("Salary slip generated. The employee can now download it from their dashboard.");
+      onClose();
+    } catch (err) {
+      setError(err.message || "Could not generate salary slip.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const inputClass = "w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm focus:border-amber focus:outline-none";
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="w-full max-w-lg space-y-4 rounded-2xl bg-white p-6 shadow-xl">
+      <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-bold text-navy">Generate Salary Slip</h2><p className="mt-1 text-sm text-muted">{employee.name} · {employee.user_id}</p></div><button type="button" onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-slate-100" aria-label="Close"><X size={20} /></button></div>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="text-xs font-semibold text-navy/70">Month<select required value={form.month} onChange={(event) => update("month", event.target.value)} className={`${inputClass} mt-1`}>
+          {Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(2025, index, 1))}</option>)}
+        </select></label>
+        <label className="text-xs font-semibold text-navy/70">Year<input required type="number" min="2000" max="2100" value={form.year} onChange={(event) => update("year", event.target.value)} className={`${inputClass} mt-1`} /></label>
+        {[["basicSalary", "Basic salary"], ["allowances", "Allowances"], ["deductions", "Deductions"]].map(([key, label]) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (₹)<input required type="number" min="0" step="0.01" value={form[key]} onChange={(event) => update(key, event.target.value)} className={`${inputClass} mt-1`} /></label>)}
+      </div>
+      <div className="rounded-xl bg-amber-soft p-4"><p className="text-xs font-semibold text-navy/70">Net salary</p><p className="mt-1 text-xl font-extrabold text-navy">₹{netSalary.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !form.basicSalary || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Generating..." : "Generate Slip"}</button></div>
+    </form>
+  </div>;
 }
 
 function EmployeeModal({ employee, branches, onClose, onSaved }) {

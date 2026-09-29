@@ -100,6 +100,28 @@ export const setUserStatus = (id, status) =>
 export const deleteEmployee = (id) =>
   apiFetch(`/auth/employees/${id}`, { method: "DELETE" });
 
+export const generateEmployeeSalarySlip = (payload) =>
+  apiFetch("/salaries", { method: "POST", body: JSON.stringify(payload) });
+export const getMySalarySlips = () => apiFetch("/salaries/my");
+export const downloadSalarySlip = async (id) => {
+  const response = await fetch(`${API_URL}/salaries/${id}/pdf`, { credentials: "include" });
+  if (!response.ok) {
+    let data = null;
+    try { data = await response.json(); } catch { /* use status fallback */ }
+    throw new Error(data?.message || data?.errors?.[0]?.message || `Salary slip download failed (${response.status}).`);
+  }
+  const blob = await response.blob();
+  const filename = response.headers.get("content-disposition")?.match(/filename="?([^";]+)"?/i)?.[1] || `salary-slip-${id}.pdf`;
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 /* ── Branches ───────────────────────────────────────── */
 
 export const listBranches = (params = {}) => {
