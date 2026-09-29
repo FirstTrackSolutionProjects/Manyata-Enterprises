@@ -57,6 +57,8 @@ import {
   generateEmployeeSalarySlip,
   getMySalarySlips,
   downloadSalarySlip,
+  listCommissionPayouts,
+  updateCommissionPayoutStatus,
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
@@ -89,6 +91,7 @@ export default function AdminDashboard() {
       {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <EmployeeSalarySlipsTab />}
+      {hasAccess && tab === "commission-payouts" && user?.role === "owner" && <CommissionPayoutsTab />}
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}
@@ -118,6 +121,56 @@ function EmployeeSalarySlipsTab() {
         <div><p className="font-semibold text-navy">{new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(Number(slip.pay_year), Number(slip.pay_month) - 1, 1))}</p><p className="mt-1 text-xs text-muted">Net salary: ₹{Number(slip.net_salary || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
         <button onClick={() => downloadSalarySlip(slip.id).catch((err) => alert(err.message))} className="inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2 text-xs font-bold text-white hover:bg-navy-light"><Download size={14}/>Download PDF</button>
       </div>)}</div>}
+  </section>;
+}
+
+function CommissionPayoutsTab() {
+  const [items, setItems] = useState([]);
+  const [status, setStatus] = useState("pending");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState(null);
+  const [error, setError] = useState("");
+  const loadItems = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await listCommissionPayouts({ status, search: search.trim() });
+      setItems(response.data?.items || []);
+    } catch (err) { setError(err.message || "Could not load commission payouts."); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { loadItems(); }, [status]);
+  const update = async (item, nextStatus, paymentReference = "", note = "") => {
+    setSavingId(item.id);
+    setError("");
+    try {
+      await updateCommissionPayoutStatus(item.id, { status: nextStatus, paymentReference, note });
+      await loadItems();
+    } catch (err) { setError(err.message || "Could not update the commission record."); setSavingId(null); }
+    finally { setSavingId(null); }
+  };
+  const approve = (item) => {
+    if (window.confirm(`Confirm ${item.application_no}: installation is complete and the agreed project payment has been received?`)) update(item, "approved");
+  };
+  const markPaid = (item) => {
+    const paymentReference = window.prompt("After transferring this amount outside the app, enter the bank UTR / payment reference:");
+    if (!paymentReference?.trim()) return;
+    update(item, "paid", paymentReference.trim());
+  };
+  const cancel = (item) => {
+    if (!window.confirm(`Cancel the ₹${Number(item.amount).toLocaleString("en-IN")} commission for ${item.recipient_name}?`)) return;
+    const note = window.prompt("Reason for cancellation (optional):") || "";
+    update(item, "cancelled", "", note);
+  };
+  const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Vendor / Partner Commission Payouts</h2><p className="mt-1 text-xs text-muted">Installation-completed projects with an active commission offer.</p></div><div className="flex flex-wrap gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && loadItems()} placeholder="Search project or partner" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={loadItems} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Search</button><select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select></div></div>
+    <p className="border-b border-navy/10 bg-amber-50 px-5 py-3 text-xs text-navy">Review project completion and confirm the customer's agreed payment before approval. Make the transfer through your normal bank/payment method, then mark it paid with its reference.</p>
+    {error && <p role="alert" className="m-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    {loading ? <div className="flex justify-center p-10"><Loader2 className="animate-spin text-amber"/></div>
+      : !items.length ? <p className="p-8 text-center text-sm text-muted">No commission records match this filter. A record is created only when an assigned partner has a configured rate and its project reaches installation completed.</p>
+      : <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs text-muted"><th className="p-3">Project / customer</th><th className="p-3">Payee</th><th className="p-3">Payer</th><th className="p-3">System</th><th className="p-3">Amount</th><th className="p-3">Status / reference</th><th className="p-3">Actions</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5 last:border-0"><td className="p-3"><p className="font-mono text-xs">{item.application_no}</p><p className="mt-1 font-semibold text-navy">{item.customer_name}</p></td><td className="p-3 font-semibold">{item.recipient_name}</td><td className="p-3">{item.payer_name}</td><td className="p-3">{item.system_type === "on_grid" ? "On-Grid" : item.system_type === "hybrid" ? "Hybrid" : item.system_type}</td><td className="p-3 font-bold">{money(item.amount)}</td><td className="p-3"><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold">{item.status}</span>{item.payment_reference && <p className="mt-1 text-xs text-muted">Ref: {item.payment_reference}</p>}</td><td className="p-3"><div className="flex flex-wrap gap-2">{item.status === "pending" && <button disabled={savingId === item.id} onClick={() => approve(item)} className="rounded-full bg-navy px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Approve</button>}{item.status === "approved" && <button disabled={savingId === item.id} onClick={() => markPaid(item)} className="rounded-full bg-amber px-3 py-2 text-xs font-bold text-navy disabled:opacity-50">Mark paid</button>}{["pending", "approved"].includes(item.status) && <button disabled={savingId === item.id} onClick={() => cancel(item)} className="rounded-full border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel</button>}</div></td></tr>)}</tbody></table></div>}
   </section>;
 }
 

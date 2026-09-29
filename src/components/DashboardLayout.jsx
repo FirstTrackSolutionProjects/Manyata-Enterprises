@@ -28,6 +28,7 @@ const OWNER_NAV = [
   { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
   { id: "employees", label: "Employees", icon: Users },
   { id: "partners", label: "Partners", icon: Handshake },
+  { id: "commission-payouts", label: "Commission Payouts", icon: Banknote },
   { id: "branches", label: "Branches", icon: Building2 },
   { id: "submissions", label: "Submissions", icon: Briefcase },
 ];
@@ -52,6 +53,7 @@ export default function DashboardLayout({
     : user?.role === "partner"
       ? [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { id: "commissions", label: "Commission History", icon: Banknote },
           ...(hasActionPermission(user, "applications", "view") ? [{ id: "applications", label: "Applications", icon: FileText }] : []),
         ]
       : OWNER_NAV.filter((item) => item.id !== "overview" && (item.id === "applications" || item.id === "installations"

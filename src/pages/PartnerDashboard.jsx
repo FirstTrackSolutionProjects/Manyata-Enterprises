@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { Building2, FileText, Search, Loader2, Network } from "lucide-react";
+import { Building2, FileText, Search, Loader2, Network, Banknote } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import { useAuth } from "../contexts/AuthContext";
-import { getMyPartnerApplications, getMyPartnerHierarchy, setMyChildPartnerCommission } from "../services/api";
+import { getMyCommissionPayouts, getMyPartnerApplications, getMyPartnerHierarchy, setMyChildPartnerCommission } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
 
@@ -98,12 +98,12 @@ export default function PartnerDashboard() {
 
   return (
     <DashboardLayout
-      title={section === "applications" ? "Applications" : "Partner Dashboard"}
-      subtitle={section === "applications" ? `Applications assigned to ${user?.partnerCompanyName || user?.name}.` : `${partnerType} dashboard`}
+      title={section === "applications" ? "Applications" : section === "commissions" ? "Commission History" : "Partner Dashboard"}
+      subtitle={section === "applications" ? `Applications assigned to ${user?.partnerCompanyName || user?.name}.` : section === "commissions" ? "Your earned, approved, and paid commission records." : `${partnerType} dashboard`}
       activeSection={section}
       onSectionChange={setSection}
     >
-      {section === "dashboard" ? <>
+      {section === "commissions" ? <PartnerCommissionSection /> : section === "dashboard" ? <>
         <div className="mb-6">
           <DashboardWelcome name={user?.partnerCompanyName || user?.name || partnerType} description="Your partner account details and the sections the owner has allowed you to access." />
         </div>
@@ -138,4 +138,34 @@ export default function PartnerDashboard() {
       </> : <div className="rounded-2xl border border-navy/10 bg-white p-6"><p className="text-lg font-bold text-navy">{user?.partnerCompanyName || user?.name}</p><p className="mt-1 text-sm text-muted">Your partner dashboard is ready. The owner will enable any additional sections you need.</p></div>}
     </DashboardLayout>
   );
+}
+
+function PartnerCommissionSection() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    getMyCommissionPayouts().then((response) => {
+      if (active) setItems(response.data?.items || []);
+    }).catch((err) => {
+      if (active) setError(err.message || "Could not load commission history.");
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+  const totalFor = (status) => items.filter((item) => item.status === status).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return <section className="space-y-5">
+    <div className="grid gap-3 sm:grid-cols-3">
+      {[["Pending review", "pending"], ["Approved", "approved"], ["Paid", "paid"]].map(([label, status]) => <div key={status} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 text-xl font-extrabold text-navy">{money(totalFor(status))}</p></div>)}
+    </div>
+    <div className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+      <div className="flex items-center gap-2 border-b border-navy/10 px-5 py-4"><Banknote size={18} className="text-amber"/><h2 className="font-bold text-navy">Commission records</h2></div>
+      {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div>
+        : error ? <p role="alert" className="p-5 text-sm text-red-600">{error}</p>
+        : !items.length ? <p className="p-5 text-sm text-muted">No commission has been recorded yet. It appears after an assigned project reaches installation completed and an applicable commission offer exists.</p>
+        : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs text-muted"><th className="p-3">Project</th><th className="p-3">System</th><th className="p-3">Commission</th><th className="p-3">Status</th><th className="p-3">Payment reference</th><th className="p-3">Recorded</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5 last:border-0"><td className="p-3"><p className="font-mono text-xs">{item.application_no}</p><p className="mt-1 font-semibold text-navy">{item.customer_name || "Customer"}</p><p className="mt-1 text-xs text-muted">Payer: {item.payer_name}</p></td><td className="p-3">{titleCase(item.system_type)}</td><td className="p-3 font-bold text-navy">{money(item.amount)}</td><td className="p-3"><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{titleCase(item.status)}</span></td><td className="p-3 text-xs">{item.payment_reference || "—"}</td><td className="p-3 text-xs text-muted">{formatDateTime(item.created_at)}</td></tr>)}</tbody></table></div>}
+      <p className="border-t border-navy/10 px-5 py-3 text-xs text-muted">Rates are recorded when installation is completed. Paid status means the owner recorded a transfer and its reference.</p>
+    </div>
+  </section>;
 }

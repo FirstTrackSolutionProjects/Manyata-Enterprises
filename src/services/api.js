@@ -307,6 +307,13 @@ export const setMyChildPartnerCommission = (id, commissionRates) =>
     method: "PUT",
     body: JSON.stringify({ commissionRates }),
   });
+export const getMyCommissionPayouts = () => apiFetch("/commission-payouts/my");
+export const listCommissionPayouts = (params = {}) => {
+  const query = new URLSearchParams(params);
+  return apiFetch(`/commission-payouts?${query.toString()}`);
+};
+export const updateCommissionPayoutStatus = (id, payload) =>
+  apiFetch(`/commission-payouts/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {
