@@ -11,7 +11,13 @@ import {
 } from "../services/api";
 
 const EMPTY_FORM = { leaveType: "casual", startDate: "", endDate: "", dayPart: "full_day", reason: "" };
-const TYPES = { casual: "Casual", sick: "Sick", earned: "Earned", unpaid: "Unpaid", other: "Other" };
+const TYPES = {
+  casual: "Casual leave", sick: "Sick leave", medical: "Medical leave", earned: "Earned / privilege leave",
+  unpaid: "Leave without pay", maternity: "Maternity leave", paternity: "Paternity leave",
+  parental: "Parental leave", adoption: "Adoption leave", bereavement: "Bereavement / compassionate leave",
+  marriage: "Marriage leave", compensatory: "Compensatory off", study: "Study / examination leave",
+  sabbatical: "Sabbatical leave", notice_period: "Notice-period / exit leave", other: "Other leave",
+};
 const STATUSES = { pending: "Pending review", approved: "Approved", rejected: "Rejected", cancelled: "Cancelled" };
 const isHR = (user) => String(user?.name || "").trim().toLowerCase() === "tejash parekh";
 const inputDate = (value) => value ? String(value).slice(0, 10) : "";
@@ -102,7 +108,7 @@ export default function LeaveRequests() {
     {isEmployee && <>
       <div className="grid gap-3 sm:grid-cols-3">{cards.map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 text-2xl font-extrabold text-navy">{value}</p></div>)}</div>
       <form onSubmit={submit} className="space-y-4 rounded-2xl border border-navy/10 bg-white p-5">
-        <div><h2 className="flex items-center gap-2 font-bold text-navy"><CalendarDays size={18} className="text-amber"/>{editingId ? "Edit leave request" : "Request leave"}</h2><p className="mt-1 text-xs text-muted">Requests go to the owner and HR, Tejash Parekh. Duration uses calendar days; half-day leave is available for one date.</p></div>
+        <div><h2 className="flex items-center gap-2 font-bold text-navy"><CalendarDays size={18} className="text-amber"/>{editingId ? "Edit leave request" : "Request leave"}</h2><p className="mt-1 text-xs text-muted">Requests go to the owner and HR, Tejash Parekh. Select the closest applicable category; approval remains subject to company policy. Duration uses calendar days; half-day leave is available for one date.</p></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <label className="text-xs font-semibold text-muted">Leave type<select value={form.leaveType} onChange={(e) => setForm({ ...form, leaveType: e.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy">{Object.entries(TYPES).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
           <label className="text-xs font-semibold text-muted">Start date<input required type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value, ...(form.endDate && e.target.value > form.endDate ? { endDate: e.target.value } : {}) })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy"/></label>
