@@ -1,6 +1,10 @@
 export const APPLICATION_STATUSES = [
   { value: "pending", label: "Pending" },
   { value: "verified", label: "Verified" },
+  { value: "customer_cibil_score_low", label: "Customer - CIBIL Score Low" },
+  { value: "customer_side_bank_forward", label: "Customer Side - Bank Forward" },
+  { value: "electricity_bill_mismatch_customer_side_on_process", label: "Electricity Bill Mismatch - Customer Side - On Process" },
+  { value: "electricity_bill_ownership_transfer_customer_side_on_process", label: "Electricity Bill Ownership Transfer - Customer Side - On Process" },
   { value: "electricity_bill_name_mismatch", label: "Electricity Bill - Name Mismatch" },
   { value: "electricity_bill_name_mismatch_completed_successfully", label: "Electricity Bill Name Mismatch – Completed Successfully" },
   { value: "electricity_bill_mismatch_ownership_transfer", label: "Electricity Bill - Ownership Transfer" },
