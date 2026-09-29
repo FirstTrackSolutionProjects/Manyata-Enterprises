@@ -28,6 +28,7 @@ import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
+import LeaveRequests from "../components/LeaveRequests";
 import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -92,6 +93,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <EmployeeSalarySlipsTab />}
       {hasAccess && tab === "commission-payouts" && user?.role === "owner" && <CommissionPayoutsTab />}
+      {hasAccess && tab === "leave-requests" && user?.role === "owner" && <LeaveRequests />}
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}

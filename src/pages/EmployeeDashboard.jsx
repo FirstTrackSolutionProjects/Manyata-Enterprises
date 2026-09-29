@@ -16,6 +16,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { listApplications, downloadApplicationPdf } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
+import LeaveRequests from "../components/LeaveRequests";
 
 const EMPTY_FILTERS = {
   search: "",
@@ -109,6 +110,10 @@ export default function EmployeeDashboard() {
   const activeFilterCount = Object.entries(filters).filter(
     ([k, v]) => v !== "" && v !== EMPTY_FILTERS[k]
   ).length;
+
+  if (tab === "leave-requests") {
+    return <DashboardLayout title="Leave Requests" subtitle="Submit a request and follow its review status." activeSection={tab} onSectionChange={setTab}><LeaveRequests /></DashboardLayout>;
+  }
 
   return (
     <DashboardLayout

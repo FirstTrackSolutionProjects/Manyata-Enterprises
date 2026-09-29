@@ -314,6 +314,15 @@ export const listCommissionPayouts = (params = {}) => {
 };
 export const updateCommissionPayoutStatus = (id, payload) =>
   apiFetch(`/commission-payouts/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) });
+export const getMyLeaveRequests = () => apiFetch("/leave-requests/my");
+export const createMyLeaveRequest = (payload) => apiFetch("/leave-requests", { method: "POST", body: JSON.stringify(payload) });
+export const updateMyLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const cancelMyLeaveRequest = (id) => apiFetch(`/leave-requests/${id}/cancel`, { method: "PATCH", body: JSON.stringify({}) });
+export const getLeaveInbox = (params = {}) => {
+  const query = new URLSearchParams(params);
+  return apiFetch(`/leave-requests/inbox?${query.toString()}`);
+};
+export const decideLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${id}/decision`, { method: "PATCH", body: JSON.stringify(payload) });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {

@@ -16,6 +16,7 @@ import {
   Wrench,
   ChevronDown,
   Banknote,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
@@ -27,6 +28,7 @@ const OWNER_NAV = [
   { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "West Bengal" }] },
   { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
   { id: "employees", label: "Employees", icon: Users },
+  { id: "leave-requests", label: "Leave Requests", icon: CalendarDays },
   { id: "partners", label: "Partners", icon: Handshake },
   { id: "commission-payouts", label: "Commission Payouts", icon: Banknote },
   { id: "branches", label: "Branches", icon: Building2 },
@@ -65,7 +67,7 @@ export default function DashboardLayout({
     const allowed = user?.locationPermissions?.[module];
     if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };
     return { ...item, children: item.children.filter((child) => allowed.includes(child.id.endsWith("odisha") ? "odisha" : "west_bengal")) };
-  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }] : baseNavItems;
+  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }] : baseNavItems;
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
 
