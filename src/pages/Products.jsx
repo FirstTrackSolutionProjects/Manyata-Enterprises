@@ -31,7 +31,7 @@ const IMAGES = {
   vtBattery: img("VT-battery.png"),
 
   // ── Cables ──
-  microtekCable: img("microtek cable.png"),
+ 
   finolexDC: img("finolex dc cable.png"),
   finolexAC: img("finolex-ac.png"),
   finolexEarthing: img("finolex earthing.png"),
@@ -74,7 +74,6 @@ const PRODUCTS = [
   { id: "vt-battery", category: "battery", brand: "VT", name: "VT Battery", spec: "Spec details coming soon", image: IMAGES.vtBattery },
 
   // ── Cables ──
-  { id: "microtek-cable", category: "cable", brand: "Microtek", name: "Microtek Solar Cable", spec: "Spec details coming soon", image: IMAGES.microtekCable },
   { id: "finolex-dc", category: "cable", brand: "Finolex", name: "Finolex DC Cable", spec: "Spec details coming soon", image: IMAGES.finolexDC },
   { id: "finolex-ac", category: "cable", brand: "Finolex", name: "Finolex AC Cable", spec: "Spec details coming soon", image: IMAGES.finolexAC },
   { id: "finolex-earthing", category: "cable", brand: "Finolex", name: "Finolex Earthing Cable", spec: "Spec details coming soon", image: IMAGES.finolexEarthing },
@@ -83,7 +82,7 @@ const PRODUCTS = [
   { id: "havells-earthing", category: "cable", brand: "Havells", name: "Havells Earthing Cable", spec: "Spec details coming soon", image: IMAGES.havellsEarthing },
   { id: "polycab-dc", category: "cable", brand: "Polycab", name: "Polycab DC Cable", spec: "Spec details coming soon", image: IMAGES.polycabDC },
   { id: "polycab-ac", category: "cable", brand: "Polycab", name: "Polycab AC Cable", spec: "Spec details coming soon", image: IMAGES.polycabAC },
-  { id: "polycab-earthing", category: "cable", brand: "Polycab", name: "Polycab Earthing Cable", spec: "Spec details coming soon", image: IMAGES.polycabEarthing },
+  { id: "polycab-earthing", category: "cable", brand: "Polycab", name: "Polycab Earthing Cable 16 Sq Mm", spec: "Spec details coming soon", image: IMAGES.polycabEarthing },
 
   // ── Panel Structures ──
   { id: "tata-frame", category: "panel-structure", brand: "Tata", name: "Tata Panel Mounting Structure", spec: "Spec details coming soon", image: IMAGES.tataFrame },
