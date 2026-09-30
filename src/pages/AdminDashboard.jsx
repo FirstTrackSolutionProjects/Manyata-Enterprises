@@ -941,7 +941,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       ) : (
         <>
           <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-            <table className="w-full min-w-[1000px] text-sm">
+            <table className="w-full min-w-[1450px] text-sm">
               <thead>
                 <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
                   <th className="p-3 whitespace-nowrap">App No</th>
@@ -950,6 +950,9 @@ function ApplicationsTab({ initialLocation = "" }) {
                   <th className="p-3 whitespace-nowrap">Phone</th>
                   <th className="p-3 whitespace-nowrap">Location</th>
                   <th className="p-3 whitespace-nowrap">Branch</th>
+                  <th className="p-3 whitespace-nowrap">Super Vendor</th>
+                  <th className="p-3 whitespace-nowrap">Vendor</th>
+                  <th className="p-3 whitespace-nowrap">Sub Vendor</th>
                   <th className="p-3 whitespace-nowrap">Sales Executive</th>
                   <th className="p-3 whitespace-nowrap">System</th>
                   <th className="p-3 whitespace-nowrap">Status</th>
@@ -972,6 +975,9 @@ function ApplicationsTab({ initialLocation = "" }) {
                     <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{formatApplicationLocation(a.location)}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.branch_name ? a.branch_name.replace(/\bKolkata\b/gi, "West Bengal") : "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.super_vendor_name || "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.vendor_name || "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.sub_vendor_name || "-"}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.sales_executive_name || "-"}</td>
                     <td className="p-3 text-xs capitalize whitespace-nowrap">
                       {a.system_size} · {a.system_type}
