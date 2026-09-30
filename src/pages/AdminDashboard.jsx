@@ -739,7 +739,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         {[
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
-          ["Verified", Number(applicationStatusCounts.verified || 0)],
+          ["Customer - Full Loan Amount Disbursed", Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
           ["Under Review", Number(applicationStatusCounts.under_review || 0)],
@@ -1124,6 +1124,7 @@ function StatusBadge({ status, isPartner = false }) {
     draft: "Draft",
     new: "New",
     reviewed: "Reviewed",
+    stock_forwarded_to_customer_home: "Stock Forwarded to Customer Home",
     shortlisted: "Shortlisted",
     onboarded: "Onboarded",
     rewarded: "Rewarded",
@@ -2179,13 +2180,14 @@ function InstallationsTab({ location }) {
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
-    <div className={`grid grid-cols-2 gap-3 ${location ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
+    <div className={`grid grid-cols-2 gap-3 ${location ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-3"}`}>
       {location ? <>
         {[
           [`Total Installations - ${location === "odisha" ? "Odisha" : "West Bengal"}`, totalInstallationCount],
-          ["Pending", installationStatusCounts.pending],
+          ["Installation Pending", installationStatusCounts.pending],
           ["Reviewed", installationStatusCounts.reviewed],
-          ["Completed", installationStatusCounts.completed],
+          ["Stock Forwarded to Customer Home", installationStatusCounts.stock_forwarded_to_customer_home],
+          [`Total Installation Fully Completed - ${location === "odisha" ? "Odisha" : "West Bengal"}`, installationStatusCounts.completed],
         ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
       </> : <>
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Installations</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalInstallationCount ?? "—"}</p></div>
@@ -2222,7 +2224,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
-      <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "pending", label: "Pending" }, { value: "reviewed", label: "Reviewed" }, { value: "completed", label: "Completed" }]} placeholder="All statuses" />
+      <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={[{ value: "pending", label: "Installation Pending" }, { value: "reviewed", label: "Reviewed" }, { value: "stock_forwarded_to_customer_home", label: "Stock Forwarded to Customer Home" }, { value: "completed", label: "Fully Completed" }]} placeholder="All statuses" />
       <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
       <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />

@@ -35,6 +35,7 @@ export const APPLICATION_STATUSES = [
   { value: "je_verification_approved", label: "JE Verification – Approved" },
   { value: "pending_for_loan_disbursement_phase_2", label: "Pending for Loan Disbursement – Phase 2" },
   { value: "loan_disbursed_phase_2", label: "Loan Disbursed – Phase 2" },
+  { value: "customer_full_loan_amount_disbursed", label: "Customer - Full Loan Amount Disbursed" },
   { value: "consumer_subsidy_pending", label: "Consumer – Subsidy Pending" },
   { value: "consumer_subsidy_disbursed", label: "Consumer – Subsidy Disbursed" },
   { value: "other", label: "Other" },
