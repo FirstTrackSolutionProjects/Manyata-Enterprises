@@ -325,6 +325,7 @@ export const getLeaveInbox = (params = {}) => {
 };
 export const decideLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${id}/decision`, { method: "PATCH", body: JSON.stringify(payload) });
 export const getMyAttendance = (month) => apiFetch(`/attendance/my${month ? `?month=${encodeURIComponent(month)}` : ""}`);
+export const attendancePhotoHref = (id, action) => `${API_URL}/attendance/photo/${encodeURIComponent(id)}/${encodeURIComponent(action)}`;
 export const clockInToAttendance = (payload = {}) => apiFetch("/attendance/clock-in", { method: "POST", body: JSON.stringify(payload) });
 export const clockOutOfAttendance = (payload = {}) => apiFetch("/attendance/clock-out", { method: "POST", body: JSON.stringify(payload) });
 export const startAttendanceBreak = (type = "rest") => apiFetch("/attendance/break/start", { method: "POST", body: JSON.stringify({ type }) });
