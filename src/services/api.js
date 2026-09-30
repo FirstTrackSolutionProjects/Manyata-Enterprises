@@ -368,6 +368,7 @@ export const downloadPartnerAgreement = async (id) => {
 export const downloadPartnerAgreementPdf = (id) => downloadPartnerAgreementFile(id, "pdf");
 
 export const getJoinUsDetail = (id) => apiFetch(`/admin/join-us/${id}`);
+export const createJoinUsSubmission = (payload) => apiFetch("/admin/join-us", { method: "POST", body: JSON.stringify(payload) });
 export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {
   method: "PUT",
   body: JSON.stringify(payload),
@@ -398,6 +399,7 @@ export const updateJoinUsStatus = (id, status, note = "") => apiFetch(`/admin/jo
 });
 
 export const getCareerDetail = (id) => apiFetch(`/admin/careers/${id}`);
+export const createCareerApplication = (payload) => apiFetch("/admin/careers", { method: "POST", body: JSON.stringify(payload) });
 export const updateCareer = (id, payload) => apiFetch(`/admin/careers/${id}`, {
   method: "PUT",
   body: JSON.stringify(payload),

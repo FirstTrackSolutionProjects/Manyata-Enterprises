@@ -32,6 +32,7 @@ import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
+import SubmissionCreateModal from "../components/SubmissionCreateModal";
 import LeaveRequests from "../components/LeaveRequests";
 import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
@@ -2379,6 +2380,7 @@ function SubmissionList({ type }) {
   const [updating, setUpdating] = useState(false);
   const [selectedPartner, setSelectedPartner] = useState(null);
   const [showPartnerCreate, setShowPartnerCreate] = useState(false);
+  const [showSubmissionCreate, setShowSubmissionCreate] = useState(false);
   const [showPartnerOnboard, setShowPartnerOnboard] = useState(false);
   const [onboardItems, setOnboardItems] = useState([]);
   const [onboardLoading, setOnboardLoading] = useState(false);
@@ -2588,6 +2590,7 @@ function SubmissionList({ type }) {
             } catch (error) { window.alert(error.message || "Could not download partners."); }
           }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
           {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
+          {(isCareers || isJoinUs) && isOwner && <button onClick={() => setShowSubmissionCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> {isCareers ? "Add Career Application" : "Add Join-Us Submission"}</button>}
           {isPartners && isOwner && <button onClick={() => { setShowPartnerOnboard(true); setOnboardCredentials(null); setOnboardError(""); setOnboardPartnerId(""); }} className="flex items-center gap-1.5 rounded-full border border-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-soft"><UserCheck size={15} /> Onboard Partner</button>}
       </div>
 
@@ -2711,6 +2714,7 @@ function SubmissionList({ type }) {
         {items.length < partnerTotal && <button onClick={() => load(partnerPage + 1, true)} disabled={loadingMore || loading} className="rounded-full border border-amber bg-white px-6 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft disabled:cursor-wait disabled:opacity-60">{loadingMore ? "Loading..." : "Load More"}</button>}
       </div>}
       {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
+      {(isCareers || isJoinUs) && isOwner && showSubmissionCreate && <SubmissionCreateModal type={type} onClose={() => setShowSubmissionCreate(false)} onSaved={async () => { setShowSubmissionCreate(false); await load(); }} />}
       {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Owner assigns the partner level, referral parent, and login access here.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
         {onboardError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{onboardError}</p>}
         <label className="mt-5 block text-xs font-semibold text-navy/70">New Partner Type<select value={onboardType} onChange={(event) => { setOnboardType(event.target.value); setOnboardPartnerId(""); setOnboardParentId(""); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select></label>
