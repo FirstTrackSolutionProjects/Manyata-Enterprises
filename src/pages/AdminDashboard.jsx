@@ -22,6 +22,10 @@ import {
   RotateCcw,
   Download,
   Banknote,
+  Clock3,
+  LogIn,
+  LogOut,
+  ClipboardList,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
@@ -61,6 +65,10 @@ import {
   downloadSalarySlip,
   listCommissionPayouts,
   updateCommissionPayoutStatus,
+  getMyAttendance,
+  clockInToAttendance,
+  clockOutOfAttendance,
+  getAttendanceRegister,
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
@@ -75,7 +83,7 @@ export default function AdminDashboard() {
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
   const hasAccess = user?.role === "owner" || ((requiredModule === "applications" || requiredModule === "installations")
     ? hasActionPermission(user, requiredModule, "view")
-    : ((tab === "salary-slips" || tab === "leave-requests") && user?.role === "employee") || (tab === "salary-management" && isHr) ? true : permissions.includes(requiredModule));
+    : ((tab === "salary-slips" || tab === "leave-requests" || tab === "attendance") && user?.role === "employee") || ((tab === "salary-management" || tab === "attendance") && isHr) ? true : permissions.includes(requiredModule));
 
   const handleSectionChange = (section) => {
     setSearchParams({ section }, { replace: true });
@@ -97,6 +105,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "salary-management" && isHr && <SalaryManagementTab />}
       {hasAccess && tab === "commission-payouts" && user?.role === "owner" && <CommissionPayoutsTab />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
+      {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceTab isManager={user?.role === "owner" || isHr} />}
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}
@@ -127,6 +136,98 @@ function EmployeeSalarySlipsTab() {
         <button onClick={() => downloadSalarySlip(slip.id).catch((err) => alert(err.message))} className="inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2 text-xs font-bold text-white hover:bg-navy-light"><Download size={14}/>Download PDF</button>
       </div>)}</div>}
   </section>;
+}
+
+const attendanceDateLabel = (value) => value
+  ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })
+  : "—";
+const attendanceTimeLabel = (value) => value
+  ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }).format(new Date(value))
+  : "—";
+const attendanceDateTimeLabel = (value) => value
+  ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(new Date(value))
+  : "—";
+const indiaTodayInput = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+const csvCell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+
+function AttendanceTab({ isManager }) {
+  const { user } = useAuth();
+  const isEmployee = user?.role === "employee";
+  const [mine, setMine] = useState({ today: "", todayRecord: null, openRecord: null, items: [] });
+  const [register, setRegister] = useState({ items: [], summary: {} });
+  const [from, setFrom] = useState(() => `${indiaTodayInput().slice(0, 8)}01`);
+  const [to, setTo] = useState(indiaTodayInput);
+  const [search, setSearch] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const loadMyAttendance = async () => {
+    if (!isEmployee) return;
+    const response = await getMyAttendance();
+    setMine(response.data || { today: "", todayRecord: null, openRecord: null, items: [] });
+  };
+  const loadRegister = async () => {
+    if (!isManager) return;
+    const response = await getAttendanceRegister({ from, to, search: search.trim() });
+    setRegister(response.data || { items: [], summary: {} });
+  };
+  const load = async () => {
+    setLoading(true); setError("");
+    try { await Promise.all([loadMyAttendance(), loadRegister()]); }
+    catch (err) { setError(err.message || "Could not load attendance records."); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const submitPunch = async (action) => {
+    setBusy(true); setError(""); setNotice("");
+    try {
+      if (action === "in") await clockInToAttendance();
+      else await clockOutOfAttendance();
+      setNotice(action === "in" ? "Clock-in recorded successfully." : "Clock-out recorded successfully.");
+      await load();
+    } catch (err) { setError(err.message || "Could not record attendance."); }
+    finally { setBusy(false); }
+  };
+
+  const downloadRegister = () => {
+    const rows = [["Employee", "Employee ID", "Department", "Designation", "Branch", "Attendance date", "Clock in (IST)", "Clock out (IST)", "Hours worked", "Status"]];
+    for (const item of register.items) rows.push([
+      item.employee_name, item.employee_user_id, item.employee_department, item.employee_designation, item.branch_name,
+      item.attendance_date, item.clock_in_at ? attendanceDateTimeLabel(item.clock_in_at) : "",
+      item.clock_out_at ? attendanceDateTimeLabel(item.clock_out_at) : "",
+      item.worked_minutes == null ? "" : (Number(item.worked_minutes) / 60).toFixed(2),
+      item.clock_out_at ? "Complete" : "Open",
+    ]);
+    const blob = new Blob([`\uFEFF${rows.map((row) => row.map(csvCell).join(",")).join("\r\n")}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = `attendance-${from}-to-${to}.csv`; anchor.click(); URL.revokeObjectURL(url);
+  };
+
+  const activePunch = mine.openRecord;
+  const clockedInToday = Boolean(mine.todayRecord);
+  const todayClosed = Boolean(mine.todayRecord?.clock_out_at);
+  const statCard = (label, value, hint = "") => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 text-2xl font-extrabold text-navy">{value}</p>{hint && <p className="mt-1 text-xs text-muted">{hint}</p>}</div>;
+
+  return <div className="space-y-5">
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-extrabold text-navy">Attendance</h1><p className="mt-1 text-sm text-muted">Clock in and out securely, and review timestamped attendance records.</p></div><button onClick={load} disabled={loading} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy disabled:opacity-50">Refresh</button></div>
+    {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+    {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
+
+    {isEmployee && <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+      <div className="rounded-2xl border border-navy/10 bg-white p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Today · {attendanceDateLabel(mine.today || indiaTodayInput())}</p><h2 className="mt-1 text-xl font-bold text-navy">{activePunch ? "Your shift is in progress" : todayClosed ? "Today's attendance is complete" : "Ready to start your day?"}</h2></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${activePunch ? "bg-emerald-50 text-emerald-700" : todayClosed ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{activePunch ? "Clocked in" : todayClosed ? "Complete" : "Not clocked in"}</span></div>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2"><div className="rounded-xl bg-offwhite p-4"><p className="text-xs text-muted">Clock-in time</p><p className="mt-1 font-bold text-navy">{activePunch ? attendanceDateTimeLabel(activePunch.clock_in_at) : attendanceTimeLabel(mine.todayRecord?.clock_in_at)}</p></div><div className="rounded-xl bg-offwhite p-4"><p className="text-xs text-muted">Clock-out time</p><p className="mt-1 font-bold text-navy">{attendanceTimeLabel(mine.todayRecord?.clock_out_at)}</p></div></div>
+        <div className="mt-5 flex flex-wrap gap-3">{activePunch ? <button onClick={() => submitPunch("out")} disabled={busy || loading} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-3 text-sm font-bold text-navy disabled:opacity-50"><LogOut size={17}/>{busy ? "Recording…" : "Clock out"}</button> : <button onClick={() => submitPunch("in")} disabled={busy || loading || clockedInToday} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-3 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50"><LogIn size={17}/>{busy ? "Recording…" : clockedInToday ? "Clock-in already recorded" : "Clock in"}</button>}<p className="self-center text-xs text-muted">Times are recorded by the server in India Standard Time. Do not share your login.</p></div>
+      </div>
+      <div className="rounded-2xl border border-navy/10 bg-white p-5"><div className="flex items-center gap-2"><Clock3 size={18} className="text-amber"/><h2 className="font-bold text-navy">Shift summary</h2></div><p className="mt-4 text-sm text-muted">{activePunch ? `Started at ${attendanceTimeLabel(activePunch.clock_in_at)} IST.` : todayClosed ? `Worked ${Math.floor(Number(mine.todayRecord.worked_minutes || 0) / 60)}h ${Number(mine.todayRecord.worked_minutes || 0) % 60}m.` : "Your shift duration is calculated when you clock out."}</p><p className="mt-3 text-xs text-muted">If you forget to clock out, your record remains open and appears in the HR attendance register for review.</p></div>
+    </section>}
+
+    {isEmployee && <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white"><div className="flex items-center gap-2 border-b border-navy/10 px-5 py-4"><ClipboardList size={18} className="text-amber"/><div><h2 className="font-bold text-navy">My attendance history</h2><p className="mt-0.5 text-xs text-muted">Most recent 90 workdays with exact punch timestamps.</p></div></div>{loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : !mine.items.length ? <p className="p-5 text-sm text-muted">No attendance records yet. Clock in to record your first day.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-offwhite text-xs text-muted"><tr><th className="px-5 py-3">Date</th><th className="px-5 py-3">Clock in</th><th className="px-5 py-3">Clock out</th><th className="px-5 py-3">Hours</th><th className="px-5 py-3">Status</th></tr></thead><tbody className="divide-y divide-navy/5">{mine.items.map((item) => <tr key={item.id}><td className="px-5 py-3 font-semibold text-navy">{attendanceDateLabel(item.attendance_date)}</td><td className="px-5 py-3">{attendanceTimeLabel(item.clock_in_at)} IST</td><td className="px-5 py-3">{item.clock_out_at ? `${attendanceTimeLabel(item.clock_out_at)} IST` : "—"}</td><td className="px-5 py-3">{item.worked_minutes == null ? "—" : `${Math.floor(item.worked_minutes / 60)}h ${item.worked_minutes % 60}m`}</td><td className="px-5 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.clock_out_at ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{item.clock_out_at ? "Complete" : "Open"}</span></td></tr>)}</tbody></table></div>}</section>}
+
+    {isManager && <section className="space-y-4"><div><h2 className="text-xl font-bold text-navy">Attendance register</h2><p className="mt-1 text-sm text-muted">Owner and HR team view of employee punch records.</p></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{statCard("Attendance records", register.summary.records ?? "—")}{statCard("Employees present", register.summary.employees ?? "—")}{statCard("Open shifts", register.summary.open_records ?? "—")}{statCard("Total recorded work", register.summary.total_worked_minutes == null ? "—" : `${(Number(register.summary.total_worked_minutes) / 60).toFixed(1)} h`)}</div><div className="overflow-hidden rounded-2xl border border-navy/10 bg-white"><form onSubmit={(event) => { event.preventDefault(); loadRegister().catch((err) => setError(err.message || "Could not load attendance register.")); }} className="flex flex-wrap items-end gap-3 border-b border-navy/10 p-4"><label className="text-xs font-semibold text-muted">From<input type="date" value={from} onChange={(event) => setFrom(event.target.value)} className="mt-1 block rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" required/></label><label className="text-xs font-semibold text-muted">To<input type="date" value={to} onChange={(event) => setTo(event.target.value)} className="mt-1 block rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" required/></label><label className="min-w-[180px] flex-1 text-xs font-semibold text-muted">Search employees<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Name, employee ID, branch" className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy"/></label><button type="submit" className="rounded-full bg-navy px-4 py-2.5 text-xs font-bold text-white">Apply filters</button><button type="button" onClick={downloadRegister} disabled={!register.items.length} className="inline-flex items-center gap-1.5 rounded-full border border-navy/15 px-4 py-2.5 text-xs font-bold text-navy disabled:opacity-50"><Download size={14}/>Export CSV</button></form>{loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : !register.items.length ? <p className="p-5 text-sm text-muted">No attendance records match these filters.</p> : <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-left text-sm"><thead className="bg-offwhite text-xs text-muted"><tr><th className="px-4 py-3">Employee</th><th className="px-4 py-3">Department / branch</th><th className="px-4 py-3">Date</th><th className="px-4 py-3">Clock in (IST)</th><th className="px-4 py-3">Clock out (IST)</th><th className="px-4 py-3">Hours</th><th className="px-4 py-3">Status</th></tr></thead><tbody className="divide-y divide-navy/5">{register.items.map((item) => <tr key={item.id}><td className="px-4 py-3"><p className="font-semibold text-navy">{item.employee_name}</p><p className="text-xs text-muted">{item.employee_user_id}</p></td><td className="px-4 py-3">{item.employee_department || "—"}<p className="text-xs text-muted">{item.branch_name || "—"}</p></td><td className="px-4 py-3">{attendanceDateLabel(item.attendance_date)}</td><td className="px-4 py-3">{attendanceDateTimeLabel(item.clock_in_at)}</td><td className="px-4 py-3">{attendanceDateTimeLabel(item.clock_out_at)}</td><td className="px-4 py-3">{item.worked_minutes == null ? "—" : `${(Number(item.worked_minutes) / 60).toFixed(2)} h`}</td><td className="px-4 py-3"><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${item.clock_out_at ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>{item.clock_out_at ? "Complete" : "Open"}</span></td></tr>)}</tbody></table></div>}</div></section>}
+  </div>;
 }
 
 function SalaryManagementTab() {

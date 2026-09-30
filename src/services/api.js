@@ -324,6 +324,13 @@ export const getLeaveInbox = (params = {}) => {
   return apiFetch(`/leave-requests/inbox?${query.toString()}`);
 };
 export const decideLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${id}/decision`, { method: "PATCH", body: JSON.stringify(payload) });
+export const getMyAttendance = () => apiFetch("/attendance/my");
+export const clockInToAttendance = (payload = {}) => apiFetch("/attendance/clock-in", { method: "POST", body: JSON.stringify(payload) });
+export const clockOutOfAttendance = (payload = {}) => apiFetch("/attendance/clock-out", { method: "POST", body: JSON.stringify(payload) });
+export const getAttendanceRegister = (params = {}) => {
+  const query = new URLSearchParams(params);
+  return apiFetch(`/attendance/register?${query.toString()}`);
+};
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {
