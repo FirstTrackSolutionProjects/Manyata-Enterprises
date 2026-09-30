@@ -327,12 +327,20 @@ export const decideLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${i
 export const getMyAttendance = (month) => apiFetch(`/attendance/my${month ? `?month=${encodeURIComponent(month)}` : ""}`);
 export const clockInToAttendance = (payload = {}) => apiFetch("/attendance/clock-in", { method: "POST", body: JSON.stringify(payload) });
 export const clockOutOfAttendance = (payload = {}) => apiFetch("/attendance/clock-out", { method: "POST", body: JSON.stringify(payload) });
-export const startAttendanceBreak = () => apiFetch("/attendance/break/start", { method: "POST", body: JSON.stringify({}) });
+export const startAttendanceBreak = (type = "rest") => apiFetch("/attendance/break/start", { method: "POST", body: JSON.stringify({ type }) });
 export const endAttendanceBreak = () => apiFetch("/attendance/break/end", { method: "POST", body: JSON.stringify({}) });
 export const getAttendanceRegister = (params = {}) => {
   const query = new URLSearchParams(params);
   return apiFetch(`/attendance/register?${query.toString()}`);
 };
+export const getAttendanceSettings = () => apiFetch("/attendance/settings");
+export const saveAttendanceSettings = (payload) => apiFetch("/attendance/settings", { method: "PUT", body: JSON.stringify(payload) });
+export const addAttendanceHoliday = (payload) => apiFetch("/attendance/holidays", { method: "POST", body: JSON.stringify(payload) });
+export const removeAttendanceHoliday = (id) => apiFetch(`/attendance/holidays/${id}`, { method: "DELETE" });
+export const getAttendanceCalendar = (params = {}) => apiFetch(`/attendance/calendar?${new URLSearchParams(params).toString()}`);
+export const requestAttendanceCorrection = (payload) => apiFetch("/attendance/corrections", { method: "POST", body: JSON.stringify(payload) });
+export const getAttendanceCorrections = (mine = false, status = "pending") => apiFetch(`/attendance/corrections${mine ? "/my" : `?status=${encodeURIComponent(status)}`}`);
+export const decideAttendanceCorrection = (id, payload) => apiFetch(`/attendance/corrections/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
 const downloadPartnerAgreementFile = async (id, extension) => {
