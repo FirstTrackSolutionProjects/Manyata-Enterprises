@@ -26,6 +26,8 @@ import {
   LogIn,
   LogOut,
   ClipboardList,
+  MapPin,
+  Camera,
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
@@ -1262,6 +1264,7 @@ function EmployeesTab() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [salaryEmployee, setSalaryEmployee] = useState(null);
+  const [trackingEmployee, setTrackingEmployee] = useState(null);
   const [credentials, setCredentials] = useState(null);
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -1463,6 +1466,13 @@ function EmployeesTab() {
                         Edit
                       </button>
                       <button
+                        onClick={() => setTrackingEmployee(u)}
+                        className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 hover:bg-blue-100"
+                        title="View attendance, punch locations and photos"
+                      >
+                        <MapPin size={12} /> Track
+                      </button>
+                      <button
                         onClick={() => handleResetPassword(u)}
                         className="rounded bg-amber-soft px-2 py-1 text-xs font-semibold text-navy hover:bg-amber/30"
                         title="Reset Password"
@@ -1518,8 +1528,51 @@ function EmployeesTab() {
         />
       )}
       {salaryEmployee && <SalarySlipModal employee={salaryEmployee} onClose={() => setSalaryEmployee(null)} onGenerate={generateEmployeeSalarySlip} />}
+      {trackingEmployee && <EmployeeAttendanceModal employee={trackingEmployee} onClose={() => setTrackingEmployee(null)} />}
     </div>
   );
+}
+
+function EmployeeAttendanceModal({ employee, onClose }) {
+  const today = new Date();
+  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const toInputDate = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  const [from, setFrom] = useState(toInputDate(monthStart));
+  const [to, setTo] = useState(toInputDate(today));
+  const [items, setItems] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await getAttendanceRegister({ from, to, search: employee.user_id || employee.name });
+      const data = response.data || {};
+      setItems((data.items || []).filter((item) => Number(item.employee_id) === Number(employee.id)));
+      setEvents((data.events || []).filter((item) => Number(item.employee_id) === Number(employee.id)));
+    } catch (err) {
+      setError(err.message || "Could not load employee attendance.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); }, []);
+  const mapHref = (lat, lng) => `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`;
+  const hasCoordinates = (lat, lng) => lat != null && lng != null && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
+  const clockLabel = (value) => value ? formatDateTime(value) : "—";
+  const eventNames = { clock_in: "Clock in", clock_out: "Clock out", break_start: "Break started", break_end: "Break ended", custom: "Manual update" };
+  return <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-5" onClick={onClose}>
+    <section onClick={(event) => event.stopPropagation()} className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
+      <header className="flex items-start justify-between gap-4 border-b border-navy/10 p-5"><div><h2 className="text-lg font-bold text-navy">Employee attendance &amp; tracking</h2><p className="mt-1 text-sm text-muted">{employee.name} · {employee.user_id} · {employee.branch_name || "No branch"}</p><p className="mt-1 text-xs text-muted">Shows attendance punch history. Map points are captured only when the employee opts in to location sharing.</p></div><button type="button" onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-slate-100" aria-label="Close"><X size={20} /></button></header>
+      <div className="flex flex-wrap items-end gap-3 border-b border-navy/10 p-4"><label className="text-xs font-semibold text-navy/70">From<input type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} className="mt-1 block rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><label className="text-xs font-semibold text-navy/70">To<input type="date" value={to} min={from} max={toInputDate(today)} onChange={(event) => setTo(event.target.value)} className="mt-1 block rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><button type="button" onClick={load} disabled={loading || !from || !to} className="rounded-lg bg-navy px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Refresh</button></div>
+      <div className="space-y-4 overflow-y-auto p-4 sm:p-5">{error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}{loading ? <div className="flex justify-center py-10"><Loader2 className="animate-spin text-amber" /></div> : <>
+        <div className="rounded-xl border border-navy/10"><div className="border-b border-navy/10 px-4 py-3 font-bold text-navy">Punch records</div>{items.length ? <div className="divide-y divide-navy/5">{items.map((item) => <article key={item.id} className="space-y-3 p-4"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-semibold text-navy">{item.attendance_date}</h3><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.clock_out_at ? "bg-green-50 text-green-700" : item.on_break ? "bg-amber-50 text-amber-700" : "bg-blue-50 text-blue-700"}`}>{item.clock_out_at ? "Logged out" : item.on_break ? "On break" : "Logged in"}</span></div><div className="grid gap-3 text-sm sm:grid-cols-2"><p><span className="text-muted">Clock in:</span> <b>{clockLabel(item.clock_in_at)}</b></p><p><span className="text-muted">Clock out:</span> <b>{clockLabel(item.clock_out_at)}</b></p><p><span className="text-muted">Net work:</span> <b>{Math.floor(Number(item.worked_minutes || 0) / 60)}h {Number(item.worked_minutes || 0) % 60}m</b></p><p><span className="text-muted">Break:</span> <b>{Math.floor(Number(item.break_minutes || 0) / 60)}h {Number(item.break_minutes || 0) % 60}m</b></p></div><div className="flex flex-wrap gap-2">{[["Clock-in", item.clock_in_latitude, item.clock_in_longitude, item.clock_in_accuracy_m, item.id, "clock-in"], ["Clock-out", item.clock_out_latitude, item.clock_out_longitude, item.clock_out_accuracy_m, item.id, "clock-out"]].map(([label, lat, lng, accuracy, id, action]) => hasCoordinates(lat, lng) && <a key={`${action}-${id}`} href={mapHref(lat, lng)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-800 hover:bg-blue-100"><MapPin size={13} />{label} map{accuracy != null ? ` · ±${Math.round(Number(accuracy))}m` : ""}</a>)}{item.clock_in_photo_key && <a href={attendancePhotoHref(item.id, "clock-in")} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-amber-soft px-3 py-2 text-xs font-semibold text-navy hover:bg-amber/30"><Camera size={13} />Clock-in photo</a>}{item.clock_out_photo_key && <a href={attendancePhotoHref(item.id, "clock-out")} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg bg-amber-soft px-3 py-2 text-xs font-semibold text-navy hover:bg-amber/30"><Camera size={13} />Clock-out photo</a>}{!hasCoordinates(item.clock_in_latitude, item.clock_in_longitude) && !hasCoordinates(item.clock_out_latitude, item.clock_out_longitude) && <span className="text-xs text-muted">No GPS location shared for these punches.</span>}</div>{item.breaks?.length > 0 && <div className="text-xs text-muted">Breaks: {item.breaks.map((entry, index) => <span key={entry.id}>{index > 0 ? " · " : ""}{entry.break_type}: {clockLabel(entry.break_start_at)} – {clockLabel(entry.break_end_at)}</span>)}</div>}</article>)}</div> : <p className="p-4 text-sm text-muted">No attendance punches found in this date range.</p>}</div>
+        <div className="rounded-xl border border-navy/10"><div className="border-b border-navy/10 px-4 py-3 font-bold text-navy">Attendance events</div>{events.length ? <div className="divide-y divide-navy/5">{events.map((event) => <div key={event.id} className="flex flex-wrap justify-between gap-2 px-4 py-3 text-sm"><span className="font-semibold text-navy">{event.event_label || eventNames[event.event_type] || event.event_type}{event.note ? <span className="block text-xs font-normal text-muted">{event.note}</span> : null}</span><span className="text-xs text-muted">{clockLabel(event.event_at)}{event.entered_by_name ? ` · updated by ${event.entered_by_name}` : ""}</span></div>)}</div> : <p className="p-4 text-sm text-muted">No manually recorded attendance events in this date range.</p>}</div>
+      </>}</div>
+      <footer className="border-t border-navy/10 p-4 text-right"><button type="button" onClick={onClose} className="rounded-lg border border-navy/15 px-4 py-2 text-sm font-semibold text-navy">Close</button></footer>
+    </section>
+  </div>;
 }
 
 function SalarySlipModal({ employee, onClose, onGenerate }) {
