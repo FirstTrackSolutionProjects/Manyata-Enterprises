@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { uploadFilesToS3 } from "../services/api";
 import CameraFileInput from "../components/CameraFileInput";
+import GeoLocationCapture from "../components/GeoLocationCapture";
 import {
   User,
   MapPin,
@@ -76,6 +77,7 @@ export default function JoinUs() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submissionGps, setSubmissionGps] = useState(null);
   const formRef = useRef(null);
 
   const handleChange = (e) => {
@@ -117,7 +119,7 @@ export default function JoinUs() {
       const uploadedFiles = await uploadFilesToS3("join-us", fileMap);
 
       // 3. Submit JSON payload with S3 keys
-      const payload = { ...form, files: uploadedFiles };
+      const payload = { ...form, files: uploadedFiles, siteLatitude: submissionGps?.latitude ?? null, siteLongitude: submissionGps?.longitude ?? null, siteAccuracy: submissionGps?.accuracy ?? null };
       const res = await fetch(`${API_URL}/join-us`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -133,6 +135,7 @@ export default function JoinUs() {
 
       setSubmitSuccess(true);
       setForm(initialState);
+      setSubmissionGps(null);
       formEl?.reset();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -304,6 +307,10 @@ export default function JoinUs() {
                 className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy placeholder:text-muted focus:border-amber focus:outline-none"
               />
             </label>
+          </FormCard>
+
+          <FormCard icon={MapPin} title="Optional Location">
+            <GeoLocationCapture value={submissionGps} onChange={setSubmissionGps} title="Share current location" />
           </FormCard>
 
           {/* Upload CV */}

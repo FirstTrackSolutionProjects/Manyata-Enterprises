@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { submitPartner } from "../services/api";
 import CameraFileInput from "../components/CameraFileInput";
+import GeoLocationCapture from "../components/GeoLocationCapture";
 
 const PARTNER_TYPES = [
   { value: "dealer", label: "Dealer" },
@@ -59,6 +60,7 @@ export default function Partner() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submissionGps, setSubmissionGps] = useState(null);
   const formRef = useRef(null);
 
   const handleChange = (e) => {
@@ -92,10 +94,11 @@ export default function Partner() {
       const uploadedFiles = await uploadFilesToS3("partners", fileMap);
 
       // 3. Submit JSON payload with S3 keys
-      const payload = { ...form, files: uploadedFiles };
+      const payload = { ...form, files: uploadedFiles, siteLatitude: submissionGps?.latitude ?? null, siteLongitude: submissionGps?.longitude ?? null, siteAccuracy: submissionGps?.accuracy ?? null };
       await submitPartner(payload);
       setSubmitSuccess(true);
       setForm(initialState);
+      setSubmissionGps(null);
       formEl?.reset();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -273,6 +276,10 @@ export default function Partner() {
                 placeholder="Enter PIN code"
               />
             </div>
+          </FormCard>
+
+          <FormCard icon={MapPin} title="Optional Location">
+            <GeoLocationCapture value={submissionGps} onChange={setSubmissionGps} title="Share current business location" />
           </FormCard>
 
           <FormCard icon={Upload} title="Documents">

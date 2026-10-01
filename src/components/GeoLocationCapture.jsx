@@ -30,7 +30,7 @@ export default function GeoLocationCapture({ value, onChange, title = "Capture s
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="flex items-center gap-2 text-sm font-semibold text-navy"><MapPin size={16} className="text-amber" />{title}</p>
-          <p className="mt-1 text-xs text-muted">Share your current site location for installation verification. Coordinates are visible to authorized staff.</p>
+          <p className="mt-1 text-xs text-muted">Share your current location with this submission. Coordinates are visible to authorized staff.</p>
         </div>
         <button type="button" onClick={capture} disabled={loading} className="shrink-0 rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy disabled:opacity-60">
           {loading ? "Getting location…" : value ? "Refresh GPS" : "Capture GPS"}

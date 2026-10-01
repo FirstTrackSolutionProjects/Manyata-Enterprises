@@ -256,6 +256,7 @@ export default function PartnerDetail() {
           <InfoSection title="Address" items={[
             ["Address", partner.address], ["City", partner.city], ["State", partner.state], ["PIN Code", partner.pincode],
           ]} />
+          {partner.site_latitude != null && partner.site_longitude != null && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="text-sm font-bold text-navy">Submission GPS</h3><p className="mt-2 text-sm text-muted">Accuracy: {partner.site_accuracy_m ?? "Not recorded"} m</p><a className="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${partner.site_latitude},${partner.site_longitude}`} target="_blank" rel="noreferrer">Open location on map</a></section>}
           <InfoSection title="Bank Details" items={[
             ["Bank Name", partner.bank_name], ["Account Number", partner.account_number], ["IFSC Code", partner.ifsc_code],
           ]} />

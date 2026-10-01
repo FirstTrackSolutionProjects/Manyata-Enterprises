@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { uploadFilesToS3 } from "../services/api";
 import CameraFileInput from "../components/CameraFileInput";
+import GeoLocationCapture from "../components/GeoLocationCapture";
 import {
   User,
   MapPin,
@@ -56,6 +57,7 @@ export default function Career() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submissionGps, setSubmissionGps] = useState(null);
   const formRef = useRef(null);
 
   const handleChange = (e) => {
@@ -84,7 +86,7 @@ export default function Career() {
       const uploadedFiles = await uploadFilesToS3("careers", fileMap);
 
       // 3. Submit JSON payload with S3 keys
-      const payload = { ...form, files: uploadedFiles };
+      const payload = { ...form, files: uploadedFiles, siteLatitude: submissionGps?.latitude ?? null, siteLongitude: submissionGps?.longitude ?? null, siteAccuracy: submissionGps?.accuracy ?? null };
       const res = await fetch(`${API_URL}/careers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,6 +102,7 @@ export default function Career() {
 
       setSubmitSuccess(true);
       setForm(initialState);
+      setSubmissionGps(null);
       formEl?.reset();
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
@@ -212,6 +215,10 @@ export default function Career() {
               <SelectField label="Location" name="location" value={form.location} onChange={handleChange} options={["Odisha", "West Bengal"]} required />
             </div>
           </FormCard>
+          <FormCard icon={MapPin} title="Optional Location">
+            <GeoLocationCapture value={submissionGps} onChange={setSubmissionGps} title="Share current location" />
+          </FormCard>
+
           {/* Upload CV */}
           <FormCard icon={Upload} title="Upload CV">
             <FileUpload label="Resume / CV" name="cv" />
