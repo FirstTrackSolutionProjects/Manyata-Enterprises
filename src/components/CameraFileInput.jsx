@@ -42,10 +42,12 @@ export default function CameraFileInput({ label, name, accept, required = false,
             className="sr-only"
           />
         </label>
-        <label className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-navy/15 bg-white px-3 py-2 text-xs font-semibold text-navy hover:border-amber">
-          <Camera size={15} /> Take photo
-          <input type="file" accept="image/*" capture="environment" onChange={capturePhoto} className="sr-only" />
-        </label>
+        {[{ facing: "user", label: "Front camera" }, { facing: "environment", label: "Rear camera" }].map(({ facing, label }) => (
+          <label key={facing} className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-navy/15 bg-white px-3 py-2 text-xs font-semibold text-navy hover:border-amber">
+            <Camera size={15} /> {label}
+            <input type="file" accept="image/*" capture={facing} onChange={capturePhoto} className="sr-only" />
+          </label>
+        ))}
       </div>
       <p className="mt-1 text-[11px] text-muted">Use your phone camera for a clear document photo.</p>
     </div>

@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import CameraFileInput from "../components/CameraFileInput";
+import GeoLocationCapture from "../components/GeoLocationCapture";
+import { uploadFilesToS3 } from "../services/api";
 import {
   Phone,
   Mail,
@@ -176,6 +179,8 @@ function ContactForm() {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [submissionGps, setSubmissionGps] = useState(null);
+  const [sitePhoto, setSitePhoto] = useState(null);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -201,10 +206,11 @@ function ContactForm() {
 
     setSubmitting(true);
     try {
+      const files = sitePhoto ? await uploadFilesToS3("contacts", { sitePhoto }) : {};
       const res = await fetch(`${import.meta.env.VITE_API_URL}/contacts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({ ...values, files, siteLatitude: submissionGps?.latitude ?? null, siteLongitude: submissionGps?.longitude ?? null, siteAccuracy: submissionGps?.accuracy ?? null }),
       });
       const data = await res.json();
 
@@ -215,6 +221,8 @@ function ContactForm() {
       }
 
       setSubmitted(true);
+      setSubmissionGps(null);
+      setSitePhoto(null);
     } catch (err) {
       setServerError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -296,6 +304,12 @@ function ContactForm() {
           placeholder="Tell us about your rooftop, current bill, or any questions"
           className="w-full rounded-lg border border-navy/15 px-4 py-3 text-sm text-navy placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-amber/50 focus:border-amber transition-shadow"
         />
+      </div>
+
+      <div id="contact-capture" className="scroll-mt-24 space-y-3 rounded-xl border border-navy/10 bg-slate-50 p-4">
+        <div><p className="text-sm font-bold text-navy">GPS location &amp; site photo</p><p className="mt-1 text-xs text-muted">Optional. Share your location and add a site photo using the front or rear camera.</p></div>
+        <GeoLocationCapture value={submissionGps} onChange={setSubmissionGps} title="Share current location" />
+        <CameraFileInput label="Site photo" name="sitePhoto" accept="image/jpeg,image/png,image/webp" onFile={setSitePhoto} />
       </div>
 
       {serverError && (
