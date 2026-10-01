@@ -73,6 +73,7 @@ export default function DashboardLayout({
   }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, { id: "attendance", label: "Attendance", icon: Clock3 }, ...(isHr ? [{ id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
+  const isEmployeeDashboard = user?.role === "employee";
 
   const handleLogout = async () => {
     await logout();
@@ -91,14 +92,14 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen flex bg-offwhite">
+    <div className={`dashboard-layout min-h-screen flex bg-offwhite ${isEmployeeDashboard ? "dashboard-layout--employee" : ""}`}>
       {/* ── Sidebar (desktop + mobile drawer) ──────────────
           - Desktop: sticky, h-screen, self-start → never stretches with content
           - Mobile: fixed drawer with overlay
       */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 transform bg-navy text-white transition-transform duration-200
+          fixed inset-y-0 left-0 z-50 w-[min(16rem,86vw)] transform bg-navy text-white transition-transform duration-200
           lg:sticky lg:top-0 lg:h-screen lg:self-start lg:translate-x-0
           ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
@@ -139,7 +140,7 @@ export default function DashboardLayout({
           </div>
 
           {/* Nav items */}
-          <nav className="flex-1 overflow-y-auto px-3 pb-4">
+          <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
             <ul className="space-y-1">
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
@@ -295,7 +296,7 @@ export default function DashboardLayout({
         )}
 
         <main className="flex-1">
-          <div className="mx-auto max-w-[1400px] px-5 py-6 lg:px-8 lg:py-8">
+          <div className="dashboard-page-content mx-auto max-w-[1400px] px-5 py-6 lg:px-8 lg:py-8">
             {children}
           </div>
         </main>

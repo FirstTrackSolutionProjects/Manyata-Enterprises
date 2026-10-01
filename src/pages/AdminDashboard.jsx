@@ -223,18 +223,27 @@ function AttendanceTab({ isManager }) {
 
   const startPunchCamera = async () => {
     setError("");
+    setNotice("");
     setPunchPhoto("");
     try {
       if (!navigator.mediaDevices?.getUserMedia) throw new Error("Camera access is not supported by this browser. Use a current browser over HTTPS.");
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "user" }, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+      } catch (cameraError) {
+        // Some mobile browsers do not support the facingMode constraint. Retry
+        // with their default camera while still requiring an explicit user tap.
+        if (!["OverconstrainedError", "ConstraintNotSatisfiedError", "NotFoundError"].includes(cameraError.name)) throw cameraError;
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
       setCameraStream(stream);
     } catch (err) {
-      setError(err.name === "NotAllowedError" ? "Camera permission was denied. Allow camera access in your browser settings and try again." : err.message || "Could not start the camera.");
+      setError(err.name === "NotAllowedError" ? "Camera permission was denied. Allow camera access for this site in your browser settings and try again." : err.name === "NotReadableError" ? "The camera is busy in another app. Close other camera apps and try again." : err.message || "Could not start the camera.");
     }
   };
   const capturePunchPhoto = () => {
     const video = videoRef.current;
-    if (!video || video.readyState < 2) { setError("Wait for the camera preview, then capture your photo."); return; }
+    if (!video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) { setError("Wait for the camera preview, then capture your photo."); return; }
     const scale = Math.min(1, 1280 / video.videoWidth);
     const canvas = document.createElement("canvas");
     canvas.width = Math.round(video.videoWidth * scale);
@@ -347,7 +356,7 @@ function AttendanceTab({ isManager }) {
     {isEmployee && <label className="flex items-start gap-3 rounded-xl border border-navy/10 bg-white p-4 text-sm text-navy"><input type="checkbox" checked={useLocation} onChange={(event) => setUseLocation(event.target.checked)} className="mt-1 accent-amber"/><span><strong>Attach location to clock-in/out (optional)</strong><span className="mt-1 block text-xs text-muted">Your browser will ask for permission when you punch. Coordinates are visible to the Owner and HR team. You can clock in without sharing location.</span></span></label>}
 
     {isEmployee && (mine.monthBreaks || []).length > 0 && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h2 className="font-bold text-navy">Break log · {month}</h2><p className="mt-1 text-xs text-muted">Break categories and timestamps recorded during the selected month.</p><div className="mt-3 overflow-x-auto"><table className="w-full min-w-[650px] text-left text-sm"><thead className="bg-offwhite text-xs text-muted"><tr><th className="p-3">Date</th><th className="p-3">Type</th><th className="p-3">Started (IST)</th><th className="p-3">Ended (IST)</th><th className="p-3">Duration</th></tr></thead><tbody>{mine.monthBreaks.map((item) => <tr key={item.id} className="border-t border-navy/5"><td className="p-3">{attendanceDateLabel(item.attendance_date)}</td><td className="p-3 capitalize">{item.break_type}</td><td className="p-3">{attendanceDateTimeLabel(item.break_start_at)}</td><td className="p-3">{attendanceDateTimeLabel(item.break_end_at)}</td><td className="p-3">{item.break_end_at ? `${Math.floor((new Date(item.break_end_at) - new Date(item.break_start_at)) / 60000)} min` : "In progress"}</td></tr>)}</tbody></table></div></section>}
-    {isEmployee && <section className="rounded-2xl border border-navy/10 bg-white p-5"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-navy">Camera attendance photo</h2><p className="mt-1 text-sm text-muted">Capture a live selfie before clocking in or out. The photo is stored privately with that punch.</p></div><div className="flex gap-2">{!cameraStream && <button type="button" onClick={startPunchCamera} disabled={busy || loading || todayClosed} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-bold text-navy disabled:opacity-50">{punchPhoto ? "Retake photo" : "Start camera"}</button>}{cameraStream && <button type="button" onClick={capturePunchPhoto} className="rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy">Capture selfie</button>}</div></div>{cameraStream && <video ref={videoRef} autoPlay playsInline muted className="mt-4 aspect-video max-h-80 w-full rounded-xl bg-navy object-cover" />}{punchPhoto && <div className="mt-4 flex flex-wrap items-center gap-3"><img src={punchPhoto} alt="Captured attendance selfie preview" className="h-24 w-24 rounded-xl border border-navy/10 object-cover"/><p className="text-sm font-semibold text-emerald-700">Photo captured. It will be attached to the next clock-in or clock-out.</p></div>}</section>}
+    {isEmployee && <section className="rounded-2xl border border-navy/10 bg-white p-4 sm:p-5"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><h2 className="font-bold text-navy">Camera attendance photo</h2><p className="mt-1 text-sm text-muted">Capture a live selfie before clocking in or out. The photo is stored privately with that punch.</p></div><div className="flex w-full gap-2 sm:w-auto">{!cameraStream && <button type="button" onClick={startPunchCamera} disabled={busy || loading || todayClosed} className="w-full rounded-full border border-navy/15 px-4 py-3 text-sm font-bold text-navy disabled:opacity-50 sm:w-auto sm:py-2">{punchPhoto ? "Retake photo" : "Start camera"}</button>}{cameraStream && <button type="button" onClick={capturePunchPhoto} className="w-full rounded-full bg-amber px-4 py-3 text-sm font-bold text-navy sm:w-auto sm:py-2">Capture selfie</button>}</div></div>{todayClosed && <p className="mt-2 text-xs text-muted">Today’s attendance is complete. Camera check-in is available on your next working day.</p>}{cameraStream && <video ref={videoRef} autoPlay playsInline muted className="mt-4 aspect-[3/4] max-h-[65svh] w-full rounded-xl bg-navy object-cover sm:aspect-video sm:max-h-80" />}{punchPhoto && <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center"><img src={punchPhoto} alt="Captured attendance selfie preview" className="h-24 w-24 rounded-xl border border-navy/10 object-cover"/><p className="text-sm font-semibold text-emerald-700">Photo captured. It will be attached to the next clock-in or clock-out.</p></div>}</section>}
 
     {isEmployee && <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
       <div className="rounded-2xl border border-navy/10 bg-white p-5 sm:p-6"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-wide text-muted">Today · {attendanceDateLabel(mine.today || indiaTodayInput())}</p><h2 className="mt-1 text-xl font-bold text-navy">{onBreak ? "Your break is in progress" : activePunch ? "Your shift is in progress" : todayClosed ? "Today's attendance is complete" : "Ready to start your day?"}</h2></div><span className={`rounded-full px-3 py-1 text-xs font-bold ${onBreak ? "bg-blue-50 text-blue-700" : activePunch ? "bg-emerald-50 text-emerald-700" : todayClosed ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600"}`}>{onBreak ? "On break" : activePunch ? "Clocked in" : todayClosed ? "Complete" : "Not clocked in"}</span></div>
