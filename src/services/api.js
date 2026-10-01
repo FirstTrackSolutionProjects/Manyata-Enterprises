@@ -85,6 +85,12 @@ export const updateEmployee = (id, payload) =>
     body: JSON.stringify(payload),
   });
 
+export const updateMyEmployeeProfile = (payload) =>
+  apiFetch("/auth/me/profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+
 export const resetEmployeePassword = (id, password) =>
   apiFetch(`/auth/employees/${id}/reset-password`, {
     method: "POST",

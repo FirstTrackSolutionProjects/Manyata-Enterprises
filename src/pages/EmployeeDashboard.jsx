@@ -8,15 +8,18 @@ import {
   Filter,
   RotateCcw,
   Download,
+  UserRoundPen,
+  X,
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import { APPLICATION_STATUSES } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
-import { listApplications, downloadApplicationPdf } from "../services/api";
+import { listApplications, downloadApplicationPdf, updateMyEmployeeProfile, uploadFilesToS3 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
 import LeaveRequests from "../components/LeaveRequests";
+import CameraFileInput from "../components/CameraFileInput";
 
 const EMPTY_FILTERS = {
   search: "",
@@ -31,7 +34,7 @@ const EMPTY_FILTERS = {
 };
 
 export default function EmployeeDashboard() {
-  const { user } = useAuth();
+  const { user, refresh } = useAuth();
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const canEditApplications = hasActionPermission(user, "applications", "edit");
   const canDownloadApplications = hasActionPermission(user, "applications", "download");
@@ -43,6 +46,7 @@ export default function EmployeeDashboard() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [stats, setStats] = useState({ total: 0, verified: 0, submitted: 0 });
+  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const limit = 20;
 
   // Backend exposes both user_id and userId — support both here.
@@ -131,6 +135,11 @@ export default function EmployeeDashboard() {
       </div>
 
       {/* Employee info cards */}
+      <div className="mb-4 flex justify-end">
+        <button onClick={() => setProfileEditorOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-navy/15 bg-white px-4 py-2.5 text-sm font-bold text-navy hover:border-amber">
+          <UserRoundPen size={16} /> Edit my details
+        </button>
+      </div>
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-5">
           <p className="text-xs font-semibold text-muted">Your Branch</p>
@@ -160,6 +169,13 @@ export default function EmployeeDashboard() {
           </p>
         </div>
       </div>
+
+      {profileEditorOpen && <EmployeeProfileModal user={user} onClose={() => setProfileEditorOpen(false)} onSave={async (payload, photo) => {
+        const files = photo ? await uploadFilesToS3("employee-profiles", { profilePhoto: photo }) : {};
+        const result = await updateMyEmployeeProfile({ ...payload, ...(files.profilePhoto ? { profilePhoto: files.profilePhoto } : {}) });
+        await refresh();
+        return result;
+      }} />}
 
       {/* Search + filters */}
       <div className="flex flex-wrap gap-3">
@@ -429,6 +445,54 @@ function FilterSelect({ label, value, onChange, options, placeholder }) {
       </select>
     </label>
   );
+}
+
+function EmployeeProfileModal({ user, onClose, onSave }) {
+  const [form, setForm] = useState({
+    name: user?.name || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    city: user?.city || "",
+    state: user?.state || "",
+    pincode: user?.pincode || "",
+  });
+  const [photo, setPhoto] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const submit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    try {
+      await onSave(form, photo);
+      onClose();
+    } catch (saveError) {
+      setError(saveError.message || "Could not update your details.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const inputClass = "mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy focus:border-amber focus:outline-none";
+  return <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-5" onClick={onClose}>
+    <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl sm:p-6">
+      <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-bold text-navy">Edit my details</h2><p className="mt-1 text-sm text-muted">Correct your personal and contact details. Changes update your employee profile.</p></div><button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1 text-muted hover:bg-slate-100"><X size={20} /></button></div>
+      {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-xs font-semibold text-navy/70">Full name<input required minLength={2} maxLength={120} name="name" value={form.name} onChange={change} className={inputClass} /></label>
+        <label className="text-xs font-semibold text-navy/70">Phone number<input required inputMode="numeric" pattern="[6-9][0-9]{9}" maxLength={10} name="phone" value={form.phone} onChange={change} className={inputClass} /></label>
+        <label className="text-xs font-semibold text-navy/70">Email (managed by Owner)<input disabled value={user?.email || ""} className={`${inputClass} bg-slate-100`} /></label>
+        <label className="text-xs font-semibold text-navy/70">Address<input maxLength={500} name="address" value={form.address} onChange={change} className={inputClass} /></label>
+        <label className="text-xs font-semibold text-navy/70">City / town<input maxLength={80} name="city" value={form.city} onChange={change} className={inputClass} /></label>
+        <label className="text-xs font-semibold text-navy/70">State<input maxLength={80} name="state" value={form.state} onChange={change} className={inputClass} /></label>
+        <label className="text-xs font-semibold text-navy/70">PIN code<input maxLength={12} name="pincode" value={form.pincode} onChange={change} className={inputClass} /></label>
+        <div className="text-xs font-semibold text-navy/70"><span className="mb-1.5 block">Employee ID · Designation · Branch</span><div className="rounded-lg bg-slate-100 px-3 py-2.5 text-sm font-normal text-muted">{user?.userId || user?.user_id || "—"} · {user?.designation || "—"} · {user?.branchName || user?.branch_name || "—"}</div></div>
+      </div>
+      <div className="flex items-center gap-3">{user?.profilePhoto && !photo && <img src={user.profilePhoto} alt="Current profile" className="h-12 w-12 rounded-full object-cover" />}<div className="min-w-0 flex-1"><CameraFileInput label="Profile photo (optional)" name="profilePhoto" accept="image/jpeg,image/png,image/webp" onFile={setPhoto} /></div></div>
+      <p className="text-xs text-muted">Email, employee ID, designation, department, branch and dashboard access are managed by the Owner.</p>
+      <div className="flex justify-end gap-2 border-t border-navy/10 pt-4"><button type="button" onClick={onClose} className="rounded-lg border border-navy/15 px-4 py-2.5 text-sm font-semibold text-navy">Cancel</button><button disabled={saving} className="rounded-lg bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save changes"}</button></div>
+    </form>
+  </div>;
 }
 
 function formatDateTime(value) {
