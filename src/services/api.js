@@ -334,6 +334,7 @@ export const getAttendanceRegister = (params = {}) => {
   const query = new URLSearchParams(params);
   return apiFetch(`/attendance/register?${query.toString()}`);
 };
+export const addManagerAttendanceEvent = (payload) => apiFetch("/attendance/manager-events", { method: "POST", body: JSON.stringify(payload) });
 export const getAttendanceSettings = () => apiFetch("/attendance/settings");
 export const saveAttendanceSettings = (payload) => apiFetch("/attendance/settings", { method: "PUT", body: JSON.stringify(payload) });
 export const addAttendanceHoliday = (payload) => apiFetch("/attendance/holidays", { method: "POST", body: JSON.stringify(payload) });
