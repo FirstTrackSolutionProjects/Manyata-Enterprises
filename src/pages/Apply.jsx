@@ -26,6 +26,7 @@ import {
 import { submitApplication, downloadApplicationPdf, uploadFilesToS3 } from "../services/api";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
 import CameraFileInput from "../components/CameraFileInput";
+import GeoLocationCapture from "../components/GeoLocationCapture";
 
 /* ── Constants ────────────────────────────────────────── */
 
@@ -113,6 +114,7 @@ export default function Apply() {
   const formRef = useRef(null);
 
   const [location, setLocation] = useState("");
+  const [siteGps, setSiteGps] = useState(null);
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(initialState);
   const [submitting, setSubmitting] = useState(false);
@@ -163,8 +165,9 @@ export default function Apply() {
       if (!raw) return;
       const draft = JSON.parse(raw);
       setLocation(draft.location || "");
-      setForm({ ...initialState, ...draft.form });
-      setStep(draft.step || 1);
+        setForm({ ...initialState, ...draft.form });
+        setStep(draft.step || 1);
+        setSiteGps(null);
       setShowResumePrompt(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
@@ -177,6 +180,7 @@ export default function Apply() {
     clearSelectedFiles();
     setForm(initialState);
     setLocation("");
+    setSiteGps(null);
     setStep(1);
     setShowResumePrompt(false);
     if (formRef.current) formRef.current.reset();
@@ -232,6 +236,9 @@ export default function Apply() {
         currentStep: TOTAL_STEPS,
         isComplete: true,
         files: uploadedFiles,
+        siteLatitude: siteGps?.latitude ?? null,
+        siteLongitude: siteGps?.longitude ?? null,
+        siteAccuracy: siteGps?.accuracy ?? null,
       };
       const res = await submitApplication(payload);
       setSubmitted({
@@ -333,7 +340,7 @@ export default function Apply() {
             {step === 10 && (
               <IncomeStep form={form} onChange={handleChange} />
             )}
-            {step === 11 && <SitePhotoStep />}
+            {step === 11 && <SitePhotoStep siteGps={siteGps} onGpsChange={setSiteGps} />}
             {step === 12 && <OtherDocsStep />}
             {step === 13 && <RemarksStep form={form} onChange={handleChange} />}
             {step === 14 && (
@@ -902,15 +909,15 @@ function IncomeStep({ form, onChange }) {
 
 /* ── Step 11: Site Photo ─────────────────────────────── */
 
-function SitePhotoStep() {
+function SitePhotoStep({ siteGps, onGpsChange }) {
   return (
-    <FormCard icon={Camera} title="Site Documentation">
-      <p className="mb-4 text-sm text-muted">
-        Please upload a GPS-tagged photo of your rooftop. This is used to
-        verify installation site feasibility.
+      <FormCard icon={Camera} title="Site Documentation">
+        <p className="mb-4 text-sm text-muted">
+          Upload a rooftop photo and capture the site location for installation verification.
       </p>
       <div className="grid grid-cols-1 gap-4">
         <FileUpload label="GPS Photo (Rooftop)" name="sitePhoto" />
+        <GeoLocationCapture value={siteGps} onChange={onGpsChange} />
       </div>
     </FormCard>
   );

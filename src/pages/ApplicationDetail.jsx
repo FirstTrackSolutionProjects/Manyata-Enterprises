@@ -250,6 +250,11 @@ export default function ApplicationDetail() {
             </div>
           </InfoSection>
 
+          {app.site_latitude != null && app.site_longitude != null && <InfoSection title="Site GPS location">
+            <p className="text-sm text-navy">Accuracy: ±{app.site_accuracy_m ?? "—"} m</p>
+            <a className="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${app.site_latitude},${app.site_longitude}`} target="_blank" rel="noreferrer">Open site on map</a>
+          </InfoSection>}
+
           {app.remarks && (
             <InfoSection title="Customer Remarks">
               <p className="text-sm text-navy">{app.remarks}</p>

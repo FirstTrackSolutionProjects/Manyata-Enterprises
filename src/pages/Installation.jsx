@@ -17,6 +17,7 @@ import {
 import { uploadFilesToS3 } from "../services/api";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
 import CameraFileInput from "../components/CameraFileInput";
+import GeoLocationCapture from "../components/GeoLocationCapture";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -73,6 +74,7 @@ export default function Installation() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
+  const [siteGps, setSiteGps] = useState(null);
 
   /* -------------------------------------------------------
      HANDLERS
@@ -111,7 +113,7 @@ export default function Installation() {
         }
       });
       const uploadedFiles = await uploadFilesToS3("installations", fileMap);
-      const payload = JSON.stringify({ location: selectedLocation, ...form, files: uploadedFiles });
+      const payload = JSON.stringify({ location: selectedLocation, ...form, files: uploadedFiles, siteLatitude: siteGps?.latitude ?? null, siteLongitude: siteGps?.longitude ?? null, siteAccuracy: siteGps?.accuracy ?? null });
 
       const res = await fetch(`${API_URL}/installations`, {
         method: "POST",
@@ -133,6 +135,7 @@ export default function Installation() {
     setSubmitted(false);
     setForm({ ...initialState, state: form.state });
     setFile(null);
+    setSiteGps(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -510,6 +513,7 @@ export default function Installation() {
                 required
               />
             </div>
+            <div className="mt-4"><GeoLocationCapture value={siteGps} onChange={setSiteGps} /></div>
           </FormCard>
 
           {/* Panel Documentation */}

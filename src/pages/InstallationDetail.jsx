@@ -120,7 +120,8 @@ export default function InstallationDetail() {
         <DetailSection title="Customer Details" fields={CUSTOMER_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
         {editing && <PartnerNetworkFields location={form?.location} form={form || {}} onChange={(event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))} />}
         <DetailSection title="Partner & Sales Details" fields={PARTNER_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
-        <DetailSection title="Installation Details" fields={INSTALLATION_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
+      <DetailSection title="Installation Details" fields={INSTALLATION_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
+      {item.site_latitude != null && item.site_longitude != null && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="text-sm font-bold text-navy">Site GPS location</h3><p className="mt-2 text-sm text-muted">Accuracy: ±{item.site_accuracy_m ?? "—"} m</p><a className="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${item.site_latitude},${item.site_longitude}`} target="_blank" rel="noreferrer">Open site on map</a></section>}
         <DetailSection title="Site Address" fields={ADDRESS_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
         <section className="rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="font-bold text-navy">Uploaded Documents</h3>
