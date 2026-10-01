@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2, Save } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { downloadInstallationPdf, getInstallation, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
+import { INSTALLATION_STATUSES, installationStatusLabel } from "../constants/installationStatuses";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
 
@@ -133,11 +134,11 @@ export default function InstallationDetail() {
       <div className="space-y-6">
         <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="font-bold text-navy">Update Status</h3>
-          {canEdit ? <div className="mt-4 space-y-3"><select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-amber bg-white px-3.5 py-2.5 text-sm focus:outline-none"><option value="pending">Installation Pending</option><option value="reviewed">Reviewed</option><option value="stock_forwarded_to_customer_home">Stock Forwarded to Customer Home</option><option value="completed">Fully Completed</option></select><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" /><button onClick={saveStatus} disabled={savingStatus || newStatus === item.status} className="w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{savingStatus ? "Saving..." : "Save Status"}</button></div> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
+          {canEdit ? <div className="mt-4 space-y-3"><select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-amber bg-white px-3.5 py-2.5 text-sm focus:outline-none">{!INSTALLATION_STATUSES.some((status) => status.value === newStatus) && <option value={newStatus}>{installationStatusLabel(newStatus)} (current)</option>}{INSTALLATION_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" /><button onClick={saveStatus} disabled={savingStatus || newStatus === item.status} className="w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{savingStatus ? "Saving..." : "Save Status"}</button></div> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
         </aside>
         <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock size={16} className="text-amber" />Status Timeline</h3>
-          <div className="mt-4 space-y-3">{history.map((entry) => <div key={entry.id} className="border-l-2 border-amber/40 pl-3"><p className="text-xs font-bold capitalize text-navy">{entry.new_status.replace(/_/g, " ")}</p><p className="text-xs text-muted">{dateTime(entry.created_at)}</p><p className="text-xs text-muted">by {entry.changed_by_name || "Customer"}</p>{entry.note && <p className="mt-1 text-xs italic text-muted">{entry.note}</p>}</div>)}</div>
+          <div className="mt-4 space-y-3">{history.map((entry) => <div key={entry.id} className="border-l-2 border-amber/40 pl-3"><p className="text-xs font-bold text-navy">{installationStatusLabel(entry.new_status)}</p><p className="text-xs text-muted">{dateTime(entry.created_at)}</p><p className="text-xs text-muted">by {entry.changed_by_name || "Customer"}</p>{entry.note && <p className="mt-1 text-xs italic text-muted">{entry.note}</p>}</div>)}</div>
         </aside>
       </div>
     </div>
