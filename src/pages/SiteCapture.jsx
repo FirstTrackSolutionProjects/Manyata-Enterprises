@@ -1,22 +1,11 @@
-import { useEffect, useState } from "react";
-import { Camera, Download, MapPin, RotateCcw } from "lucide-react";
+import { useState } from "react";
+import { Camera, MapPin, RotateCcw } from "lucide-react";
+import CameraFileInput from "../components/CameraFileInput";
 
 export default function SiteCapture() {
   const [photo, setPhoto] = useState(null);
   const [gps, setGps] = useState(null);
-  const [facing, setFacing] = useState("environment");
   const [error, setError] = useState("");
-  const [previewUrl, setPreviewUrl] = useState("");
-
-  useEffect(() => {
-    if (!photo) {
-      setPreviewUrl("");
-      return undefined;
-    }
-    const url = URL.createObjectURL(photo);
-    setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
-  }, [photo]);
 
   const captureLocation = () => {
     setError("");
@@ -43,11 +32,7 @@ export default function SiteCapture() {
       {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <section className="space-y-4 rounded-2xl border border-navy/10 bg-white p-5 shadow-sm sm:p-6">
         <div><h2 className="flex items-center gap-2 font-bold text-navy"><Camera size={18} className="text-amber" />Take a photo</h2><p className="mt-1 text-xs text-muted">On mobile, choose the front or rear camera. The photo stays on this device unless you attach it to a form.</p></div>
-        <div className="flex flex-wrap gap-2">
-          {[{ value: "user", label: "Open front camera" }, { value: "environment", label: "Open rear camera" }].map((option) => <button key={option.value} type="button" onClick={() => setFacing(option.value)} className={`rounded-lg border px-4 py-2.5 text-sm font-semibold ${facing === option.value ? "border-amber bg-amber-soft text-navy" : "border-navy/15 text-navy"}`}>{option.label}</button>)}
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-amber px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Camera size={16} />{photo ? "Retake photo" : "Start camera"}<input type="file" accept="image/*" capture={facing} onChange={(event) => { const file = event.target.files?.[0]; if (file) setPhoto(file); event.target.value = ""; }} className="sr-only" /></label>
-        </div>
-        {previewUrl && <div className="max-w-md overflow-hidden rounded-xl border border-navy/10"><img src={previewUrl} alt="Captured site" className="max-h-[420px] w-full object-contain" /><div className="flex flex-wrap items-center justify-between gap-2 border-t border-navy/10 px-3 py-2"><p className="break-all text-xs text-muted">{photo?.name || "Captured photo"}</p><a href={previewUrl} download={photo?.name || "site-photo.jpg"} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"><Download size={14} />Download photo</a></div></div>}
+        <CameraFileInput label="GPS & Camera photo" name="gps-camera-photo" accept="image/jpeg,image/png,image/webp" onFile={setPhoto} />
       </section>
       <section className="space-y-4 rounded-2xl border border-navy/10 bg-white p-5 shadow-sm sm:p-6">
         <div><h2 className="flex items-center gap-2 font-bold text-navy"><MapPin size={18} className="text-amber" />Capture GPS location</h2><p className="mt-1 text-xs text-muted">Your browser will ask for permission. Coordinates are shown only on this page.</p></div>
