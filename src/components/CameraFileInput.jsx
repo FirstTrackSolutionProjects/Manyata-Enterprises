@@ -2,22 +2,37 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Camera, Check, Download, Loader2, RotateCcw, Upload, X } from "lucide-react";
 
 const placeCache = new Map();
+const uniqueParts = (parts) => parts.filter(Boolean).filter((part, index, list) => list.findIndex((value) => value.toLowerCase() === part.toLowerCase()) === index);
+
+const lookupWithPhoton = async ({ latitude, longitude }) => {
+  const params = new URLSearchParams({ lat: latitude, lon: longitude, lang: "en" });
+  const response = await fetch(`https://photon.komoot.io/reverse?${params}`, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(5000) });
+  if (!response.ok) return "";
+  const feature = (await response.json()).features?.[0]?.properties;
+  if (!feature) return "";
+  return uniqueParts([feature.name, feature.street, feature.district, feature.city || feature.locality, feature.state, feature.country]).join(", ").slice(0, 150);
+};
+
 const reverseGeocode = async ({ latitude, longitude }) => {
   const cacheKey = `${latitude.toFixed(4)},${longitude.toFixed(4)}`;
   if (placeCache.has(cacheKey)) return placeCache.get(cacheKey);
   try {
     const params = new URLSearchParams({ format: "jsonv2", lat: latitude, lon: longitude, zoom: "18", addressdetails: "1" });
-    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(4000) });
-    if (!response.ok) return "";
-    const data = await response.json();
-    const address = data.address || {};
-    const parts = [address.house_number, address.road, address.neighbourhood, address.suburb, address.village || address.town || address.city || address.county, address.state_district, address.state]
-      .filter(Boolean).filter((part, index, list) => list.findIndex((value) => value.toLowerCase() === part.toLowerCase()) === index);
-    const place = (parts.join(", ") || data.display_name || "").slice(0, 150);
+    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, { headers: { Accept: "application/json", "Accept-Language": "en" }, signal: AbortSignal.timeout(4000) });
+    const data = response.ok ? await response.json() : null;
+    const address = data?.address || {};
+    const parts = uniqueParts([address.house_number, address.road, address.neighbourhood, address.suburb, address.village || address.town || address.city || address.county, address.state_district, address.state]);
+    const place = (parts.join(", ") || data?.display_name || await lookupWithPhoton({ latitude, longitude })).slice(0, 150);
     if (place) placeCache.set(cacheKey, place);
     return place;
   } catch {
-    return "";
+    try {
+      const place = await lookupWithPhoton({ latitude, longitude });
+      if (place) placeCache.set(cacheKey, place);
+      return place;
+    } catch {
+      return "";
+    }
   }
 };
 
@@ -180,7 +195,7 @@ export default function CameraFileInput({ label, name, accept, required = false,
         <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl">
           <div className="flex items-center justify-between border-b border-navy/10 px-4 py-3"><div><h3 className="font-bold text-navy">{capturedFile ? "Review photo" : `${facing === "user" ? "Front" : "Rear"} camera`}</h3><p className="text-xs text-muted">{capturedFile ? "Check the image before attaching it to the form." : "Position the subject in the frame, then take the photo."}</p></div><button type="button" onClick={stopCamera} className="rounded-lg p-2 text-muted hover:bg-slate-100" aria-label="Close camera"><X size={20} /></button></div>
           {cameraError && <p role="alert" className="mx-4 mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{cameraError}</p>}
-          <div className="bg-black">{capturedFile ? <><img src={reviewUrl} alt="Captured preview" className="max-h-[58vh] w-full object-contain" />{capturedMeta && <div className="space-y-1 bg-slate-50 px-4 py-3 text-xs text-navy"><p className="font-semibold">{capturedMeta.place || "Location name unavailable"}</p><p>{capturedMeta.gps ? `LAT ${Math.abs(capturedMeta.gps.latitude).toFixed(6)}° ${capturedMeta.gps.latitude < 0 ? "S" : "N"} · LON ${Math.abs(capturedMeta.gps.longitude).toFixed(6)}° ${capturedMeta.gps.longitude < 0 ? "W" : "E"} · ±${capturedMeta.gps.accuracy} m` : "GPS coordinates unavailable"}</p><p>{new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(capturedMeta.capturedAt)} IST</p>{capturedMeta.gps && <a href={`https://www.openstreetmap.org/?mlat=${capturedMeta.gps.latitude}&mlon=${capturedMeta.gps.longitude}#map=18/${capturedMeta.gps.latitude}/${capturedMeta.gps.longitude}`} target="_blank" rel="noreferrer" className="inline-block font-semibold text-blue-700 underline">Open map · © OpenStreetMap contributors</a>}</div>}</> : <video ref={videoRef} autoPlay muted playsInline className="max-h-[68vh] min-h-64 w-full object-contain" />}</div>
+          <div className="bg-black">{capturedFile ? <><img src={reviewUrl} alt="Captured preview" className="max-h-[45vh] w-full object-contain" />{capturedMeta && <div className="space-y-1 bg-slate-50 px-4 py-3 text-xs text-navy"><p className="font-semibold">{capturedMeta.place || (capturedMeta.gps ? "Place name unavailable; GPS coordinates captured" : "Location unavailable")}</p><p>{capturedMeta.gps ? `LAT ${Math.abs(capturedMeta.gps.latitude).toFixed(6)}° ${capturedMeta.gps.latitude < 0 ? "S" : "N"} · LON ${Math.abs(capturedMeta.gps.longitude).toFixed(6)}° ${capturedMeta.gps.longitude < 0 ? "W" : "E"} · ±${capturedMeta.gps.accuracy} m` : "GPS coordinates unavailable"}</p><p>{new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(capturedMeta.capturedAt)} IST</p>{capturedMeta.gps && <a href={`https://www.openstreetmap.org/?mlat=${capturedMeta.gps.latitude}&mlon=${capturedMeta.gps.longitude}#map=18/${capturedMeta.gps.latitude}/${capturedMeta.gps.longitude}`} target="_blank" rel="noreferrer" className="inline-block font-semibold text-blue-700 underline">Open map · © OpenStreetMap contributors</a>}</div>}{capturedMeta?.gps && <iframe title="Map showing captured location" src={`https://www.openstreetmap.org/export/embed.html?bbox=${capturedMeta.gps.longitude - 0.01}%2C${capturedMeta.gps.latitude - 0.006}%2C${capturedMeta.gps.longitude + 0.01}%2C${capturedMeta.gps.latitude + 0.006}&layer=mapnik&marker=${capturedMeta.gps.latitude}%2C${capturedMeta.gps.longitude}`} loading="lazy" className="h-52 w-full border-0 bg-slate-100" />}</> : <video ref={videoRef} autoPlay muted playsInline className="max-h-[68vh] min-h-64 w-full object-contain" />}</div>
           <div className="flex flex-wrap justify-center gap-3 p-4">{capturedFile ? <><button type="button" onClick={() => setCapturedFile(null)} className="inline-flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy"><RotateCcw size={16} />Retake</button><button type="button" onClick={useCapturedPhoto} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy"><Check size={16} />Use photo</button></> : <button type="button" disabled={capturing} onClick={capturePhoto} className="inline-flex items-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy disabled:opacity-70">{capturing ? <Loader2 size={17} className="animate-spin" /> : <Camera size={17} />}{capturing ? "Adding date, time & GPS…" : "Take photo"}</button>}</div>
         </div>
       </div>}
