@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { apiFetch, createPartnerRecord, uploadFilesToS3 } from "../services/api";
+import CameraFileInput from "./CameraFileInput";
 
 const SYSTEMS = [
   ["on_grid", "On-Grid System"],
@@ -39,7 +40,8 @@ const INPUTS = [
 ];
 
 const FILES = [
-  ["gstFile", "GST Certificate"], ["panFile", "PAN Card"], ["aadhaarFile", "Aadhaar Card"],
+  ["gstFile", "GST Certificate"], ["panFile", "PAN Card (Front)"], ["panBackFile", "PAN Card (Back)"],
+  ["aadhaarFile", "Aadhaar Card (Front)"], ["aadhaarBackFile", "Aadhaar Card (Back)"],
   ["photoFile", "Partner Photo"],
   ["msmeFile", "MSME Certificate"], ["businessDocFile", "Business Documents"],
   ["chequePassbook", "Cancelled Cheque / Passbook"],
@@ -167,7 +169,7 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
         <section className="mt-5 rounded-xl border border-navy/10 p-4">
           <h3 className="text-sm font-bold text-navy">Documents (optional)</h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            {FILES.map(([name, label]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<span className="mt-1 flex min-w-0 items-center gap-2 rounded-lg border border-dashed border-navy/20 p-2.5 font-normal text-muted"><Upload size={14} /><input type="file" accept={name === "photoFile" ? "image/jpeg,image/png,image/webp" : undefined} onChange={(event) => setFiles((current) => ({ ...current, [name]: event.target.files?.[0] || null }))} className="min-w-0 flex-1 text-xs" /></span>{files[name] && <span className="mt-1 block truncate text-xs font-medium text-emerald-700">Selected: {files[name].name}</span>}</label>)}
+            {FILES.map(([name, label]) => <CameraFileInput key={name} name={name} label={label} accept={name === "photoFile" ? "image/jpeg,image/png,image/webp" : undefined} onFile={(file) => setFiles((current) => ({ ...current, [name]: file }))} />)}
           </div>
         </section>
 

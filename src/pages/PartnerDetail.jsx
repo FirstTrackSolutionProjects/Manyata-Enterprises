@@ -200,7 +200,8 @@ export default function PartnerDetail() {
   if (!partner) return null;
 
   const documents = [
-    ["GST Certificate", "GST"], ["PAN Card", "PAN"], ["Aadhaar", "Aadhaar"],
+    ["GST Certificate", "GST"], ["PAN Card (Front)", "PAN"], ["PAN Card (Back)", "PAN Back"],
+    ["Aadhaar (Front)", "Aadhaar"], ["Aadhaar (Back)", "Aadhaar Back"],
     ["Partner Photo", "Photo"],
     ["MSME Certificate", "MSME"], ["Business Document", "Business Document"],
     ["Cheque / Passbook", "Cheque / Passbook"],

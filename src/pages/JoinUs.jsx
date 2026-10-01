@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { uploadFilesToS3 } from "../services/api";
+import CameraFileInput from "../components/CameraFileInput";
 import {
   User,
   MapPin,
@@ -428,15 +429,5 @@ function RadioOption({ name, value, label, checked, onChange }) {
 }
 
 function FileUpload({ label, name }) {
-  const [filename, setFilename] = useState("");
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-navy/70">{label}</span>
-      <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-xs text-muted transition-colors hover:border-amber hover:text-navy">
-        <Upload size={16} />
-        <span className="min-w-0 truncate">{filename ? `Selected: ${filename}` : "Choose File"}</span>
-        <input type="file" name={name} onChange={(event) => setFilename(event.target.files?.[0]?.name || "")} className="hidden" />
-      </div>
-    </label>
-  );
+  return <CameraFileInput label={label} name={name} />;
 }

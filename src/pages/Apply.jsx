@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { submitApplication, downloadApplicationPdf, uploadFilesToS3 } from "../services/api";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
+import CameraFileInput from "../components/CameraFileInput";
 
 /* ── Constants ────────────────────────────────────────── */
 
@@ -806,11 +807,10 @@ function DocumentsStep() {
         Upload clear photos or PDFs. Max 10 MB each. Accepted: JPG, PNG, WEBP, PDF.
       </p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FileUpload
-          label="Aadhaar Card (Front & Back)"
-          name="aadhaarFront"
-        />
-        <FileUpload label="PAN Card" name="panCard" />
+        <FileUpload label="Aadhaar Card (Front)" name="aadhaarFront" />
+        <FileUpload label="Aadhaar Card (Back)" name="aadhaarBack" />
+        <FileUpload label="PAN Card (Front)" name="panCard" />
+        <FileUpload label="PAN Card (Back)" name="panBack" />
         <FileUpload label="Passport-size Photo" name="photo" />
         <FileUpload label="Signature" name="signature" />
       </div>
@@ -1401,32 +1401,5 @@ function RadioOption({ name, value, label, checked, onChange }) {
 }
 
 function FileUpload({ label, name, required = false }) {
-  const [filename, setFilename] = useState(() => selectedFiles[name]?.name || "");
-
-    const handleChange = (e) => {
-    const f = e.target.files?.[0];
-    setFilename(f ? f.name : "");
-    if (f) selectedFiles[name] = f;
-    else delete selectedFiles[name];
-  };
-
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-navy/70">
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </span>
-      <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-center text-xs text-muted transition-colors hover:border-amber hover:text-navy">
-        <Upload size={16} />
-        <span>{filename ? `Selected: ${filename}` : "Click to upload a file"}</span>
-        <input
-          type="file"
-          name={name}
-          required={required}
-          onChange={handleChange}
-          className="sr-only"
-        />
-      </div>
-    </label>
-  );
+  return <CameraFileInput label={label} name={name} required={required} onFile={(file) => { selectedFiles[name] = file; }} />;
 }

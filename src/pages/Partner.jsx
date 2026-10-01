@@ -13,6 +13,7 @@ import {
   Landmark,
 } from "lucide-react";
 import { submitPartner } from "../services/api";
+import CameraFileInput from "../components/CameraFileInput";
 
 const PARTNER_TYPES = [
   { value: "dealer", label: "Dealer" },
@@ -277,8 +278,10 @@ export default function Partner() {
           <FormCard icon={Upload} title="Documents">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <FileUpload label="GST Certificate" name="gstFile" />
-              <FileUpload label="PAN Card" name="panFile" />
-              <FileUpload label="Aadhaar Card" name="aadhaarFile" />
+              <FileUpload label="PAN Card (Front)" name="panFile" />
+              <FileUpload label="PAN Card (Back)" name="panBackFile" />
+              <FileUpload label="Aadhaar Card (Front)" name="aadhaarFile" />
+              <FileUpload label="Aadhaar Card (Back)" name="aadhaarBackFile" />
               <FileUpload label="Partner Photo" name="photoFile" accept="image/jpeg,image/png,image/webp" />
               <FileUpload label="MSME Certificate" name="msmeFile" />
               <FileUpload label="Business Documents" name="businessDocFile" />
@@ -428,17 +431,5 @@ function SelectField({ label, name, value, onChange, options }) {
 }
 
 function FileUpload({ label, name, accept }) {
-  const [filename, setFilename] = useState("");
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-navy/70">
-        {label}
-      </span>
-      <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-xs text-muted transition-colors hover:border-amber hover:text-navy">
-        <Upload size={16} />
-        <span className="min-w-0 truncate">{filename ? `Selected: ${filename}` : "Choose File"}</span>
-        <input type="file" name={name} accept={accept} onChange={(event) => setFilename(event.target.files?.[0]?.name || "")} className="hidden" />
-      </div>
-    </label>
-  );
+  return <CameraFileInput label={label} name={name} accept={accept} />;
 }

@@ -5,7 +5,6 @@ import {
   User,
   MapPin,
   FileText,
-  Upload,
   Send,
   ArrowLeft,
   Map,
@@ -17,6 +16,7 @@ import {
 } from "lucide-react";
 import { uploadFilesToS3 } from "../services/api";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
+import CameraFileInput from "../components/CameraFileInput";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -80,11 +80,6 @@ export default function Installation() {
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) setFile(selectedFile);
   };
 
   const handleLocationSelect = (location) => {
@@ -504,10 +499,11 @@ export default function Installation() {
           <FormCard icon={FileText} title="Consumer & Site Documentation">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FileUpload
-                label="Consumer Aadhaar Card Photo (Front & Back Side)"
+                label="Consumer Aadhaar Card Photo (Front Side)"
                 name="aadhaarPhoto"
                 required
               />
+              <FileUpload label="Consumer Aadhaar Card Photo (Back Side)" name="aadhaarBackPhoto" required />
               <FileUpload
                 label="Full Setup Installation GPS Camera Photo With Consumer"
                 name="fullSetupPhoto"
@@ -569,26 +565,7 @@ export default function Installation() {
 
           {/* Documents */}
           <FormCard icon={FileText} title="Other Documents / Attachment">
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold text-navy/70">
-                Upload Document
-              </span>
-              <div className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-8 text-center text-xs text-muted transition-colors hover:border-amber hover:text-navy">
-                <Upload size={20} />
-                <span className="max-w-full truncate font-semibold text-navy">
-                  {file?.name || "Click to upload"}
-                </span>
-                <span className="text-muted">
-                  PDF, JPG, PNG or other supported file
-                </span>
-                <input
-                  type="file"
-                  name="otherDocument"
-                  onChange={handleFileChange}
-                  className="sr-only"
-                />
-              </div>
-            </label>
+            <FileUpload label="Upload Document" name="otherDocument" onFile={setFile} />
 
             {file && (
               <div className="mt-3 rounded-lg bg-amber-soft px-4 py-2.5 text-xs text-navy">
@@ -744,19 +721,6 @@ function SelectField({ label, name, value, onChange, options, placeholder, requi
    FILE UPLOAD
 ========================================================= */
 
-function FileUpload({ label, name, required = false }) {
-  const [filename, setFilename] = useState("");
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold text-navy/70">
-        {label}
-        {required && <span className="ml-1 text-red-500">*</span>}
-      </span>
-      <div className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3.5 py-4 text-center text-xs text-muted transition-colors hover:border-amber hover:text-navy">
-        <Upload size={16} />
-        <span className="max-w-full truncate">{filename ? `Selected: ${filename}` : "Click to upload a file"}</span>
-        <input type="file" name={name} required={required} onChange={(event) => setFilename(event.target.files?.[0]?.name || "")} className="sr-only" />
-      </div>
-    </label>
-  );
+function FileUpload({ label, name, required = false, onFile }) {
+  return <CameraFileInput label={label} name={name} required={required} onFile={onFile} />;
 }

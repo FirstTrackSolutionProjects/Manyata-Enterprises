@@ -10,7 +10,6 @@ import {
   FileText,
   Send,
   AlertCircle,
-  Upload,
   ChevronDown,
   Search,
 } from "lucide-react";
@@ -28,6 +27,7 @@ import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/appli
 import { useAuth } from "../contexts/AuthContext";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
+import CameraFileInput from "../components/CameraFileInput";
 import { formatApplicationLocation } from "../utils/applicationLocation";
 
 export default function ApplicationDetail() {
@@ -226,7 +226,9 @@ export default function ApplicationDetail() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {[
                 ["file_aadhaar_front", "Aadhaar Front"],
-                ["file_pan_card", "PAN Card"],
+                ["file_aadhaar_back", "Aadhaar Back"],
+                ["file_pan_card", "PAN Front"],
+                ["file_pan_back", "PAN Back"],
                 ["file_photo", "Photo"],
                 ["file_signature", "Signature"],
                 ["file_electricity_bill", "Electricity Bill"],
@@ -240,7 +242,7 @@ export default function ApplicationDetail() {
                 </a>
               ) : <div key={key} className="flex items-center gap-3 rounded-lg border border-navy/10 bg-slate-50 p-3"><FileText size={18} className="text-muted" /><span className="text-sm font-semibold text-muted">{label} · no download access</span></div>)}
               {!Object.values(documentPresence).some(Boolean) && ![
-                app.file_aadhaar_front, app.file_pan_card, app.file_photo, app.file_signature,
+                app.file_aadhaar_front, app.file_aadhaar_back, app.file_pan_card, app.file_pan_back, app.file_photo, app.file_signature,
                 app.file_electricity_bill, app.file_cheque_passbook, app.file_site_photo,
               ].some(Boolean) && (
                 <p className="text-sm text-muted">No documents uploaded.</p>
@@ -430,7 +432,9 @@ function ApplicationEditForm({ app, onClose, onSaved }) {
   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
     {[
       ["aadhaarFront", "Aadhaar", app.file_aadhaar_front],
-      ["panCard", "PAN Card", app.file_pan_card],
+      ["aadhaarBack", "Aadhaar Back", app.file_aadhaar_back],
+      ["panCard", "PAN Front", app.file_pan_card],
+      ["panBack", "PAN Back", app.file_pan_back],
       ["photo", "Photo", app.file_photo],
       ["signature", "Signature", app.file_signature],
       ["electricityBill", "Electricity Bill", app.file_electricity_bill],
@@ -557,38 +561,13 @@ function InfoGrid({ items }) {
 }
 
 function DocReplaceField({ name, label, existingUrl, onSelect }) {
-  const [filename, setFilename] = useState("");
-  const handleChange = (e) => {
-    const f = e.target.files?.[0];
-    setFilename(f ? f.name : "");
-    onSelect(f || null);
-  };
   return (
-    <label className="block text-xs font-semibold text-navy/70">
-      <div className="flex items-center justify-between">
+    <div>
+      <div className="mb-1 flex items-center justify-between text-xs font-semibold text-navy/70">
         <span>{label}</span>
-        {existingUrl && (
-          <a
-            href={existingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] font-semibold text-amber hover:underline"
-          >
-            View current
-          </a>
-        )}
+        {existingUrl && <a href={existingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold text-amber hover:underline">View current</a>}
       </div>
-      <div className="mt-1.5 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-navy/25 px-3 py-2.5 text-xs text-muted transition-colors hover:border-amber hover:text-navy">
-        <Upload size={14} />
-        <span className="truncate">{filename || "Click to choose a replacement file"}</span>
-        <input
-          type="file"
-          name={name}
-          accept="image/jpeg,image/png,image/webp,application/pdf"
-          onChange={handleChange}
-          className="sr-only"
-        />
-      </div>
-    </label>
+      <CameraFileInput label={`Replace ${label}`} name={name} accept="image/jpeg,image/png,image/webp,application/pdf" onFile={(file) => onSelect(file)} />
+    </div>
   );
 }

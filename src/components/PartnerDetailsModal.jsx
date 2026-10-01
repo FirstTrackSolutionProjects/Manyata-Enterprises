@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch, fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
+import CameraFileInput from "./CameraFileInput";
 
 const PARTNER_TYPES = [
   ["super_vendor", "Super-vendor"],
@@ -28,8 +29,10 @@ const FIELDS = [
   ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
 ];
 const DOCUMENTS = [
-  ["gstFile", "GST Certificate", "GST"], ["panFile", "PAN Card", "PAN"],
-  ["aadhaarFile", "Aadhaar", "Aadhaar"], ["photoFile", "Profile Image", "Photo"], ["msmeFile", "MSME Certificate", "MSME"],
+  ["gstFile", "GST Certificate", "GST"], ["panFile", "PAN Card (Front)", "PAN"],
+  ["panBackFile", "PAN Card (Back)", "PAN Back"],
+  ["aadhaarFile", "Aadhaar (Front)", "Aadhaar"], ["aadhaarBackFile", "Aadhaar (Back)", "Aadhaar Back"],
+  ["photoFile", "Profile Image", "Photo"], ["msmeFile", "MSME Certificate", "MSME"],
   ["businessDocFile", "Business Document", "Business Document"],
   ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"],
 ];
@@ -288,7 +291,7 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
               <div key={key} className="rounded-lg border border-navy/10 p-3">
                 <p className="text-xs font-semibold text-navy">{label}</p>
                 {partner.documentUrls?.[urlKey] ? <a href={fileUrl(partner.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="mt-1 inline-block text-xs font-semibold text-amber hover:underline">View uploaded document</a> : <p className="mt-1 text-xs text-muted">No document uploaded</p>}
-                {editing && <><input type="file" accept={key === "photoFile" ? "image/jpeg,image/png,image/webp" : undefined} onChange={(event) => setFiles((current) => ({ ...current, [key]: event.target.files?.[0] || null }))} className="mt-2 block w-full text-xs" />{files[key] && <p className="mt-1 truncate text-xs font-medium text-emerald-700">Selected: {files[key].name}</p>}</>}
+                {editing && <CameraFileInput label={`Replace ${label}`} name={key} accept={key === "photoFile" ? "image/jpeg,image/png,image/webp" : undefined} onFile={(file) => setFiles((current) => ({ ...current, [key]: file }))} />}
               </div>
             ))}
           </div>
