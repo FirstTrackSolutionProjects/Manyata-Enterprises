@@ -493,15 +493,15 @@ export const uploadFilesToS3 = async (folder, fileMap) => {
     let response;
     try {
       response = await fetch(`${API_URL}/uploads/proxy`, { method: "POST", credentials: "include", body });
-    } catch {
-      throw new Error("Could not reach the document upload service. Your saved application draft is still available; check the connection and retry.");
+    } catch (proxyError) {
+      throw new Error("Could not reach the document upload service. Your saved application draft is still available; check the connection and retry.", { cause: proxyError });
     }
     let result;
     try { result = await response.json(); } catch { result = null; }
-    if (!response.ok) throw new Error(result?.message || `Document upload failed (${response.status}). Please retry.`);
+    if (!response.ok) throw new Error(result?.message || `Document upload failed (${response.status}). Please retry.`, { cause: directUploadError });
     const uploaded = result?.data || result?.files || result?.uploads || result;
     if (!uploaded || entries.some(([inputName]) => !uploaded[inputName])) {
-      throw new Error("The server did not confirm every document upload. Please retry before submitting.");
+      throw new Error("The server did not confirm every document upload. Please retry before submitting.", { cause: directUploadError });
     }
     return uploaded;
   }

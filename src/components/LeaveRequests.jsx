@@ -18,7 +18,6 @@ const TYPES = {
   marriage: "Marriage leave", compensatory: "Compensatory off", study: "Study / examination leave",
   sabbatical: "Sabbatical leave", notice_period: "Notice-period / exit leave", other: "Other leave",
 };
-const STATUSES = { pending: "Pending review", approved: "Approved", rejected: "Rejected", cancelled: "Cancelled" };
 const isHR = (user) => String(user?.name || "").trim().toLowerCase() === "tejash parekh";
 const inputDate = (value) => value ? String(value).slice(0, 10) : "";
 const dateLabel = (value) => value ? new Date(`${inputDate(value)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";

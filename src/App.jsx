@@ -25,7 +25,6 @@ import ResetPassword from "./pages/ResetPassword";
 import TrackApplication from "./pages/TrackApplication";
 import Partner from "./pages/Partner";
 import AdminDashboard from "./pages/AdminDashboard";
-import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ApplicationDetail from "./pages/ApplicationDetail";
 import Products from "./pages/Products";
 import PartnerDetail from "./pages/PartnerDetail";

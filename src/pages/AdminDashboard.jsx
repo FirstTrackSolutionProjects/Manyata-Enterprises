@@ -177,7 +177,7 @@ function AttendanceTab({ isManager }) {
   const [from, setFrom] = useState(() => `${indiaTodayInput().slice(0, 8)}01`);
   const [to, setTo] = useState(indiaTodayInput);
   const [month, setMonth] = useState(() => indiaTodayInput().slice(0, 7));
-  const [timerNow, setTimerNow] = useState(Date.now());
+  const [timerNow, setTimerNow] = useState(() => Date.now());
   const [search, setSearch] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -1222,10 +1222,6 @@ function StatusBadge({ status, isPartner = false }) {
     shortlisted: "Shortlisted",
     onboarded: "Onboarded",
     rewarded: "Rewarded",
-    terminated: "Terminated",
-    resigned: "Resigned",
-    on_leave: "On Leave",
-    salary_success: "Salary Success",
     terminated: "Terminated",
     resigned: "Resigned",
     on_leave: "On Leave",

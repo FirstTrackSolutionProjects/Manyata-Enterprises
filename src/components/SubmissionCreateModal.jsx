@@ -59,7 +59,7 @@ export default function SubmissionCreateModal({ type, onClose, onSaved }) {
       {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       <h4 className="mt-5 border-b border-navy/10 pb-2 text-sm font-bold text-navy">Contact Details</h4>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        {[["firstName", "First Name", "text", true], ["lastName", "Last Name", "text", true], ["email", "Email Address", "email", true], ["phone", "Phone Number", "tel", true]].map(([key, label, kind, required]) => <label key={key} className="text-xs font-semibold text-navy/70">{label} <span className="text-red-600">*</span><input required type={kind} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy" /></label>)}
+        {[["firstName", "First Name", "text", true], ["lastName", "Last Name", "text", true], ["email", "Email Address", "email", true], ["phone", "Phone Number", "tel", true]].map(([key, label, kind]) => <label key={key} className="text-xs font-semibold text-navy/70">{label} <span className="text-red-600">*</span><input required type={kind} value={form[key]} onChange={(event) => setForm({ ...form, [key]: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy" /></label>)}
       </div>
       <h4 className="mt-5 border-b border-navy/10 pb-2 text-sm font-bold text-navy">{isCareer ? "Application Details" : "Applicant Details"}</h4>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">{fields.map(renderField)}</div>
