@@ -827,6 +827,8 @@ function ApplicationsTab({ initialLocation = "" }) {
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
+          ["Verified", Number(applicationStatusCounts.verified || 0)],
+          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0) + Number(applicationStatusCounts.vendor_side_pending_for_bank_forward || 0)],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
           ["Customer - Full Loan Amount Disbursed", Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
