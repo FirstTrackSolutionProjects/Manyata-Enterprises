@@ -24,7 +24,7 @@ const NAV_LINKS = [
   { label: "Contact", href: "/contact" },
   { label: "Track", href: "/track" },
   { label: "Join Us", href: "/join-us-mnyt2026" },
-  { label: "GPS & Camera", href: "/contact#contact-capture" },
+  { label: "GPS & Camera", href: "/gps-camera" },
 ];
 
 export default function Navbar() {

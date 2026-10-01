@@ -1,15 +1,28 @@
-import { useRef, useState } from "react";
-import { Camera, Upload } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, Download, Upload } from "lucide-react";
 
 /** File picker with mobile camera capture. Camera files are copied into the
  * named picker input so existing form upload handlers keep working. */
 export default function CameraFileInput({ label, name, accept, required = false, onFile }) {
   const pickerRef = useRef(null);
   const [filename, setFilename] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [downloadUrl, setDownloadUrl] = useState("");
+
+  useEffect(() => {
+    if (!selectedFile) {
+      setDownloadUrl("");
+      return undefined;
+    }
+    const url = URL.createObjectURL(selectedFile);
+    setDownloadUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [selectedFile]);
 
   const selectFile = (file) => {
     if (!file) return;
     setFilename(file.name || "Captured photo");
+    setSelectedFile(file);
     onFile?.(file);
   };
 
@@ -48,6 +61,7 @@ export default function CameraFileInput({ label, name, accept, required = false,
             <input type="file" accept="image/*" capture={facing} onChange={capturePhoto} className="sr-only" />
           </label>
         ))}
+        {selectedFile && <a href={downloadUrl} download={selectedFile.name || `${name || "photo"}.jpg`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"><Download size={14} />Download photo</a>}
       </div>
       <p className="mt-1 text-[11px] text-muted">Use your phone camera for a clear document photo.</p>
     </div>
