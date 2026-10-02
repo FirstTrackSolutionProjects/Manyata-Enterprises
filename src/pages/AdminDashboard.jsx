@@ -797,6 +797,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [totalApplicationCount, setTotalApplicationCount] = useState(null);
   const [applicationStatusCounts, setApplicationStatusCounts] = useState({});
   const [branches, setBranches] = useState([]);
+  const [updateEmployees, setUpdateEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
   const [showFilters, setShowFilters] = useState(false);
@@ -817,6 +818,14 @@ function ApplicationsTab({ initialLocation = "" }) {
     })();
   }, [user?.role, user?.permissions]);
 
+  useEffect(() => {
+    let active = true;
+    listUsers({ role: "employee" })
+      .then((res) => { if (active) setUpdateEmployees(res.data.items || []); })
+      .catch((err) => console.error("Could not load employees for the updater filter.", err));
+    return () => { active = false; };
+  }, []);
+
   const load = async (p = page, overrideFilters) => {
     setLoading(true);
     const f = overrideFilters || filters;
@@ -826,6 +835,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       if (f.name) params.name = f.name;
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
+      if (f.updatedBy) params.updatedBy = f.updatedBy;
       if (f.status) params.status = f.status;
       if (f.branchId) params.branchId = f.branchId;
       if (f.location) params.location = f.location;
@@ -968,7 +978,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
-            <FilterInput label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} />
+            <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <FilterSelect
@@ -1133,7 +1143,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                       {a.system_size} · {a.system_type}
                     </td>
                     <td className="p-3 whitespace-nowrap">
-                      <StatusBadge status={a.status} />
+                      {a.last_updated_by_name ? <StatusBadge status={a.status} /> : null}
                     </td>
                     <td className="p-3 text-xs text-muted whitespace-nowrap">
                       {a.last_updated_by_name ? <><span className="block font-semibold text-navy">{a.last_updated_by_name}</span>{formatDateTime(a.last_updated_by_at)}</> : "Not edited"}
@@ -2326,6 +2336,7 @@ function InstallationsTab({ location }) {
   const canDownload = hasActionPermission(user, "installations", "download");
   const canExport = hasActionPermission(user, "installations", "export");
   const [items, setItems] = useState([]);
+  const [updateEmployees, setUpdateEmployees] = useState([]);
   const [locationCounts, setLocationCounts] = useState(null);
   const [totalInstallationCount, setTotalInstallationCount] = useState(null);
   const [installationStatusCounts, setInstallationStatusCounts] = useState({});
@@ -2359,6 +2370,14 @@ function InstallationsTab({ location }) {
   useEffect(() => {
     load();
   }, [location, fromDate, toDate, sortBy, sortOrder, updatedByFilter]);
+
+  useEffect(() => {
+    let active = true;
+    listUsers({ role: "employee" })
+      .then((res) => { if (active) setUpdateEmployees(res.data.items || []); })
+      .catch((err) => console.error("Could not load employees for the updater filter.", err));
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -2429,7 +2448,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
-          <FilterInput label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} />
+      <FilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />
       <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES} placeholder="All statuses" />
       <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
@@ -2476,7 +2495,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3 text-xs text-muted whitespace-nowrap">{item.last_updated_by_name ? <><span className="block font-semibold text-navy">{item.last_updated_by_name}</span>{formatDateTime(item.last_updated_by_at)}</> : "Not edited"}</td>
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3 whitespace-nowrap">{item.technical_assignee_name ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.technical_assignee_name}</span> : <span className="text-xs text-muted">Not assigned</span>}</td>
-                  <td className="p-3"><StatusBadge status={item.status} /></td>
+                  <td className="p-3">{item.last_updated_by_name ? <StatusBadge status={item.status} /> : null}</td>
                   {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
                 </tr>
               );
