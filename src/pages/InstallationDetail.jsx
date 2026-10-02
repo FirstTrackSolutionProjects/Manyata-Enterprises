@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2, Save } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { assignInstallationTechnicalWork, downloadInstallationPdf, getInstallation, listUsers, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
+import { assignInstallationTechnicalWork, downloadInstallationPdf, getInstallation, listTechnicalInstallationEmployees, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
 import { INSTALLATION_STATUSES, installationStatusLabel } from "../constants/installationStatuses";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
@@ -36,6 +36,8 @@ export default function InstallationDetail() {
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
   const isOwner = user?.role === "owner";
+  const isHrManager = user?.role === "employee" && /\bhr\b|human resources/i.test(`${user?.designation || ""} ${user?.department || ""}`) && canEdit;
+  const canAssignTechnicalWork = isOwner || isHrManager;
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const installationsPath = user?.role === "employee" ? "/employee?section=installations" : "/admin?section=installations";
   const [item, setItem] = useState(null);
@@ -77,11 +79,11 @@ export default function InstallationDetail() {
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [id]);
 
   useEffect(() => {
-    if (!isOwner) return;
-    listUsers({ role: "employee", status: "active" })
-      .then((response) => setTechnicalEmployees((response.data.items || []).filter((employee) => /technical|technician|installation engineer/i.test(`${employee.designation || ""} ${employee.department || ""}`) && employee.permissions?.includes("installations") && employee.actionPermissions?.installations?.view && employee.actionPermissions?.installations?.edit)))
+    if (!canAssignTechnicalWork || !item?.location) return;
+    listTechnicalInstallationEmployees(item.location)
+      .then((response) => setTechnicalEmployees(response.data.items || []))
       .catch((err) => setError(err.message || "Could not load technical employees."));
-  }, [isOwner]);
+  }, [canAssignTechnicalWork, item?.location]);
 
   const save = async () => {
     setSaving(true);
@@ -165,11 +167,11 @@ export default function InstallationDetail() {
         {item.notes && <section className="rounded-2xl border border-navy/10 bg-white p-6"><h3 className="font-bold text-navy">Customer Remarks</h3><p className="mt-3 whitespace-pre-wrap text-sm text-navy">{item.notes}</p></section>}
       </div>
       <div className="space-y-6">
-        {isOwner && <aside className="h-fit rounded-2xl border border-amber/30 bg-white p-6">
+        {canAssignTechnicalWork && <aside className="h-fit rounded-2xl border border-amber/30 bg-white p-6">
           <h3 className="font-bold text-navy">Technical work assignment</h3>
-          <p className="mt-1 text-xs text-muted">Assign this installation to a technical employee in its permitted state.</p>
+          <p className="mt-1 text-xs text-muted">Assign this installation to a technician authorized for {item.location === "kolkata" ? "West Bengal" : "Odisha"}.</p>
           <div className="mt-4 space-y-3">
-            <select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className="w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm"><option value="">Unassigned</option>{technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.location || "Any location"}</option>)}</select>
+            <select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className="w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm"><option value="">Unassigned</option>{technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.designation || employee.department || "Technician"}</option>)}</select>
             <textarea value={technicalInstructions} onChange={(event) => setTechnicalInstructions(event.target.value)} rows={3} maxLength={4000} placeholder="Work instructions (optional)" className="w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm" />
             <button onClick={saveAssignment} disabled={savingAssignment} className="w-full rounded-full bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">{savingAssignment ? "Saving..." : "Save Assignment"}</button>
           </div>

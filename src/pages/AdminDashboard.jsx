@@ -2445,7 +2445,7 @@ function InstallationsTab({ location }) {
       </p>
     ) : (
       <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-        <table className="w-full min-w-[1100px] text-sm">
+        <table className="w-full min-w-[1250px] text-sm">
           <thead>
             <tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted">
               <th className="p-3">Created</th>
@@ -2457,6 +2457,7 @@ function InstallationsTab({ location }) {
               <th className="p-3 whitespace-nowrap">Sales Executive</th>
               <th className="p-3 whitespace-nowrap">Updated By</th>
               <th className="p-3">City</th>
+              <th className="p-3 whitespace-nowrap">Technician Assigned</th>
               <th className="p-3">Status</th>
               {(canView || canEdit) && <th className="p-3">Actions</th>}
             </tr>
@@ -2474,6 +2475,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3 whitespace-nowrap">{item.sales_executive_name || "-"}</td>
                   <td className="p-3 whitespace-nowrap">{item.last_updated_by_name || "-"}</td>
                   <td className="p-3">{item.city || "—"}</td>
+                  <td className="p-3 whitespace-nowrap">{item.technical_assignee_name ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.technical_assignee_name}</span> : <span className="text-xs text-muted">Not assigned</span>}</td>
                   <td className="p-3"><StatusBadge status={item.status} /></td>
                   {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
                 </tr>
