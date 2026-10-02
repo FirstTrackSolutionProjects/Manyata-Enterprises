@@ -218,16 +218,30 @@ function AttendanceTab({ isManager }) {
     const response = await getMyAttendance(month);
     setMine(response.data || { today: "", todayRecord: null, openRecord: null, items: [] });
   };
-  const loadRegister = async () => {
+  const loadRegister = async ({ fromDate = from, toDate = to } = {}) => {
     if (!isManager) return;
     const [response, calendarResponse, settingsResponse, correctionsResponse] = await Promise.all([
-      getAttendanceRegister({ from, to, search: search.trim() }), getAttendanceCalendar({ from, to }), getAttendanceSettings(), getAttendanceCorrections(false, "all"),
+      getAttendanceRegister({ from: fromDate, to: toDate, search: search.trim() }), getAttendanceCalendar({ from: fromDate, to: toDate }), getAttendanceSettings(), getAttendanceCorrections(false, "all"),
     ]);
     setRegister(response.data || { items: [], summary: {}, events: [] });
     setCalendar(calendarResponse.data || { items: [], counts: {} });
     setSettings(settingsResponse.data || null);
     setCorrections(correctionsResponse.data?.items || []);
     if (settingsResponse.data?.settings) setScheduleForm({ ...settingsResponse.data.settings, work_days: (settingsResponse.data.settings.work_days || []).map(Number), shift_start: String(settingsResponse.data.settings.shift_start).slice(0, 5), shift_end: String(settingsResponse.data.settings.shift_end).slice(0, 5) });
+  };
+  const showAttendanceDate = async (date) => {
+    if (!date) return loadRegister();
+    setFrom(date);
+    setTo(date);
+    await loadRegister({ fromDate: date, toDate: date });
+  };
+  const syncManualDate = (date) => {
+    if (!date) return;
+    setManualEvent((current) => ({ ...current, attendance_date: date, event_at: `${date}T${current.event_at.slice(11, 16)}` }));
+    setManualPunchTimes((current) => ({
+      clock_in: current.clock_in ? `${date}T${current.clock_in.slice(11, 16)}` : "",
+      clock_out: current.clock_out ? `${date}T${current.clock_out.slice(11, 16)}` : "",
+    }));
   };
   const load = async () => {
     setLoading(true); setError("");
@@ -339,8 +353,10 @@ function AttendanceTab({ isManager }) {
     try {
       await addManagerAttendanceEvent(manualEvent);
       setNotice("Attendance update saved.");
+      const savedDate = manualEvent.attendance_date;
       setManualEvent((current) => ({ ...current, attendance_date: indiaTodayInput(), event_at: indiaNowDateTimeInput(), event_type: "custom", event_label: "", note: "" }));
-      await loadRegister();
+      setManualPunchTimes({ clock_in: indiaNowDateTimeInput(), clock_out: "" });
+      await showAttendanceDate(savedDate);
     } catch (err) { setError(err.message || "Could not save the attendance update."); }
     finally { setBusy(false); }
   };
@@ -362,7 +378,7 @@ function AttendanceTab({ isManager }) {
         note: manualEvent.note,
       });
       setNotice(`${eventType === "clock_in" ? "Clock-in" : "Clock-out"} time saved.`);
-      await loadRegister();
+      await showAttendanceDate(manualEvent.attendance_date);
     } catch (err) { setError(err.message || "Could not save the attendance time."); }
     finally { setBusy(false); }
   };
@@ -456,10 +472,10 @@ function AttendanceTab({ isManager }) {
       <p className="mt-1 text-sm text-muted">Record or correct an employee's clock-in, clock-out, break, or add a custom attendance event.</p>
       <form onSubmit={submitManagerEvent} className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <label className="text-xs font-semibold text-muted">Employee<select required value={manualEvent.employee_id} onChange={(event) => setManualEvent((current) => ({ ...current, employee_id: event.target.value }))} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"><option value="">Select employee</option>{attendanceEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} - {employee.user_id}</option>)}</select></label>
-        <label className="text-xs font-semibold text-muted">Attendance date<input required type="date" value={manualEvent.attendance_date} onChange={(event) => { const date = event.target.value; setManualEvent((current) => ({ ...current, attendance_date: date, event_at: `${date}T${current.event_at.slice(11, 16)}` })); setManualPunchTimes((current) => ({ clock_in: current.clock_in ? `${date}T${current.clock_in.slice(11, 16)}` : "", clock_out: current.clock_out ? `${date}T${current.clock_out.slice(11, 16)}` : "" })); }} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/></label>
-        <label className="text-xs font-semibold text-muted">Event time (IST)<input required type="datetime-local" step="60" value={manualEvent.event_at} onChange={(event) => setManualEvent((current) => ({ ...current, event_at: event.target.value, attendance_date: event.target.value.slice(0, 10) }))} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/></label>
-        <label className="text-xs font-semibold text-muted">Clock-in time (IST)<input type="datetime-local" step="60" value={manualPunchTimes.clock_in} onChange={(event) => setManualPunchTimes((current) => ({ ...current, clock_in: event.target.value }))} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/><button type="button" onClick={() => submitManualPunchTime("clock_in")} disabled={busy || loading} className="mt-2 rounded-lg border border-navy/15 px-3 py-2 text-xs font-semibold text-navy hover:bg-offwhite disabled:opacity-50">Save clock-in time</button></label>
-        <label className="text-xs font-semibold text-muted">Clock-out time (IST)<input type="datetime-local" step="60" value={manualPunchTimes.clock_out} onChange={(event) => setManualPunchTimes((current) => ({ ...current, clock_out: event.target.value }))} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/><button type="button" onClick={() => submitManualPunchTime("clock_out")} disabled={busy || loading} className="mt-2 rounded-lg border border-navy/15 px-3 py-2 text-xs font-semibold text-navy hover:bg-offwhite disabled:opacity-50">Save clock-out time</button></label>
+        <label className="text-xs font-semibold text-muted">Attendance date<input required type="date" value={manualEvent.attendance_date} onChange={(event) => syncManualDate(event.target.value)} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/></label>
+        <label className="text-xs font-semibold text-muted">Event time (IST)<input required type="datetime-local" step="60" value={manualEvent.event_at} onChange={(event) => { const value = event.target.value; syncManualDate(value.slice(0, 10)); setManualEvent((current) => ({ ...current, event_at: value })); }} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/></label>
+        <label className="text-xs font-semibold text-muted">Clock-in time (IST)<input type="datetime-local" step="60" value={manualPunchTimes.clock_in} onChange={(event) => { const value = event.target.value; if (value) syncManualDate(value.slice(0, 10)); setManualPunchTimes((current) => ({ ...current, clock_in: value })); }} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/><button type="button" onClick={() => submitManualPunchTime("clock_in")} disabled={busy || loading} className="mt-2 rounded-lg border border-navy/15 px-3 py-2 text-xs font-semibold text-navy hover:bg-offwhite disabled:opacity-50">Save clock-in time</button></label>
+        <label className="text-xs font-semibold text-muted">Clock-out time (IST)<input type="datetime-local" step="60" value={manualPunchTimes.clock_out} onChange={(event) => { const value = event.target.value; if (value) syncManualDate(value.slice(0, 10)); setManualPunchTimes((current) => ({ ...current, clock_out: value })); }} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/><button type="button" onClick={() => submitManualPunchTime("clock_out")} disabled={busy || loading} className="mt-2 rounded-lg border border-navy/15 px-3 py-2 text-xs font-semibold text-navy hover:bg-offwhite disabled:opacity-50">Save clock-out time</button></label>
         <label className="text-xs font-semibold text-muted">Update type<select value={manualEvent.event_type} onChange={(event) => { const eventType = event.target.value; const defaultLabels = { clock_in: "Manual clock-in", clock_out: "Manual clock-out", break_start: "Break start", break_end: "Break end", custom: "" }; setManualEvent((current) => ({ ...current, event_type: eventType, event_label: defaultLabels[eventType] })); }} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"><option value="clock_in">Clock-in / login</option><option value="clock_out">Clock-out / logout</option><option value="break_start">Break start</option><option value="break_end">Break end</option><option value="custom">Custom event</option></select></label>
         {manualEvent.event_type === "break_start" && <label className="text-xs font-semibold text-muted">Break type<select value={manualEvent.break_type} onChange={(event) => setManualEvent((current) => ({ ...current, break_type: event.target.value }))} className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"><option value="tea_coffee">Tea / coffee</option><option value="lunch">Lunch</option><option value="dinner">Dinner</option><option value="snack">Snack</option><option value="emergency">Emergency</option><option value="rest">Rest</option><option value="personal">Personal</option><option value="other">Other</option><option value="meal">Meal (legacy)</option></select></label>}
         {manualEvent.event_type === "custom" && <label className="text-xs font-semibold text-muted">Custom event type<input required maxLength={160} value={manualEvent.event_label} onChange={(event) => setManualEvent((current) => ({ ...current, event_label: event.target.value }))} placeholder="e.g. Client site visit" className="mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy"/></label>}
