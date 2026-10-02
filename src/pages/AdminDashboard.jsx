@@ -524,7 +524,7 @@ function SalaryManagementTab() {
   return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Generate or update a monthly salary slip for an active employee.</p></div><div className="flex gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
     {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : error ? <p className="p-5 text-sm text-red-600">{error}</p> : !filtered.length ? <p className="p-5 text-sm text-muted">No active employees match your search.</p> : <div className="divide-y divide-navy/5">{filtered.map((employee) => <div key={employee.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold text-navy">{employee.name} <span className="font-mono text-xs text-muted">· {employee.user_id}</span></p><p className="mt-1 text-xs text-muted">{employee.designation || "Employee"} · {employee.department || "No department"} · {employee.branch_name || "No branch"}</p></div><button onClick={() => setSelectedEmployee(employee)} className="inline-flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Generate salary</button></div>)}</div>}
-    {selectedEmployee && <SalarySlipModal employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} onGenerate={generateEmployeeSalarySlip}/>}
+    {selectedEmployee && <SalarySlipModal key={selectedEmployee.id} employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} onGenerate={generateEmployeeSalarySlip}/>}
   </section>;
 }
 
@@ -1609,7 +1609,7 @@ function EmployeesTab() {
           onClose={() => setCredentials(null)}
         />
       )}
-      {salaryEmployee && <SalarySlipModal employee={salaryEmployee} onClose={() => setSalaryEmployee(null)} onGenerate={generateEmployeeSalarySlip} />}
+      {salaryEmployee && <SalarySlipModal key={salaryEmployee.id} employee={salaryEmployee} onClose={() => setSalaryEmployee(null)} onGenerate={generateEmployeeSalarySlip} />}
       {trackingEmployee && <EmployeeAttendanceModal employee={trackingEmployee} onClose={() => setTrackingEmployee(null)} />}
     </div>
   );
@@ -1659,13 +1659,14 @@ function EmployeeAttendanceModal({ employee, onClose }) {
 
 function SalarySlipModal({ employee, onClose, onGenerate }) {
   const now = new Date();
-  const [form, setForm] = useState({
-    month: String(now.getMonth() + 1), year: String(now.getFullYear()), grossSalary: "0",
-    incentive: "0", bonus: "0", employerEpf: "0", employerEsi: "0", termLifeInsurance: "0",
-    healthInsurance: "0", employeeEpf: "0", employeeEsi: "0", professionalTax: "0", advanceSalary: "0",
-  });
-  const [salaryStructure, setSalaryStructure] = useState("standard");
-  const [customStructure, setCustomStructure] = useState({ basicSalary: "", hra: "", allowance: "" });
+  const savedNumber = (key) => employee[key] == null ? "0" : String(Number(employee[key]));
+  const [form, setForm] = useState(() => ({
+    month: String(now.getMonth() + 1), year: String(now.getFullYear()), grossSalary: savedNumber("gross_salary"),
+    incentive: "0", bonus: "0", employerEpf: savedNumber("employer_epf"), employerEsi: savedNumber("employer_esi"), termLifeInsurance: savedNumber("term_life_insurance"),
+    healthInsurance: savedNumber("health_insurance"), employeeEpf: savedNumber("employee_epf"), employeeEsi: savedNumber("employee_esi"), professionalTax: savedNumber("professional_tax"), advanceSalary: savedNumber("advance_salary"),
+  }));
+  const [salaryStructure, setSalaryStructure] = useState(employee.salary_structure || "standard");
+  const [customStructure, setCustomStructure] = useState({ basicSalary: savedNumber("basic_salary"), hra: savedNumber("hra"), allowance: savedNumber("allowance") });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const gross = Number(form.grossSalary || 0);
@@ -1685,14 +1686,14 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     setError("");
     try {
       await onGenerate({
-        employeeId: employee.id, month: Number(form.month), year: Number(form.year), grossSalary: calculatedGross,
+        employeeId: employee.id, month: Number(form.month), year: Number(form.year), grossSalary: calculatedGross, salaryStructure,
         basicSalary: basic, hra, allowance,
         incentive, bonus, employerEpf: Number(form.employerEpf), employerEsi: Number(form.employerEsi),
         termLifeInsurance: Number(form.termLifeInsurance), healthInsurance: Number(form.healthInsurance),
         employeeEpf: Number(form.employeeEpf), employeeEsi: Number(form.employeeEsi),
         professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary),
       });
-      alert("Salary slip generated. The employee can now download it from their dashboard.");
+      alert("Salary slip generated and salary defaults saved for next month.");
       onClose();
     } catch (err) {
       setError(err.message || "Could not generate salary slip.");
