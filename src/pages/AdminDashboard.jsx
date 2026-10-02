@@ -1086,13 +1086,13 @@ function ApplicationsTab({ initialLocation = "" }) {
                     </td>
                     <td className="p-3 whitespace-nowrap">
                       {canViewApplications && <Link
-                        to={`/admin/applications/${a.id}`}
+                        to={`${user?.role === "employee" ? "/employee" : "/admin"}/applications/${a.id}`}
                         className="inline-flex items-center gap-1 text-xs font-semibold text-amber hover:underline"
                       >
                         <Eye size={14} /> View
                       </Link>}
                       {canEditApplications && <Link
-                        to={`/admin/applications/${a.id}`}
+                        to={`${user?.role === "employee" ? "/employee" : "/admin"}/applications/${a.id}`}
                         className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:underline"
                       >
                         <Pencil size={14} /> Edit
@@ -2416,7 +2416,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3 whitespace-nowrap">{item.sales_executive_name || "-"}</td>
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3"><StatusBadge status={item.status} /></td>
-                  {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`/admin/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
+                  {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
                 </tr>
               );
             })}

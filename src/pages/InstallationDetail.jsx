@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Clock, Download, FileText, Loader2, Save } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { downloadInstallationPdf, getInstallation, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
+import { assignInstallationTechnicalWork, downloadInstallationPdf, getInstallation, listUsers, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
 import { INSTALLATION_STATUSES, installationStatusLabel } from "../constants/installationStatuses";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
@@ -35,6 +35,9 @@ export default function InstallationDetail() {
   const { user } = useAuth();
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
+  const isOwner = user?.role === "owner";
+  const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
+  const installationsPath = user?.role === "employee" ? "/employee?section=installations" : "/admin?section=installations";
   const [item, setItem] = useState(null);
   const [history, setHistory] = useState([]);
   const [form, setForm] = useState(null);
@@ -47,6 +50,10 @@ export default function InstallationDetail() {
   const [newStatus, setNewStatus] = useState("pending");
   const [statusNote, setStatusNote] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
+  const [technicalEmployees, setTechnicalEmployees] = useState([]);
+  const [technicalAssignee, setTechnicalAssignee] = useState("");
+  const [technicalInstructions, setTechnicalInstructions] = useState("");
+  const [savingAssignment, setSavingAssignment] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -57,6 +64,8 @@ export default function InstallationDetail() {
       setItem(record);
       setHistory(response.data.history || []);
       setNewStatus(record.status);
+      setTechnicalAssignee(record.technical_assignee_id ? String(record.technical_assignee_id) : "");
+      setTechnicalInstructions(record.technical_instructions || "");
       setForm(Object.fromEntries(FIELDS.map(([key, , formKey]) => [formKey, record[key] || ""])));
     } catch (err) {
       setError(err.message || "Could not load installation details.");
@@ -66,6 +75,13 @@ export default function InstallationDetail() {
   };
 
   useEffect(() => { load(); /* eslint-disable-line react-hooks/exhaustive-deps */ }, [id]);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    listUsers({ role: "employee", status: "active" })
+      .then((response) => setTechnicalEmployees((response.data.items || []).filter((employee) => /technical|technician|installation engineer/i.test(`${employee.designation || ""} ${employee.department || ""}`) && employee.permissions?.includes("installations") && employee.actionPermissions?.installations?.view && employee.actionPermissions?.installations?.edit)))
+      .catch((err) => setError(err.message || "Could not load technical employees."));
+  }, [isOwner]);
 
   const save = async () => {
     setSaving(true);
@@ -101,16 +117,32 @@ export default function InstallationDetail() {
     }
   };
 
+  const saveAssignment = async () => {
+    setSavingAssignment(true);
+    setError("");
+    setNotice("");
+    try {
+      await assignInstallationTechnicalWork(id, technicalAssignee, technicalInstructions);
+      setNotice("Technical work assignment saved.");
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not assign installation work.");
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center"><Loader2 className="animate-spin text-amber" /></div>;
-  if (error && !item) return <div className="space-y-4 rounded-2xl border border-red-200 bg-red-50 p-6"><p className="text-sm text-red-700">{error}</p><div className="flex gap-3"><button onClick={() => navigate("/admin?section=installations")} className="rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy">Back to Installations</button><button onClick={load} className="rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy">Try again</button></div></div>;
+  if (error && !item) return <div className="space-y-4 rounded-2xl border border-red-200 bg-red-50 p-6"><p className="text-sm text-red-700">{error}</p><div className="flex gap-3"><button onClick={() => navigate(installationsPath)} className="rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy">Back to Installations</button><button onClick={load} className="rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy">Try again</button></div></div>;
   if (!item || !form) return null;
 
   const documentEntries = Object.entries(item.documents || {}).filter(([, url]) => Boolean(url));
+  const canEditDetails = editing && !isTechnicalEmployee;
 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-navy/10 pb-5">
-      <div><Link to="/admin?section=installations" className="inline-flex items-center gap-2 rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy"><ArrowLeft size={15} /> Back</Link><p className="mt-4 text-xs font-semibold uppercase tracking-wider text-amber">Installation #{item.id}</p><h2 className="mt-1 text-2xl font-extrabold text-navy">{item.customer_name}</h2><p className="mt-1 text-sm text-muted">Created {dateTime(item.created_at)} · Updated {dateTime(item.updated_at)}</p></div>
-      <div className="flex flex-wrap gap-2">{canDownload && <button onClick={() => downloadInstallationPdf(id)} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy"><Download size={16} /> Download PDF</button>}{canEdit && (editing ? <><button onClick={() => { setEditing(false); setFiles({}); setForm(Object.fromEntries(FIELDS.map(([key, , formKey]) => [formKey, item[key] || ""]))); }} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-semibold text-navy">Cancel</button><button onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60"><Save size={15} />{saving ? "Saving..." : "Save Changes"}</button></> : <button onClick={() => setEditing(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Edit Details</button>)}</div>
+      <div><Link to={installationsPath} className="inline-flex items-center gap-2 rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy"><ArrowLeft size={15} /> Back</Link><p className="mt-4 text-xs font-semibold uppercase tracking-wider text-amber">Installation #{item.id}</p><h2 className="mt-1 text-2xl font-extrabold text-navy">{item.customer_name}</h2><p className="mt-1 text-sm text-muted">Created {dateTime(item.created_at)} · Updated {dateTime(item.updated_at)}</p></div>
+      <div className="flex flex-wrap gap-2">{canDownload && <button onClick={() => downloadInstallationPdf(id)} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy"><Download size={16} /> Download PDF</button>}{canEdit && (editing ? <><button onClick={() => { setEditing(false); setFiles({}); setForm(Object.fromEntries(FIELDS.map(([key, , formKey]) => [formKey, item[key] || ""]))); }} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-semibold text-navy">Cancel</button><button onClick={save} disabled={saving} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60"><Save size={15} />{saving ? "Saving..." : isTechnicalEmployee ? "Upload Photos" : "Save Changes"}</button></> : <button onClick={() => setEditing(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">{isTechnicalEmployee ? "Upload Progress Photos" : "Edit Details"}</button>)}</div>
     </div>
 
     {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
@@ -118,23 +150,33 @@ export default function InstallationDetail() {
 
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-6">
-        <DetailSection title="Customer Details" fields={CUSTOMER_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
-        {editing && <PartnerNetworkFields location={form?.location} form={form || {}} onChange={(event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))} />}
-        <DetailSection title="Partner & Sales Details" fields={PARTNER_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
-      <DetailSection title="Installation Details" fields={INSTALLATION_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
+        <DetailSection title="Customer Details" fields={CUSTOMER_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
+        {canEditDetails && <PartnerNetworkFields location={form?.location} form={form || {}} onChange={(event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))} />}
+        <DetailSection title="Partner & Sales Details" fields={PARTNER_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
+      <DetailSection title="Installation Details" fields={INSTALLATION_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
       {item.site_latitude != null && item.site_longitude != null && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="text-sm font-bold text-navy">Site GPS location</h3><p className="mt-2 text-sm text-muted">Accuracy: ±{item.site_accuracy_m ?? "—"} m</p><a className="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${item.site_latitude},${item.site_longitude}`} target="_blank" rel="noreferrer">Open site on map</a></section>}
-        <DetailSection title="Site Address" fields={ADDRESS_FIELDS} item={item} editing={editing} form={form} setForm={setForm} />
+        <DetailSection title="Site Address" fields={ADDRESS_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
+        {item.technical_instructions && <section className="rounded-2xl border border-amber/30 bg-amber/5 p-5"><h3 className="text-sm font-bold text-navy">Owner work instructions</h3><p className="mt-2 whitespace-pre-wrap text-sm text-navy">{item.technical_instructions}</p></section>}
         <section className="rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="font-bold text-navy">Uploaded Documents</h3>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">{canDownload && documentEntries.map(([name, url]) => <div key={name} className="flex min-w-0 items-center gap-3 rounded-lg border border-navy/10 bg-white p-3"><FileTextIcon /><span className="min-w-0 flex-1 break-words text-sm font-semibold text-navy">{humanizeDocumentName(name)}</span><a href={url} target="_blank" rel="noopener noreferrer" className="text-xs font-semibold text-amber hover:underline">View</a><a href={url} download className="text-xs font-semibold text-navy hover:underline">Download</a></div>)}{(!canDownload || !documentEntries.length) && <p className="text-sm text-muted">{canDownload ? "No documents uploaded." : "You do not have permission to view or download documents."}</p>}</div>
-          {editing && <div className="mt-5 grid gap-3 sm:grid-cols-2">{EDIT_FILES.map((name) => <label key={name} className="text-xs font-semibold text-muted">{name.replace(/([A-Z])/g, " $1")}<input type="file" className="mt-1 block w-full text-xs" onChange={(event) => setFiles((current) => ({ ...current, [name]: event.target.files?.[0] }))} />{files[name] && <span className="mt-1 block truncate font-medium text-emerald-700">Selected replacement: {files[name].name}</span>}</label>)}</div>}
+          {editing && <div className="mt-5 grid gap-3 sm:grid-cols-2">{EDIT_FILES.map((name) => <label key={name} className="text-xs font-semibold text-muted">{name.replace(/([A-Z])/g, " $1")}<input type="file" accept="image/*,.pdf" className="mt-1 block w-full text-xs" onChange={(event) => setFiles((current) => ({ ...current, [name]: event.target.files?.[0] }))} />{files[name] && <span className="mt-1 block truncate font-medium text-emerald-700">Selected replacement: {files[name].name}</span>}</label>)}</div>}
         </section>
         {item.notes && <section className="rounded-2xl border border-navy/10 bg-white p-6"><h3 className="font-bold text-navy">Customer Remarks</h3><p className="mt-3 whitespace-pre-wrap text-sm text-navy">{item.notes}</p></section>}
       </div>
       <div className="space-y-6">
+        {isOwner && <aside className="h-fit rounded-2xl border border-amber/30 bg-white p-6">
+          <h3 className="font-bold text-navy">Technical work assignment</h3>
+          <p className="mt-1 text-xs text-muted">Assign this installation to a technical employee in its permitted state.</p>
+          <div className="mt-4 space-y-3">
+            <select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className="w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm"><option value="">Unassigned</option>{technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.location || "Any location"}</option>)}</select>
+            <textarea value={technicalInstructions} onChange={(event) => setTechnicalInstructions(event.target.value)} rows={3} maxLength={4000} placeholder="Work instructions (optional)" className="w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm" />
+            <button onClick={saveAssignment} disabled={savingAssignment} className="w-full rounded-full bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">{savingAssignment ? "Saving..." : "Save Assignment"}</button>
+          </div>
+        </aside>}
         <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="font-bold text-navy">Update Status</h3>
-          {canEdit ? <div className="mt-4 space-y-3"><select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-amber bg-white px-3.5 py-2.5 text-sm focus:outline-none">{!INSTALLATION_STATUSES.some((status) => status.value === newStatus) && <option value={newStatus}>{installationStatusLabel(newStatus)} (current)</option>}{INSTALLATION_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" /><button onClick={saveStatus} disabled={savingStatus || newStatus === item.status} className="w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{savingStatus ? "Saving..." : "Save Status"}</button></div> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
+          {canEdit ? <div className="mt-4 space-y-3"><select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-amber bg-white px-3.5 py-2.5 text-sm focus:outline-none">{!INSTALLATION_STATUSES.some((status) => status.value === newStatus && (!isTechnicalEmployee || ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value))) && <option value={newStatus}>{installationStatusLabel(newStatus)} (current)</option>}{INSTALLATION_STATUSES.filter((status) => !isTechnicalEmployee || ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value)).map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" /><button onClick={saveStatus} disabled={savingStatus || newStatus === item.status} className="w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{savingStatus ? "Saving..." : "Save Status"}</button></div> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
         </aside>
         <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock size={16} className="text-amber" />Status Timeline</h3>

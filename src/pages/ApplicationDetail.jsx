@@ -22,6 +22,8 @@ import {
   uploadFilesToS3,
   downloadApplicationPdf,
   fileUrl,
+  listUsers,
+  assignApplicationTechnicalWork,
 } from "../services/api";
 import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
@@ -34,6 +36,8 @@ export default function ApplicationDetail() {
   const { user } = useAuth();
   const canEdit = hasActionPermission(user, "applications", "edit");
   const canDownload = hasActionPermission(user, "applications", "download");
+  const isOwner = user?.role === "owner";
+  const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
@@ -50,6 +54,10 @@ export default function ApplicationDetail() {
   const [showGovtModal, setShowGovtModal] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [technicalEmployees, setTechnicalEmployees] = useState([]);
+  const [technicalAssignee, setTechnicalAssignee] = useState("");
+  const [technicalInstructions, setTechnicalInstructions] = useState("");
+  const [savingAssignment, setSavingAssignment] = useState(false);
 
   const load = async () => {
     try {
@@ -58,6 +66,8 @@ export default function ApplicationDetail() {
         getApplicationTimeline(id),
       ]);
       setApp(a.data.application);
+      setTechnicalAssignee(a.data.application.technical_assignee_id ? String(a.data.application.technical_assignee_id) : "");
+      setTechnicalInstructions(a.data.application.technical_instructions || "");
       setDocumentPresence(a.data.documentPresence || {});
       setHistory(h.data.items || []);
       setNewStatus(a.data.application.status);
@@ -72,6 +82,20 @@ export default function ApplicationDetail() {
     load();
     // eslint-disable-next-line
   }, [id]);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    listUsers({ role: "employee", status: "active" })
+      .then((response) => setTechnicalEmployees((response.data.items || []).filter((employee) => /technical|technician|installation engineer/i.test(`${employee.designation || ""} ${employee.department || ""}`) && employee.permissions?.includes("applications") && employee.actionPermissions?.applications?.view && employee.actionPermissions?.applications?.edit)))
+      .catch((err) => setError(err.message || "Could not load technical employees."));
+  }, [isOwner]);
+
+  const saveTechnicalAssignment = async () => {
+    setSavingAssignment(true);
+    try { await assignApplicationTechnicalWork(id, technicalAssignee, technicalInstructions); await load(); }
+    catch (err) { alert(err.message || "Could not save assignment."); }
+    finally { setSavingAssignment(false); }
+  };
 
   const handleUpdateStatus = async () => {
     if (newStatus === app.status) return;
@@ -143,12 +167,12 @@ export default function ApplicationDetail() {
           </p>
         </div>
         <div className="flex gap-2">
-          {canEdit && <button onClick={() => setShowEditForm(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">Edit Details</button>}
+          {canEdit && <button onClick={() => setShowEditForm(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">{isTechnicalEmployee ? "Upload Progress Photos" : "Edit Details"}</button>}
           {canDownload && <button onClick={() => downloadApplicationPdf(app.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16} />Download PDF</button>}
         </div>
       </div>
 
-      {showEditForm && canEdit && <ApplicationEditForm app={app} onClose={() => setShowEditForm(false)} onSaved={async () => { setShowEditForm(false); await load(); }} />}
+      {showEditForm && canEdit && <ApplicationEditForm app={app} technicalOnly={isTechnicalEmployee} onClose={() => setShowEditForm(false)} onSaved={async () => { setShowEditForm(false); await load(); }} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -250,10 +274,29 @@ export default function ApplicationDetail() {
             </div>
           </InfoSection>
 
-          {app.site_latitude != null && app.site_longitude != null && <InfoSection title="Site GPS location">
-            <p className="text-sm text-navy">Accuracy: ±{app.site_accuracy_m ?? "—"} m</p>
-            <a className="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${app.site_latitude},${app.site_longitude}`} target="_blank" rel="noreferrer">Open site on map</a>
-          </InfoSection>}
+          <InfoSection title="Site Documentation">
+            {app.file_site_photo && <div className="mb-4 overflow-hidden rounded-xl border border-navy/10 bg-slate-50">
+              <a href={fileUrl(app.file_site_photo)} target="_blank" rel="noopener noreferrer" aria-label="Open site photo">
+                <img src={fileUrl(app.file_site_photo)} alt="Submitted site documentation" loading="lazy" className="max-h-80 w-full object-contain" />
+              </a>
+              <div className="flex items-center justify-between gap-3 border-t border-navy/10 bg-white px-3 py-2">
+                <span className="text-sm font-semibold text-navy">GPS Site Photo</span>
+                {canDownload && <a href={fileUrl(app.file_site_photo)} download className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:underline"><Download size={14} /> Download</a>}
+              </div>
+            </div>}
+            {app.site_latitude != null && app.site_longitude != null ? <>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <GpsValue label="Latitude" value={`${Number(app.site_latitude).toFixed(7)}°`} />
+                <GpsValue label="Longitude" value={`${Number(app.site_longitude).toFixed(7)}°`} />
+                <GpsValue label="GPS accuracy" value={app.site_accuracy_m != null ? `±${app.site_accuracy_m} m` : "Not recorded"} />
+              </div>
+              <div className="mt-4 overflow-hidden rounded-xl border border-navy/10">
+                <iframe title="Application site map" src={`https://www.google.com/maps?q=${encodeURIComponent(`${app.site_latitude},${app.site_longitude}`)}&z=16&output=embed`} className="h-64 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
+              </div>
+              <a className="mt-3 inline-flex text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${app.site_latitude},${app.site_longitude}`} target="_blank" rel="noreferrer">Open site in Google Maps</a>
+            </> : <p className="text-sm text-muted">GPS coordinates were not captured for this application.</p>}
+            {!app.file_site_photo && <p className="text-sm text-muted">No GPS site photo was uploaded.</p>}
+          </InfoSection>
 
           {app.remarks && (
             <InfoSection title="Customer Remarks">
@@ -263,12 +306,22 @@ export default function ApplicationDetail() {
         </div>
 
         <div className="space-y-6">
+          {(app.technical_assignee_name || app.technical_instructions) && <div className="rounded-2xl border border-amber/20 bg-amber/5 p-5">
+            <h3 className="text-sm font-bold text-navy">Technical assignment</h3>
+            {app.technical_assignee_name && <p className="mt-2 text-sm text-navy">Assigned to: <strong>{app.technical_assignee_name}</strong></p>}
+            {app.technical_instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted">{app.technical_instructions}</p>}
+          </div>}
+          {isOwner && <div className="rounded-2xl border border-amber/30 bg-white p-5">
+            <h3 className="text-sm font-bold text-navy">Technical work assignment</h3>
+            <p className="mt-1 text-xs text-muted">Assign the application to a technical employee with access to its state.</p>
+            <div className="mt-4 space-y-3"><select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className="w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm"><option value="">Unassigned</option>{technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.location || "Any location"}</option>)}</select><textarea value={technicalInstructions} onChange={(event) => setTechnicalInstructions(event.target.value)} rows={3} maxLength={4000} placeholder="Work instructions (optional)" className="w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm" /><button onClick={saveTechnicalAssignment} disabled={savingAssignment} className="w-full rounded-full bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">{savingAssignment ? "Saving..." : "Save Assignment"}</button></div>
+          </div>}
           {canEdit && <div className="rounded-2xl border border-navy/10 bg-white p-5">
             <h3 className="text-sm font-bold text-navy">Update Status</h3>
             <div className="mt-4 space-y-3">
               <StatusDropdown
                 value={newStatus}
-                options={APPLICATION_STATUSES}
+                options={isTechnicalEmployee ? [...APPLICATION_STATUSES.filter((status) => ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value)), ...(!["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])] : APPLICATION_STATUSES}
                 open={statusMenuOpen}
                 onOpenChange={setStatusMenuOpen}
                 onChange={setNewStatus}
@@ -404,7 +457,7 @@ export default function ApplicationDetail() {
   );
 }
 
-function ApplicationEditForm({ app, onClose, onSaved }) {
+function ApplicationEditForm({ app, technicalOnly = false, onClose, onSaved }) {
   const [form, setForm] = useState(() => ({
     location: String(app.location || "").includes(",") ? "both" : app.location, systemType: app.system_type, systemSize: app.system_size,
     superVendorName: app.super_vendor_name || "", vendorName: app.vendor_name || "", subVendorName: app.sub_vendor_name || "", salesExecutiveName: app.sales_executive_name || "", incomeSource: app.income_source || "",
@@ -431,7 +484,7 @@ function ApplicationEditForm({ app, onClose, onSaved }) {
     ["state", "State"], ["district", "District"], ["block", "Block"], ["gramPanchayat", "Gram Panchayat"], ["buildingPlot", "Building / Plot"], ["villageName", "Village"], ["city", "City"], ["postOffice", "Post Office"], ["pinCode", "PIN Code"], ["landmark", "Landmark"], ["municipality", "Municipality"], ["wardNumber", "Ward Number"], ["streetLocality", "Street / Locality"],
     ["consumerNumber", "Consumer Number"], ["subDivision", "Sub Division"], ["tariff", "Tariff"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
   ];
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-6 max-w-4xl rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-navy">Edit Application</h3><p className="text-xs text-muted">All details can be updated. Upload a document only to replace its existing file.</p></div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className="mt-5"><PartnerNetworkFields location={form.location} form={form} onChange={change} /></div><div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">{fields.map(([name, label, type]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<input name={name} type={type || "text"} value={form[name]} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label>)}</div><div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="odisha">Odisha</option><option value="kolkata">West Bengal</option><option value="both">Both regions</option></select></label><label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label><label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label></div><label className="mt-4 block text-xs font-semibold text-navy/70">Remarks<textarea name="remarks" value={form.remarks} onChange={change} rows={3} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><div className="mt-5">
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-6 max-w-4xl rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-navy">{technicalOnly ? "Upload Installation Progress" : "Edit Application"}</h3><p className="text-xs text-muted">{technicalOnly ? "Upload progress photos/documents. Application details stay unchanged." : "All details can be updated. Upload a document only to replace its existing file."}</p></div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className={technicalOnly ? "hidden" : "mt-5"}><PartnerNetworkFields location={form.location} form={form} onChange={change} /></div><div className={technicalOnly ? "hidden" : "mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"}>{fields.map(([name, label, type]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<input name={name} type={type || "text"} value={form[name]} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label>)}</div><div className={technicalOnly ? "hidden" : "mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"}><label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="odisha">Odisha</option><option value="kolkata">West Bengal</option><option value="both">Both regions</option></select></label><label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label><label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label></div><label className={technicalOnly ? "hidden" : "mt-4 block text-xs font-semibold text-navy/70"}>Remarks<textarea name="remarks" value={form.remarks} onChange={change} rows={3} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><div className="mt-5">
   <p className="text-sm font-bold text-navy">Replace Documents (optional)</p>
   <p className="mt-1 text-xs text-muted">Only choose a file for documents you want to replace — others stay unchanged.</p>
   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -445,7 +498,7 @@ function ApplicationEditForm({ app, onClose, onSaved }) {
       ["electricityBill", "Electricity Bill", app.file_electricity_bill],
       ["chequePassbook", "Cheque / Passbook", app.file_cheque_passbook],
       ["sitePhoto", "Site Photo", app.file_site_photo],
-    ].map(([name, label, existing]) => (
+    ].filter(([name]) => !technicalOnly || name === "sitePhoto").map(([name, label, existing]) => (
       <DocReplaceField
         key={name}
         name={name}
@@ -455,7 +508,7 @@ function ApplicationEditForm({ app, onClose, onSaved }) {
       />
     ))}
   </div>
-</div><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save All Changes"}</button></div></form></div>;
+</div><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : technicalOnly ? "Upload Progress" : "Save All Changes"}</button></div></form></div>;
 }
 
 function InfoSection({ title, children }) {
@@ -563,6 +616,13 @@ function InfoGrid({ items }) {
       ))}
     </div>
   );
+}
+
+function GpsValue({ label, value }) {
+  return <div className="rounded-lg bg-slate-50 px-3 py-2.5">
+    <p className="text-xs font-semibold text-muted">{label}</p>
+    <p className="mt-1 break-all text-sm font-semibold text-navy">{value}</p>
+  </div>;
 }
 
 function DocReplaceField({ name, label, existingUrl, onSelect }) {

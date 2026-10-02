@@ -173,6 +173,16 @@ export default function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/employee/installations/:id"
+            element={
+              <ProtectedRoute roles={["employee"]} permission="installations">
+                <DashboardLayout title="Installation Detail">
+                  <InstallationDetail />
+                </DashboardLayout>
+              </ProtectedRoute>
+            }
+          />
 
           <Route
             path="/partner/dashboard"
