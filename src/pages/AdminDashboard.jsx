@@ -845,6 +845,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const listRequestId = useRef(0);
   const limit = 20;
 
   // Load branches once for the branch filter dropdown
@@ -869,6 +870,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   }, []);
 
   const load = async (p = page, overrideFilters) => {
+    const requestId = ++listRequestId.current;
     setLoading(true);
     const f = overrideFilters || filters;
     try {
@@ -889,12 +891,13 @@ function ApplicationsTab({ initialLocation = "" }) {
       if (f.sortOrder) params.sortOrder = f.sortOrder;
 
       const res = await listApplications(params);
+      if (requestId !== listRequestId.current) return;
       setItems(res.data.items || []);
       setTotalPages(res.data.pages || 1);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (requestId === listRequestId.current) setLoading(false);
     }
   };
 
@@ -965,7 +968,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           <input
             value={filters.search}
             onChange={(e) => updateFilter("search", e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && load(1)}
+            onKeyDown={(e) => e.key === "Enter" && load(1, { ...filters, search: e.currentTarget.value })}
             placeholder="Search by name, phone, or application no."
             className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none"
           />
@@ -1375,6 +1378,7 @@ function EmployeesTab() {
   const [trackingEmployee, setTrackingEmployee] = useState(null);
   const [credentials, setCredentials] = useState(null);
   const [search, setSearch] = useState("");
+  const listRequestId = useRef(0);
   const [showFilters, setShowFilters] = useState(false);
   const [branchFilter, setBranchFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
@@ -1387,23 +1391,25 @@ function EmployeesTab() {
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
 
-  const load = async () => {
+  const load = async (searchValue = search) => {
+    const requestId = ++listRequestId.current;
     setLoading(true);
     try {
-      const [u, b] = await Promise.allSettled([listUsers({ role: "employee" }), listBranches()]);
+      const [u, b] = await Promise.allSettled([listUsers({ role: "employee", search: searchValue.trim() }), listBranches()]);
+      if (requestId !== listRequestId.current) return;
       if (u.status === "fulfilled") setUsers(u.value.data.items || []);
       else throw u.reason;
       setBranches(b.status === "fulfilled" ? b.value.data.items || [] : []);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (requestId === listRequestId.current) setLoading(false);
     }
   };
 
   useEffect(() => {
     load();
-  }, []);
+  }, [search]);
 
   const handleResetPassword = async (u) => {
     if (!confirm(`Reset password for ${u.name}?`)) return;
@@ -1450,10 +1456,12 @@ function EmployeesTab() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); load(e.currentTarget.value); } }}
               placeholder="Search employees…"
               className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none"
             />
           </div>
+          <button onClick={() => load(search)} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">Search</button>
           <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}>
             <Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}
           </button>
@@ -2391,6 +2399,7 @@ function InstallationsTab({ location }) {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
+  const listRequestId = useRef(0);
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
@@ -2403,21 +2412,23 @@ function InstallationsTab({ location }) {
   const [toDate, setToDate] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
   const [sortOrder, setSortOrder] = useState("desc");
-  const load = async () => {
+  const load = async (searchValue = search) => {
+    const requestId = ++listRequestId.current;
     setLoading(true);
     try {
-      const res = await listInstallations(location, { fromDate, toDate, sortBy, sortOrder, updatedBy: updatedByFilter, limit: "500" });
+      const res = await listInstallations(location, { search: searchValue.trim(), fromDate, toDate, sortBy, sortOrder, updatedBy: updatedByFilter, limit: "500" });
+      if (requestId !== listRequestId.current) return;
       setItems(res.data.items || []);
     } catch (err) {
       console.error(err);
       alert(err.message || "Could not load installations.");
     } finally {
-      setLoading(false);
+      if (requestId === listRequestId.current) setLoading(false);
     }
   };
   useEffect(() => {
     load();
-  }, [location, fromDate, toDate, sortBy, sortOrder, updatedByFilter]);
+  }, [location, search, fromDate, toDate, sortBy, sortOrder, updatedByFilter]);
 
   useEffect(() => {
     let active = true;
@@ -2468,8 +2479,9 @@ function InstallationsTab({ location }) {
     <div className="flex w-full flex-wrap gap-3">
       <div className="relative min-w-[240px] flex-1">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-        <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
+        <input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); load(event.currentTarget.value); } }} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
       </div>
+      <button onClick={() => load(search)} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">Search</button>
       <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
       <button onClick={async () => { await load(); const statsQuery = location ? `?location=${encodeURIComponent(location)}` : ""; const statsRes = await apiFetch(`/installations/stats/overview${statsQuery}`); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); setInstallationStatusCounts(statsRes.data.byStatus || {}); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
       {canExport && <button onClick={async () => {
@@ -2667,6 +2679,7 @@ function SubmissionList({ type }) {
   const [onboardError, setOnboardError] = useState("");
   const [onboardSaving, setOnboardSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const listRequestId = useRef(0);
   const [showFilters, setShowFilters] = useState(false);
   const [statusFilter, setStatusFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
@@ -2683,13 +2696,14 @@ function SubmissionList({ type }) {
   const [sortOrder, setSortOrder] = useState("desc");
   const isPartners = type === "partners";
 
-  const load = async (requestedPage = 1, append = false) => {
+  const load = async (requestedPage = 1, append = false, searchValue = search) => {
+    const requestId = ++listRequestId.current;
     if (append) setLoadingMore(true);
     else setLoading(true);
     try {
       const query = new URLSearchParams({ limit: isPartners ? "10" : "100" });
       if (isPartners) query.set("page", String(requestedPage));
-      if (isPartners && search.trim()) query.set("search", search.trim());
+      if (isPartners && searchValue.trim()) query.set("search", searchValue.trim());
       if (isPartners && statusFilter) query.set("status", statusFilter);
       if (isPartners && locationFilter.trim()) query.set("city", locationFilter.trim());
       if (isPartners && stateFilter) query.set("location", stateFilter === "West Bengal" ? "west_bengal" : "odisha");
@@ -2703,6 +2717,7 @@ function SubmissionList({ type }) {
       query.set("sortBy", sortBy);
       query.set("sortOrder", sortOrder);
       const res = await apiFetch(`/admin/${type}?${query.toString()}`);
+      if (requestId !== listRequestId.current) return;
       const pageItems = res.data.items || [];
       setItems((current) => append ? [...current, ...pageItems] : pageItems);
       if (isPartners) {
@@ -2714,10 +2729,12 @@ function SubmissionList({ type }) {
     } catch (err) {
       console.error(err);
     } finally {
-      if (append) setLoadingMore(false);
-      else {
-        setLoading(false);
-        setHasLoaded(true);
+      if (requestId === listRequestId.current) {
+        if (append) setLoadingMore(false);
+        else {
+          setLoading(false);
+          setHasLoaded(true);
+        }
       }
     }
   };
@@ -2843,7 +2860,8 @@ function SubmissionList({ type }) {
         {[["Total Partners", "total"], ["Super-vendors", "super_vendor"], ["Vendors", "vendor"], ["Sub-vendors", "sub_vendor"], ["Dealers", "dealer"], ["Odisha", "odisha"], ["West Bengal", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{partnerCounts?.[key] ?? "—"}</p></div>)}
       </div>}
       <div className="flex w-full flex-wrap gap-3">
-          <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
+          <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); load(1, false, event.currentTarget.value); } }} placeholder={`Search ${isPartners ? "partners" : isJoinUs ? "Join Us submissions" : isCareers ? "career applications" : "contacts"}...`} className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" /></div>
+          <button type="button" onClick={() => load(1, false, search)} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">Search</button>
           <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
           <button onClick={() => load(1)} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
           {canExportPartners && <button onClick={async () => {
