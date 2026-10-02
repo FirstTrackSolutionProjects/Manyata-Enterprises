@@ -731,6 +731,7 @@ const EMPTY_FILTERS = {
   name: "",
   email: "",
   phone: "",
+  updatedBy: "",
 };
 
 function ApplicationsTab({ initialLocation = "" }) {
@@ -915,6 +916,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
+            <FilterInput label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} />
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <FilterSelect
@@ -2285,6 +2287,7 @@ function InstallationsTab({ location }) {
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [updatedByFilter, setUpdatedByFilter] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
@@ -2292,7 +2295,7 @@ function InstallationsTab({ location }) {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await listInstallations(location, { fromDate, toDate, sortBy, sortOrder, limit: "500" });
+      const res = await listInstallations(location, { fromDate, toDate, sortBy, sortOrder, updatedBy: updatedByFilter, limit: "500" });
       setItems(res.data.items || []);
     } catch (err) {
       console.error(err);
@@ -2303,7 +2306,7 @@ function InstallationsTab({ location }) {
   };
   useEffect(() => {
     load();
-  }, [location, fromDate, toDate, sortBy, sortOrder]);
+  }, [location, fromDate, toDate, sortBy, sortOrder, updatedByFilter]);
 
   useEffect(() => {
     let active = true;
@@ -2316,7 +2319,7 @@ function InstallationsTab({ location }) {
 
   const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "West Bengal Installations" : "All Installations";
   const filteredItems = applyDateSort(items.filter((item) =>
-    [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status]
+    [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status, item.last_updated_by_name]
       .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
     (!nameFilter || String(item.customer_name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) &&
     (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) &&
@@ -2325,7 +2328,7 @@ function InstallationsTab({ location }) {
     (!typeFilter || item.installation_type === typeFilter) &&
     (!locationFilter || item.location === locationFilter)
   ), { fromDate, toDate, sortBy, sortOrder, nameKey: "customer_name" });
-  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
+  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(updatedByFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
@@ -2359,6 +2362,7 @@ function InstallationsTab({ location }) {
           if (nameFilter.trim()) params.set("name", nameFilter.trim());
           if (emailFilter.trim()) params.set("email", emailFilter.trim());
           if (phoneFilter.trim()) params.set("phone", phoneFilter.trim());
+          if (updatedByFilter.trim()) params.set("updatedBy", updatedByFilter.trim());
           if (statusFilter) params.set("status", statusFilter);
           if (typeFilter) params.set("installationType", typeFilter);
           if (fromDate) params.set("fromDate", fromDate);
@@ -2373,6 +2377,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
+          <FilterInput label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} />
       <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES} placeholder="All statuses" />
       <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
@@ -2380,7 +2385,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
       <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "customer_name", label: "Customer Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
       <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
-      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setUpdatedByFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
     </div>}
     {filteredItems.length === 0 ? (
       <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
@@ -2398,6 +2403,7 @@ function InstallationsTab({ location }) {
               <th className="p-3">Location</th>
               <th className="p-3">Installation</th>
               <th className="p-3 whitespace-nowrap">Sales Executive</th>
+              <th className="p-3 whitespace-nowrap">Updated By</th>
               <th className="p-3">City</th>
               <th className="p-3">Status</th>
               {(canView || canEdit) && <th className="p-3">Actions</th>}
@@ -2414,6 +2420,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3 capitalize">{item.location}</td>
                   <td className="p-3">{item.installation_type || "—"}</td>
                   <td className="p-3 whitespace-nowrap">{item.sales_executive_name || "-"}</td>
+                  <td className="p-3 whitespace-nowrap">{item.last_updated_by_name || "-"}</td>
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3"><StatusBadge status={item.status} /></td>
                   {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
