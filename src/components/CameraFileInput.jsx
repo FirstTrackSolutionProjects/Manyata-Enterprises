@@ -3,6 +3,45 @@ import { Camera, Check, Download, Loader2, RotateCcw, Upload, X } from "lucide-r
 
 const placeCache = new Map();
 const uniqueParts = (parts) => parts.filter(Boolean).filter((part, index, list) => list.findIndex((value) => value.toLowerCase() === part.toLowerCase()) === index);
+const OSM_TILE_TEMPLATE = import.meta.env.VITE_OSM_TILE_URL || "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+const loadMapTile = ({ latitude, longitude }) => new Promise((resolve) => {
+  const zoom = 15;
+  const count = 2 ** zoom;
+  const x = ((longitude + 180) / 360) * count;
+  const latitudeRadians = (latitude * Math.PI) / 180;
+  const y = ((1 - Math.asinh(Math.tan(latitudeRadians)) / Math.PI) / 2) * count;
+  const tileX = Math.floor(x);
+  const tileY = Math.floor(y);
+  const image = new Image();
+  const timeout = window.setTimeout(() => resolve(null), 3500);
+  image.crossOrigin = "anonymous";
+  image.onload = () => {
+    window.clearTimeout(timeout);
+    resolve({ image, markerX: (x - tileX) * 256, markerY: (y - tileY) * 256 });
+  };
+  image.onerror = () => {
+    window.clearTimeout(timeout);
+    resolve(null);
+  };
+  image.src = OSM_TILE_TEMPLATE.replace("{z}", zoom).replace("{x}", tileX).replace("{y}", tileY);
+});
+
+const drawWrappedText = (context, text, x, y, maxWidth, lineHeight, maxLines = 2) => {
+  const words = String(text || "").split(/\s+/);
+  let line = "";
+  let lineIndex = 0;
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && context.measureText(next).width > maxWidth) {
+      context.fillText(line, x, y + lineIndex * lineHeight, maxWidth);
+      line = word;
+      lineIndex += 1;
+      if (lineIndex >= maxLines) break;
+    } else line = next;
+  }
+  if (lineIndex < maxLines && line) context.fillText(line, x, y + lineIndex * lineHeight, maxWidth);
+};
 
 const lookupWithPhoton = async ({ latitude, longitude }) => {
   const params = new URLSearchParams({ lat: latitude, lon: longitude, lang: "en" });
@@ -46,7 +85,6 @@ export default function CameraFileInput({ label, name, accept, required = false,
   const [cameraOpen, setCameraOpen] = useState(false);
   const [facing, setFacing] = useState("environment");
   const [capturedFile, setCapturedFile] = useState(null);
-  const [capturedMeta, setCapturedMeta] = useState(null);
   const [cameraError, setCameraError] = useState("");
   const [startingCamera, setStartingCamera] = useState(false);
   const [capturing, setCapturing] = useState(false);
@@ -73,7 +111,6 @@ export default function CameraFileInput({ label, name, accept, required = false,
     streamRef.current = null;
     setCameraOpen(false);
     setCapturedFile(null);
-    setCapturedMeta(null);
   };
 
   const selectFile = (file) => {
@@ -131,29 +168,92 @@ export default function CameraFileInput({ label, name, accept, required = false,
       }, { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 });
     });
     const place = gps ? await reverseGeocode(gps) : "";
-    const footerHeight = Math.max(150, Math.round(canvas.height * 0.22));
-    const scale = canvas.width / 900;
-    const fontSize = Math.max(15, Math.round(23 * scale));
-    const dateTime = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(capturedAt);
-    const locationLine = place || (gps ? "GPS location captured" : "GPS LOCATION NOT CAPTURED");
-    const coordinatesLine = gps ? `LAT ${Math.abs(gps.latitude).toFixed(6)}° ${gps.latitude < 0 ? "S" : "N"}   LON ${Math.abs(gps.longitude).toFixed(6)}° ${gps.longitude < 0 ? "W" : "E"}   ±${gps.accuracy} m` : "Coordinates unavailable";
-    context.fillStyle = "rgba(5, 18, 35, 0.84)";
+    const mapTile = gps ? await loadMapTile(gps) : null;
+    const footerHeight = Math.max(220, Math.round(canvas.height * 0.29));
+    const scale = Math.min(canvas.width / 900, canvas.height / 1100);
+    const padding = Math.max(8, Math.round(22 * scale));
+    const mapSize = gps ? Math.max(72, Math.min(footerHeight - padding * 2, Math.round(canvas.width * 0.29))) : 0;
+    const detailX = gps ? padding + mapSize + padding : padding;
+    const detailWidth = Math.max(80, canvas.width - detailX - padding);
+    const fontSize = Math.max(12, Math.round(22 * scale));
+    const dateText = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", day: "2-digit", month: "short", year: "numeric" }).format(capturedAt);
+    const timeText = new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(capturedAt);
+    const locationLine = place || (gps ? "GPS location captured" : "GPS location unavailable");
+    const latitudeLine = gps ? `LAT  ${Math.abs(gps.latitude).toFixed(6)}°  ${gps.latitude < 0 ? "S" : "N"}` : "LAT  unavailable";
+    const longitudeLine = gps ? `LON  ${Math.abs(gps.longitude).toFixed(6)}°  ${gps.longitude < 0 ? "W" : "E"}` : "LON  unavailable";
+    const innerHeight = footerHeight - padding * 2;
+    const textLineHeight = Math.max(15, Math.round(fontSize * 1.42));
+    const locationY = canvas.height - footerHeight + padding + Math.round(innerHeight * 0.08);
+    context.fillStyle = "rgba(5, 18, 35, 0.9)";
     context.fillRect(0, canvas.height - footerHeight, canvas.width, footerHeight);
     context.fillStyle = "#f7a51b";
-    context.fillRect(0, canvas.height - footerHeight, canvas.width, Math.max(3, Math.round(4 * scale)));
-    context.textBaseline = "middle";
+    context.fillRect(0, canvas.height - footerHeight, canvas.width, Math.max(3, Math.round(4 * Math.max(scale, 0.7))));
+    const mapX = padding;
+    const mapY = canvas.height - footerHeight + padding;
+    if (gps) {
+      context.fillStyle = "#e2e8f0";
+      context.fillRect(mapX, mapY, mapSize, mapSize);
+    }
+    if (mapTile && gps) {
+      context.save();
+      context.beginPath();
+      context.rect(mapX, mapY, mapSize, mapSize);
+      context.clip();
+      context.drawImage(mapTile.image, mapX, mapY, mapSize, mapSize);
+      const markerX = mapX + (mapTile.markerX / 256) * mapSize;
+      const markerY = mapY + (mapTile.markerY / 256) * mapSize;
+      context.beginPath();
+      context.fillStyle = "#ef4444";
+      context.arc(markerX, markerY, Math.max(5, Math.round(8 * scale)), 0, Math.PI * 2);
+      context.fill();
+      context.beginPath();
+      context.fillStyle = "#ffffff";
+      context.arc(markerX, markerY, Math.max(2, Math.round(3 * scale)), 0, Math.PI * 2);
+      context.fill();
+      const accuracyLabel = `±${gps.accuracy} m`;
+      const accuracyFontSize = Math.max(9, Math.round(fontSize * 0.58));
+      context.font = `600 ${accuracyFontSize}px Arial, sans-serif`;
+      const accuracyWidth = context.measureText(accuracyLabel).width + padding;
+      const accuracyHeight = accuracyFontSize + Math.max(4, Math.round(4 * scale));
+      context.fillStyle = "rgba(5, 18, 35, 0.78)";
+      context.fillRect(mapX, mapY + mapSize - accuracyHeight, accuracyWidth, accuracyHeight);
+      context.fillStyle = "#5fe0d1";
+      context.textBaseline = "middle";
+      context.fillText(accuracyLabel, mapX + padding / 2, mapY + mapSize - accuracyHeight / 2, accuracyWidth - padding / 2);
+      context.textBaseline = "top";
+      context.restore();
+    } else if (gps) {
+      context.fillStyle = "#475569";
+      context.font = `500 ${Math.max(9, Math.round(fontSize * 0.62))}px Arial, sans-serif`;
+      context.textAlign = "center";
+      context.fillText("Map unavailable", mapX + mapSize / 2, mapY + mapSize / 2, mapSize - padding);
+      context.textAlign = "start";
+    }
+    if (gps) {
+      context.strokeStyle = "#55c7bd";
+      context.lineWidth = Math.max(2, Math.round(3 * Math.max(scale, 0.7)));
+      context.strokeRect(mapX, mapY, mapSize, mapSize);
+    }
+    context.textBaseline = "top";
     context.fillStyle = "#ffffff";
     context.font = `600 ${fontSize}px Arial, sans-serif`;
-    context.fillText(locationLine, Math.round(24 * scale), canvas.height - footerHeight + Math.round(footerHeight * 0.25), canvas.width - Math.round(48 * scale));
-    context.fillStyle = "#ffffff";
-    context.font = `600 ${Math.round(fontSize * 0.86)}px Arial, sans-serif`;
-    context.fillText(coordinatesLine, Math.round(24 * scale), canvas.height - footerHeight + Math.round(footerHeight * 0.49), canvas.width - Math.round(48 * scale));
-    context.fillStyle = "#ffd44f";
-    context.font = `700 ${fontSize}px Arial, sans-serif`;
-    context.fillText(`${dateTime} IST`, Math.round(24 * scale), canvas.height - footerHeight + Math.round(footerHeight * 0.73), canvas.width - Math.round(48 * scale));
+    drawWrappedText(context, locationLine, detailX, locationY, detailWidth, textLineHeight, 2);
+    const coordinateFont = Math.max(11, Math.round(fontSize * 0.8));
+    context.font = `600 ${coordinateFont}px Arial, sans-serif`;
+    context.fillStyle = "#5fe0d1";
+    context.fillText(latitudeLine, detailX, locationY + textLineHeight * 2.25, detailWidth);
+    context.fillText(longitudeLine, detailX, locationY + textLineHeight * 3.15, detailWidth);
     context.fillStyle = "#cbd5e1";
-    context.font = `400 ${Math.max(10, Math.round(fontSize * 0.48))}px Arial, sans-serif`;
-    context.fillText("© OpenStreetMap contributors", Math.round(24 * scale), canvas.height - footerHeight + Math.round(footerHeight * 0.91), canvas.width - Math.round(48 * scale));
+    context.font = `500 ${Math.max(10, Math.round(fontSize * 0.73))}px Arial, sans-serif`;
+    context.fillText(dateText, detailX, locationY + textLineHeight * 4.15, detailWidth);
+    context.fillStyle = "#ffd44f";
+    context.font = `700 ${Math.max(13, Math.round(fontSize * 1.18))}px Arial, sans-serif`;
+    context.fillText(timeText, detailX, locationY + textLineHeight * 5.05, detailWidth);
+    if (gps) {
+      context.fillStyle = "#cbd5e1";
+      context.font = `400 ${Math.max(8, Math.round(fontSize * 0.45))}px Arial, sans-serif`;
+      context.fillText("© OpenStreetMap contributors", mapX, mapY + mapSize + Math.max(3, Math.round(4 * scale)), mapSize);
+    }
     canvas.toBlob((blob) => {
       if (!blob) {
         setCapturing(false);
@@ -162,7 +262,6 @@ export default function CameraFileInput({ label, name, accept, required = false,
       }
       const file = new File([blob], `${name || "photo"}-${Date.now()}.jpg`, { type: "image/jpeg" });
       setCapturedFile(file);
-      setCapturedMeta({ gps, place, capturedAt });
       setCapturing(false);
       setCameraError("");
     }, "image/jpeg", 0.92);
@@ -189,14 +288,18 @@ export default function CameraFileInput({ label, name, accept, required = false,
         {selectedFile && downloadUrl && <a href={downloadUrl} download={selectedFile.name || `${name || "photo"}.jpg`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"><Download size={14} />Download photo</a>}
       </div>
       {cameraError && !cameraOpen && <p role="alert" className="mt-2 text-xs text-red-700">{cameraError}</p>}
-      <p className="mt-1 text-[11px] text-muted">Captured photos include the location name, latitude / longitude and date / time. Allow GPS access for accurate coordinates.</p>
+      <p className="mt-1 text-[11px] text-muted">Photo stamp shows the map, location, coordinates, accuracy and capture time when GPS is enabled.</p>
 
       {cameraOpen && <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto overscroll-contain bg-black/80 p-2 sm:p-6" role="dialog" aria-modal="true" aria-label="Camera photo capture">
         <div className="my-auto flex max-h-[calc(100dvh-1rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
           <div className="flex shrink-0 items-center justify-between border-b border-navy/10 px-4 py-3"><div><h3 className="font-bold text-navy">{capturedFile ? "Review photo" : `${facing === "user" ? "Front" : "Rear"} camera`}</h3><p className="text-xs text-muted">{capturedFile ? "Check the image before attaching it to the form." : "Position the subject in the frame, then take the photo."}</p></div><button type="button" onClick={stopCamera} className="rounded-lg p-2 text-muted hover:bg-slate-100" aria-label="Close camera"><X size={20} /></button></div>
           {cameraError && <p role="alert" className="mx-4 mt-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{cameraError}</p>}
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-black">{capturedFile ? <><img src={reviewUrl} alt="Captured photo with location and time watermark" className="max-h-[45vh] w-full object-contain" />{capturedMeta?.gps && <div className="bg-white p-3"><div className="mb-2 flex items-center justify-between gap-3"><span className="text-xs font-semibold text-navy">Captured location map</span><a href={`https://www.openstreetmap.org/?mlat=${capturedMeta.gps.latitude}&mlon=${capturedMeta.gps.longitude}#map=18/${capturedMeta.gps.latitude}/${capturedMeta.gps.longitude}`} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-semibold text-blue-700 underline">Open full map · © OpenStreetMap</a></div><iframe title="Map showing captured location" src={`https://www.openstreetmap.org/export/embed.html?bbox=${capturedMeta.gps.longitude - 0.01}%2C${capturedMeta.gps.latitude - 0.006}%2C${capturedMeta.gps.longitude + 0.01}%2C${capturedMeta.gps.latitude + 0.006}&layer=mapnik&marker=${capturedMeta.gps.latitude}%2C${capturedMeta.gps.longitude}`} loading="lazy" className="h-36 w-full rounded-lg border-0 bg-slate-100 sm:h-44" /></div>}</> : <video ref={videoRef} autoPlay muted playsInline className="max-h-[68vh] min-h-64 w-full object-contain" />}</div>
-          <div className="flex shrink-0 flex-wrap justify-center gap-3 border-t border-navy/10 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">{capturedFile ? <><button type="button" onClick={() => setCapturedFile(null)} className="inline-flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy"><RotateCcw size={16} />Retake</button><button type="button" onClick={useCapturedPhoto} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy"><Check size={16} />Use photo</button></> : <button type="button" disabled={capturing} onClick={capturePhoto} className="inline-flex items-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy disabled:opacity-70">{capturing ? <Loader2 size={17} className="animate-spin" /> : <Camera size={17} />}{capturing ? "Adding date, time & GPS…" : "Take photo"}</button>}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-black">
+            {capturedFile ? <img src={reviewUrl} alt="Captured photo with map, location, coordinates and timestamp" className="max-h-[68vh] w-full object-contain" /> : <video ref={videoRef} autoPlay muted playsInline className="max-h-[68vh] min-h-64 w-full object-contain" />}
+          </div>
+          <div className="flex shrink-0 flex-wrap justify-center gap-3 border-t border-navy/10 bg-white p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            {capturedFile ? <><button type="button" onClick={() => setCapturedFile(null)} className="inline-flex items-center gap-2 rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy"><RotateCcw size={16} />Retake</button><button type="button" onClick={useCapturedPhoto} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy"><Check size={16} />Use photo</button></> : <button type="button" disabled={capturing} onClick={capturePhoto} className="inline-flex items-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy disabled:opacity-70">{capturing ? <Loader2 size={17} className="animate-spin" /> : <Camera size={17} />}{capturing ? "Adding map and time..." : "Take photo"}</button>}
+          </div>
         </div>
       </div>}
     </div>
