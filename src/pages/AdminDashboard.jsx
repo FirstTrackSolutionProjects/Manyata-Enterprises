@@ -834,6 +834,8 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0) + Number(applicationStatusCounts.vendor_side_pending_for_bank_forward || 0)],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
           ["Customer - Full Loan Amount Disbursed", Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
+          ["Customer - KYC Pending from the Bank Side", Number(applicationStatusCounts.customer_kyc_pending_from_bank_side || 0)],
+          ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
           ["Under Review", Number(applicationStatusCounts.under_review || 0)],
