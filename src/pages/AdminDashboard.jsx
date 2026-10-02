@@ -581,7 +581,7 @@ function CommissionPayoutsTab() {
     finally { setSavingId(null); }
   };
   const approve = (item) => {
-    if (window.confirm(`Confirm ${item.application_no}: installation is complete and the agreed project payment has been received?`)) update(item, "approved");
+    if (window.confirm("Please confirm that the installation is complete and the customer’s agreed payment has been received.")) update(item, "approved");
   };
   const markPaid = (item) => {
     const paymentReference = window.prompt("After transferring this amount outside the app, enter the bank UTR / payment reference:");
