@@ -20,7 +20,6 @@ export const APPLICATION_STATUSES = [
   { value: "vendor_side_login_otp_pending_customer_not_responding_call", label: "Vendor Side - Login - OTP Pending - Customer Not Responding Call" },
   { value: "ownership_transfer_completed_successfully", label: "Ownership Transfer – Completed Successfully" },
   { value: "consumer_login_submitted_to_govt_portal", label: "Consumer Login – Submitted to Govt Portal" },
-  { value: "vendor_side_bank_forward", label: "Vendor Side – Bank Forward" },
   { value: "bank_reject", label: "Bank Reject" },
   { value: "vendor_side_re_bank_forward", label: "Vendor Side – Re-Bank Forward" },
   { value: "pending_for_loan_phase_1", label: "Pending for Loan – Phase 1" },

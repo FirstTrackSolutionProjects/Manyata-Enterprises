@@ -945,7 +945,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Customer - KYC Pending from the Bank Side", Number(applicationStatusCounts.customer_kyc_pending_from_bank_side || 0)],
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
-          ["Bank Forwarded", ["vendor_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
+          ["Bank Forwarded", ["customer_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
           ["Under Review", Number(applicationStatusCounts.under_review || 0)],
           ["Electricity Bill - Name Mismatch", Number(applicationStatusCounts.electricity_bill_name_mismatch || 0)],
           ["Electricity Bill - Ownership Transfer", Number(applicationStatusCounts.electricity_bill_mismatch_ownership_transfer || 0)],
