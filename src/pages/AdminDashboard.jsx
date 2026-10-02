@@ -2881,7 +2881,9 @@ function SubmissionList({ type }) {
           </tr>
         </thead>
         <tbody>
-          {filteredItems.map((it) => (
+          {filteredItems.map((it) => {
+            const applicantName = `${it.first_name || ""} ${it.last_name || ""}`.trim() || it.name || it.full_name || it.company_name || "-";
+            return (
             <tr key={it.id} className="border-b border-navy/5">
               <td className="p-3 font-mono text-xs whitespace-nowrap">{it.id}</td>
               <td className="p-3 font-semibold text-navy whitespace-nowrap">
@@ -2890,11 +2892,7 @@ function SubmissionList({ type }) {
                     {it.documentUrls?.Photo && <img src={it.documentUrls.Photo} alt={`${it.company_name || it.contact_name || "Partner"} profile`} loading="lazy" className="h-10 w-10 shrink-0 rounded-full border border-navy/10 object-cover" />}
                     <div><span>{it.company_name || "-"}</span><span className="block text-xs font-normal text-muted">{it.contact_name || "-"}</span></div>
                   </div>
-                ) : it.name ||
-                  it.full_name ||
-                  it.company_name ||
-                  `${it.first_name || ""} ${it.last_name || ""}`.trim() ||
-                  "-"}
+                ) : applicantName}
               </td>
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
               {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
@@ -2952,7 +2950,8 @@ function SubmissionList({ type }) {
                 </td>
               )}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
       </div>
