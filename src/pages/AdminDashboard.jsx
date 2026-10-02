@@ -1660,7 +1660,7 @@ function EmployeeAttendanceModal({ employee, onClose }) {
 function SalarySlipModal({ employee, onClose, onGenerate }) {
   const now = new Date();
   const [form, setForm] = useState({
-    month: String(now.getMonth() + 1), year: String(now.getFullYear()), grossSalary: "",
+    month: String(now.getMonth() + 1), year: String(now.getFullYear()), grossSalary: "0",
     incentive: "0", bonus: "0", employerEpf: "0", employerEsi: "0", termLifeInsurance: "0",
     healthInsurance: "0", employeeEpf: "0", employeeEsi: "0", professionalTax: "0", advanceSalary: "0",
   });
