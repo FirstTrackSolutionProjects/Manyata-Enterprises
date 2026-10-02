@@ -65,6 +65,8 @@ import {
   downloadCsvExport,
   generateEmployeeSalarySlip,
   getSalaryEmployees,
+  getEmployeeSalaryAdvances,
+  createEmployeeSalaryAdvance,
   getMySalarySlips,
   downloadSalarySlip,
   listCommissionPayouts,
@@ -495,13 +497,14 @@ function SalaryManagementTab() {
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [search, setSearch] = useState("");
+  const [salaryPeriod, setSalaryPeriod] = useState(() => ({ month: String(new Date().getMonth() + 1), year: String(new Date().getFullYear()) }));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const load = async () => {
     setLoading(true);
     setError("");
     try {
-      const response = await getSalaryEmployees();
+      const response = await getSalaryEmployees(salaryPeriod);
       setEmployees(response.data?.items || []);
     } catch (err) {
       setError(err.message || "Could not load employees for salary management.");
@@ -511,21 +514,44 @@ function SalaryManagementTab() {
   };
   useEffect(() => {
     let active = true;
-    getSalaryEmployees()
+    getSalaryEmployees(salaryPeriod)
       .then((response) => { if (active) setEmployees(response.data?.items || []); })
       .catch((err) => { if (active) setError(err.message || "Could not load employees for salary management."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, []);
+  }, [salaryPeriod]);
   const term = search.trim().toLowerCase();
   const filtered = employees.filter((employee) => [employee.name, employee.user_id, employee.email, employee.department, employee.designation, employee.branch_name]
     .some((value) => String(value || "").toLowerCase().includes(term)));
 
   return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Generate or update a monthly salary slip for an active employee.</p></div><div className="flex gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
-    {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : error ? <p className="p-5 text-sm text-red-600">{error}</p> : !filtered.length ? <p className="p-5 text-sm text-muted">No active employees match your search.</p> : <div className="divide-y divide-navy/5">{filtered.map((employee) => <div key={employee.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold text-navy">{employee.name} <span className="font-mono text-xs text-muted">· {employee.user_id}</span></p><p className="mt-1 text-xs text-muted">{employee.designation || "Employee"} · {employee.department || "No department"} · {employee.branch_name || "No branch"}</p></div><button onClick={() => setSelectedEmployee(employee)} className="inline-flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Generate salary</button></div>)}</div>}
-    {selectedEmployee && <SalarySlipModal key={selectedEmployee.id} employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} onGenerate={generateEmployeeSalarySlip}/>}
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Generate or update a monthly salary slip for an active employee.</p></div><div className="flex gap-2"><input type="month" value={`${salaryPeriod.year}-${salaryPeriod.month.padStart(2, "0")}`} onChange={(event) => { const [year, month] = event.target.value.split("-"); setSalaryPeriod({ year, month: String(Number(month)) }); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
+    {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : error ? <p className="p-5 text-sm text-red-600">{error}</p> : !filtered.length ? <p className="p-5 text-sm text-muted">No active employees match your search.</p> : <div className="divide-y divide-navy/5">{filtered.map((employee) => <div key={employee.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold text-navy">{employee.name} <span className="font-mono text-xs text-muted">· {employee.user_id}</span></p><p className="mt-1 text-xs text-muted">{employee.designation || "Employee"} · {employee.department || "No department"} · {employee.branch_name || "No branch"}</p><p className="mt-1 text-xs text-muted">Advance balance: <strong className="text-navy">Rs. {Number(employee.advance_outstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></p></div><div className="flex gap-2"><button onClick={() => setSelectedEmployee(employee)} className="inline-flex items-center gap-1.5 rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Advance</button><button onClick={() => setSelectedEmployee({ ...employee, openSalarySlip: true })} className="inline-flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Generate salary</button></div></div>)}</div>}
+    {selectedEmployee && !selectedEmployee.openSalarySlip && <SalaryAdvanceModal key={`advance-${selectedEmployee.id}`} employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} onSaved={() => { setSelectedEmployee(null); load(); }}/>}
+    {selectedEmployee?.openSalarySlip && <SalarySlipModal key={`slip-${selectedEmployee.id}`} employee={{ ...selectedEmployee, month: Number(salaryPeriod.month), year: Number(salaryPeriod.year) }} onClose={() => setSelectedEmployee(null)} onGenerate={generateEmployeeSalarySlip}/>}
   </section>;
+}
+
+function SalaryAdvanceModal({ employee, onClose, onSaved }) {
+  const now = new Date();
+  const [form, setForm] = useState({ totalAmount: "", monthlyInstallment: "", firstRecoveryMonth: String(now.getMonth() + 1), firstRecoveryYear: String(now.getFullYear()), note: "" });
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => { getEmployeeSalaryAdvances(employee.id).then((response) => setItems(response.data?.items || [])).catch((err) => setError(err.message || "Could not load advances.")).finally(() => setLoading(false)); }, [employee.id]);
+  const submit = async (event) => {
+    event.preventDefault(); setSaving(true); setError("");
+    try {
+      await createEmployeeSalaryAdvance(employee.id, { ...form, totalAmount: Number(form.totalAmount), monthlyInstallment: Number(form.monthlyInstallment), firstRecoveryMonth: Number(form.firstRecoveryMonth), firstRecoveryYear: Number(form.firstRecoveryYear) });
+      onSaved();
+    } catch (err) { setError(err.message || "Could not record salary advance."); }
+    finally { setSaving(false); }
+  };
+  const input = "mt-1 block w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm text-navy";
+  return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/50 p-4" onClick={onClose}><section onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-2xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"><header className="flex justify-between gap-4"><div><h2 className="text-lg font-bold text-navy">Employee salary advance</h2><p className="mt-1 text-sm text-muted">{employee.name} · {employee.user_id}</p></div><button onClick={onClose} className="rounded-lg p-1 text-muted" aria-label="Close"><X size={20}/></button></header>
+    <form onSubmit={submit} className="space-y-4"><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-muted">Advance amount (Rs.)<input required type="number" min="0.01" step="0.01" value={form.totalAmount} onChange={(e) => setForm({ ...form, totalAmount: e.target.value })} className={input}/></label><label className="text-xs font-semibold text-muted">Monthly recovery (Rs.)<input required type="number" min="0.01" step="0.01" value={form.monthlyInstallment} onChange={(e) => setForm({ ...form, monthlyInstallment: e.target.value })} className={input}/></label><label className="text-xs font-semibold text-muted sm:col-span-2">First recovery month<input required type="month" value={`${form.firstRecoveryYear}-${form.firstRecoveryMonth.padStart(2, "0")}`} onChange={(e) => { const [year, month] = e.target.value.split("-"); setForm({ ...form, firstRecoveryYear: year, firstRecoveryMonth: String(Number(month)) }); }} className={input}/></label><label className="text-xs font-semibold text-muted sm:col-span-2">Note (optional)<input maxLength="500" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} className={input}/></label></div>{error && <p className="text-sm text-red-600">{error}</p>}<div className="text-right"><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Saving..." : "Record advance"}</button></div></form>
+    <div><h3 className="font-bold text-navy">Advance history</h3>{loading ? <p className="py-4 text-sm text-muted">Loading...</p> : !items.length ? <p className="py-4 text-sm text-muted">No advances recorded.</p> : <div className="mt-2 divide-y divide-navy/5">{items.map((item) => <article key={item.id} className="py-3 text-sm"><div className="flex justify-between gap-3"><strong>{item.status === "active" ? "Active" : item.status === "paid" ? "Paid" : "Cancelled"}</strong><strong>Rs. {Number(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></div><p className="mt-1 text-xs text-muted">Recovered Rs. {Number(item.recovered_amount).toFixed(2)} · Balance Rs. {(Number(item.total_amount) - Number(item.recovered_amount)).toFixed(2)} · Rs. {Number(item.monthly_installment).toFixed(2)} per month from {new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(Number(item.first_recovery_year), Number(item.first_recovery_month) - 1, 1))}</p>{item.note && <p className="mt-1 text-xs text-muted">{item.note}</p>}</article>)}</div>}</div></section></div>;
 }
 
 function CommissionPayoutsTab() {
@@ -1609,7 +1635,7 @@ function EmployeesTab() {
           onClose={() => setCredentials(null)}
         />
       )}
-      {salaryEmployee && <SalarySlipModal key={salaryEmployee.id} employee={salaryEmployee} onClose={() => setSalaryEmployee(null)} onGenerate={generateEmployeeSalarySlip} />}
+      {salaryEmployee && <SalarySlipModal key={salaryEmployee.id} employee={{ ...salaryEmployee, month: salaryEmployee.pay_month || new Date().getMonth() + 1, year: salaryEmployee.pay_year || new Date().getFullYear() }} onClose={() => setSalaryEmployee(null)} onGenerate={generateEmployeeSalarySlip} />}
       {trackingEmployee && <EmployeeAttendanceModal employee={trackingEmployee} onClose={() => setTrackingEmployee(null)} />}
     </div>
   );
@@ -1661,9 +1687,9 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const now = new Date();
   const savedNumber = (key) => employee[key] == null ? "0" : String(Number(employee[key]));
   const [form, setForm] = useState(() => ({
-    month: String(now.getMonth() + 1), year: String(now.getFullYear()), grossSalary: savedNumber("gross_salary"),
+    month: String(employee.month || now.getMonth() + 1), year: String(employee.year || now.getFullYear()), grossSalary: savedNumber("gross_salary"),
     incentive: "0", bonus: "0", employerEpf: savedNumber("employer_epf"), employerEsi: savedNumber("employer_esi"), termLifeInsurance: savedNumber("term_life_insurance"),
-    healthInsurance: savedNumber("health_insurance"), employeeEpf: savedNumber("employee_epf"), employeeEsi: savedNumber("employee_esi"), professionalTax: savedNumber("professional_tax"), advanceSalary: savedNumber("advance_salary"),
+    healthInsurance: savedNumber("health_insurance"), employeeEpf: savedNumber("employee_epf"), employeeEsi: savedNumber("employee_esi"), professionalTax: savedNumber("professional_tax"), advanceSalary: "0",
   }));
   const [salaryStructure, setSalaryStructure] = useState(employee.salary_structure || "standard");
   const [customStructure, setCustomStructure] = useState({ basicSalary: savedNumber("basic_salary"), hra: savedNumber("hra"), allowance: savedNumber("allowance") });
@@ -1676,7 +1702,8 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const calculatedGross = salaryStructure === "custom" ? Math.round((basic + hra + allowance + Number.EPSILON) * 100) / 100 : gross;
   const incentive = Number(form.incentive || 0);
   const bonus = Number(form.bonus || 0);
-  const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0);
+  const scheduledAdvanceRecovery = Number(employee.monthly_advance_installment || 0);
+  const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0) + scheduledAdvanceRecovery;
   const totalEarnings = calculatedGross + incentive + bonus;
   const netSalary = totalEarnings - deductions;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -1693,7 +1720,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
         employeeEpf: Number(form.employeeEpf), employeeEsi: Number(form.employeeEsi),
         professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary),
       });
-      alert("Salary slip generated and salary defaults saved for next month.");
+      alert("Salary slip generated. Any scheduled advance installment was recovered, and the remaining balance was updated.");
       onClose();
     } catch (err) {
       setError(err.message || "Could not generate salary slip.");
@@ -1715,7 +1742,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       </div>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or enter a custom salary structure. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Basic salary · 50%", basic)}{readOnlyAmount("HRA · 40%", hra)}{readOnlyAmount("Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{customAmountInput("basicSalary", "Basic salary")}{customAmountInput("hra", "HRA")}{customAmountInput("allowance", "Allowance")}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3><p className="mt-1 text-xs text-muted">Shown separately; these amounts are not deducted from employee net pay.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
-      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}{amountInput("advanceSalary", "Advance salary recovery")}</div></section>
+      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
       <div className="grid gap-3 rounded-xl bg-amber-soft p-4 sm:grid-cols-3"><div><p className="text-xs font-semibold text-navy/70">Total earnings</p><p className="mt-1 font-bold text-navy">{money(totalEarnings)}</p></div><div><p className="text-xs font-semibold text-navy/70">Total deductions</p><p className="mt-1 font-bold text-navy">{money(deductions)}</p></div><div><p className="text-xs font-semibold text-navy/70">Net salary payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div></div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Generating..." : "Generate Slip"}</button></div>

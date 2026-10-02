@@ -108,7 +108,13 @@ export const deleteEmployee = (id) =>
 
 export const generateEmployeeSalarySlip = (payload) =>
   apiFetch("/salaries", { method: "POST", body: JSON.stringify(payload) });
-export const getSalaryEmployees = () => apiFetch("/salaries/employees");
+export const getSalaryEmployees = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiFetch(`/salaries/employees${query ? `?${query}` : ""}`);
+};
+export const getEmployeeSalaryAdvances = (employeeId) => apiFetch(`/salaries/employees/${employeeId}/advances`);
+export const createEmployeeSalaryAdvance = (employeeId, payload) =>
+  apiFetch(`/salaries/employees/${employeeId}/advances`, { method: "POST", body: JSON.stringify(payload) });
 export const getMySalarySlips = () => apiFetch("/salaries/my");
 export const downloadSalarySlip = async (id) => {
   const response = await fetch(`${API_URL}/salaries/${id}/pdf`, { credentials: "include" });
