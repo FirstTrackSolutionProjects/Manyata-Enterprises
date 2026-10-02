@@ -1106,7 +1106,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                   <th className="p-3 whitespace-nowrap">Sales Executive</th>
                   <th className="p-3 whitespace-nowrap">System</th>
                   <th className="p-3 whitespace-nowrap">Status</th>
-                  <th className="p-3 whitespace-nowrap">Updated</th>
+                  <th className="p-3 whitespace-nowrap">Updated By / At</th>
                   <th className="p-3 whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -2455,7 +2455,7 @@ function InstallationsTab({ location }) {
               <th className="p-3">Location</th>
               <th className="p-3">Installation</th>
               <th className="p-3 whitespace-nowrap">Sales Executive</th>
-              <th className="p-3 whitespace-nowrap">Updated By</th>
+              <th className="p-3 whitespace-nowrap">Updated By / At</th>
               <th className="p-3">City</th>
               <th className="p-3 whitespace-nowrap">Technician Assigned</th>
               <th className="p-3">Status</th>
@@ -2473,7 +2473,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3 capitalize">{item.location}</td>
                   <td className="p-3">{item.installation_type || "—"}</td>
                   <td className="p-3 whitespace-nowrap">{item.sales_executive_name || "-"}</td>
-                  <td className="p-3 whitespace-nowrap">{item.last_updated_by_name || "-"}</td>
+                  <td className="p-3 text-xs text-muted whitespace-nowrap">{item.last_updated_by_name ? <><span className="block font-semibold text-navy">{item.last_updated_by_name}</span>{formatDateTime(item.last_updated_by_at)}</> : "Not edited"}</td>
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3 whitespace-nowrap">{item.technical_assignee_name ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.technical_assignee_name}</span> : <span className="text-xs text-muted">Not assigned</span>}</td>
                   <td className="p-3"><StatusBadge status={item.status} /></td>
