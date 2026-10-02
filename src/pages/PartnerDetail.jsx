@@ -6,7 +6,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, setOwnerPartnerCommission, updatePartnerDashboardAccess, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
-  ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
+  ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["active", "Active"], ["inactive", "Inactive"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
 ];
 const SEND_AGREEMENT_ACTION = "__send_agreement_mail__";
 const partnerStatusLabel = (status) => ({ new: "Submitted", reviewed: "Under Review" }[status] || titleCase(status));
@@ -21,6 +21,8 @@ const STATUS_STYLES = {
   new: "bg-amber-50 text-amber-700 ring-amber-200",
   reviewed: "bg-blue-50 text-blue-700 ring-blue-200",
   approved: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  active: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  inactive: "bg-slate-100 text-slate-700 ring-slate-200",
   rewarded: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   rejected: "bg-red-50 text-red-700 ring-red-200",
 };
@@ -406,7 +408,7 @@ export default function PartnerDetail() {
                 <button onClick={saveStatus} disabled={!isOwner || updating || sendingAgreement || (newStatus === partner.status)} className={BTN_PRIMARY}>{(updating || sendingAgreement) && <Loader2 size={16} className="animate-spin" />}{newStatus === SEND_AGREEMENT_ACTION ? "Send Agreement Mail" : "Save Status"}</button>
                 {isOwner && <button onClick={sendAgreement} disabled={sendingAgreement || partner.status !== "approved" || !partner.email} className={BTN_OUTLINE}><Send size={15} />{sendingAgreement ? "Sending Agreement..." : "Send Agreement Mail"}</button>}
                 {isOwner && ["super_vendor", "vendor", "sub_vendor", "dealer"].includes(partner.partner_type) && (partner.partner_type === "super_vendor" || partner.referred_by_partner_id) && partner.status === "approved" && !partner.partner_login_id && <button onClick={createPartnerLogin} disabled={creatingLogin} className={BTN_OUTLINE}><KeyRound size={15} />{creatingLogin ? "Creating Login..." : "Create Partner Login"}</button>}
-                {isOwner && ["super_vendor", "vendor", "sub_vendor", "dealer"].includes(partner.partner_type) && partner.status === "approved" && partner.partner_login_id && <button onClick={resetPartnerLogin} disabled={resettingLogin} className={BTN_OUTLINE}><KeyRound size={15} />{resettingLogin ? "Resetting Password..." : "Reset Partner Password"}</button>}
+                {isOwner && ["super_vendor", "vendor", "sub_vendor", "dealer"].includes(partner.partner_type) && ["approved", "active"].includes(partner.status) && partner.partner_login_id && <button onClick={resetPartnerLogin} disabled={resettingLogin} className={BTN_OUTLINE}><KeyRound size={15} />{resettingLogin ? "Resetting Password..." : "Reset Partner Password"}</button>}
               </div>
             </div>
           </SideCard>
@@ -417,7 +419,7 @@ export default function PartnerDetail() {
                 <span className="min-w-0 flex-1"><span className="block text-sm font-bold text-navy">Applications</span><span className="block text-xs text-muted">View applications assigned to them</span></span>
                 <input type="checkbox" checked={applicationsAccess} onChange={(event) => setApplicationsAccess(event.target.checked)} className="h-5 w-5 shrink-0 cursor-pointer accent-amber" />
               </label>
-              <button onClick={saveDashboardAccess} disabled={savingDashboardAccess || partner.status !== "approved"} className={`${BTN_PRIMARY} mt-4`}>{savingDashboardAccess ? "Saving..." : "Save Access"}</button>
+              <button onClick={saveDashboardAccess} disabled={savingDashboardAccess || !["approved", "active"].includes(partner.status)} className={`${BTN_PRIMARY} mt-4`}>{savingDashboardAccess ? "Saving..." : "Save Access"}</button>
             </> : <div className="rounded-xl border border-dashed border-navy/15 px-4 py-6 text-center"><span className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-amber-soft text-amber"><KeyRound size={18} /></span><p className="mt-2 text-xs text-muted">Create the partner login first to manage dashboard access.</p></div>}
           </SideCard>}
           {isOwner && !partner.referred_by_partner_id && <OwnerReferralCommissionCard partner={partner} onSaved={load} />}
