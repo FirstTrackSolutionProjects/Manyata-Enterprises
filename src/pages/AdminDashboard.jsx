@@ -161,10 +161,10 @@ const attendanceDateLabel = (value) => value
   ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })
   : "—";
 const attendanceTimeLabel = (value) => value
-  ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true }).format(new Date(value))
+  ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(value))
   : "—";
 const attendanceDateTimeLabel = (value) => value
-  ? new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium" }).format(new Date(value))
+  ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium", hourCycle: "h23" }).format(new Date(value))
   : "—";
 const indiaTodayInput = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const indiaDateTimeInput = (value = new Date()) => {
@@ -1677,7 +1677,7 @@ function EmployeeAttendanceModal({ employee, onClose }) {
   useEffect(() => { load(); }, []);
   const mapHref = (lat, lng) => `https://www.google.com/maps?q=${encodeURIComponent(`${lat},${lng}`)}`;
   const hasCoordinates = (lat, lng) => lat != null && lng != null && Number.isFinite(Number(lat)) && Number.isFinite(Number(lng));
-  const clockLabel = (value) => value ? formatDateTime(value) : "—";
+  const clockLabel = (value) => value ? attendanceDateTimeLabel(value) : "—";
   const eventNames = { clock_in: "Clock in", clock_out: "Clock out", break_start: "Break started", break_end: "Break ended", custom: "Manual update" };
   return <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-3 sm:p-5" onClick={onClose}>
     <section onClick={(event) => event.stopPropagation()} className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
