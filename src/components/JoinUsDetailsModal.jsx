@@ -20,7 +20,7 @@ const LOA_FIELDS = [
 const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"], ["educationCertificate", "Education Certificate / Marksheet", "Education Certificate / Marksheet"], ["experienceDocument", "Experience Certificate / Work Proof", "Experience Certificate / Work Proof"]];
 
 export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNotice = "", employeeProfile = false, onSaveProfile }) {
-  const [form, setForm] = useState(() => Object.fromEntries(FIELDS.map(([key]) => [key, submission[key] ?? submission[key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)] ?? ""]).concat([["sameAsAbove", Boolean(submission.sameAsAbove ?? submission.same_as_above)]])));
+  const [form, setForm] = useState(() => Object.fromEntries(FIELDS.map(([key]) => [key, submission[key] ?? submission.profileDetails?.[key] ?? submission[key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)] ?? submission.profileDetails?.[key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)] ?? ""]).concat([["sameAsAbove", Boolean(submission.sameAsAbove ?? submission.profileDetails?.sameAsAbove ?? submission.same_as_above ?? submission.profileDetails?.same_as_above)]])));
   const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(loaNotice);
