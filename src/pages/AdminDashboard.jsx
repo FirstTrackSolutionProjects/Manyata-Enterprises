@@ -662,6 +662,15 @@ function OverviewTab() {
       </div>
     );
 
+  const applicationStatuses = stats.applications?.byStatus || {};
+  const totalLoanDisbursed = [
+    "loan_disbursed_successfully_phase_1",
+    "loan_disbursed_phase_2",
+    "customer_full_loan_amount_disbursed",
+  ].reduce((total, status) => total + Number(applicationStatuses[status] || 0), 0);
+  const subsidyCases = Number(applicationStatuses.consumer_subsidy_pending || 0)
+    + Number(applicationStatuses.consumer_subsidy_disbursed || 0);
+
   return (
     <div className="space-y-6">
       {/* ── Welcome banner ── */}
@@ -676,13 +685,15 @@ function OverviewTab() {
           value={stats.applications.total}
           icon={FileText}
         />
-        <StatCard label="Employees" value={stats.employees} icon={Users} />
         <StatCard label="Branches" value={stats.branches.total} icon={Building2} />
+        <StatCard label="Employees" value={stats.employees} icon={Users} />
         <StatCard label="Partners" value={stats.partners} icon={Handshake} />
-        <StatCard label="Installations" value={stats.installations.total} icon={Wrench} />
         <StatCard label="Careers" value={stats.careers} icon={FileText} />
         <StatCard label="Join Us" value={stats.joinUs} icon={Users} />
         <StatCard label="Contacts" value={stats.contacts} icon={FileText} />
+        <StatCard label="Total Loan Disbursed" value={totalLoanDisbursed} icon={Banknote} />
+        <StatCard label="Installations" value={stats.installations.total} icon={Wrench} />
+        <StatCard label="Subsidy" value={subsidyCases} icon={Banknote} />
       </div>
 
       <div className="rounded-2xl border border-navy/10 bg-white p-6">
