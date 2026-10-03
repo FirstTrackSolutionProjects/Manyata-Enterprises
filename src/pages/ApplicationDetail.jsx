@@ -25,7 +25,7 @@ import {
   listUsers,
   assignApplicationTechnicalWork,
 } from "../services/api";
-import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
+import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
@@ -321,7 +321,7 @@ export default function ApplicationDetail() {
             <div className="mt-4 space-y-3">
               <StatusDropdown
                 value={newStatus}
-                options={isTechnicalEmployee ? [...APPLICATION_STATUSES.filter((status) => ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value)), ...(!["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])] : APPLICATION_STATUSES}
+                options={isTechnicalEmployee ? [...APPLICATION_STATUSES.filter((status) => ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value)), ...(!["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])] : [...APPLICATION_UPDATE_STATUSES, ...(!APPLICATION_UPDATE_STATUSES.some((status) => status.value === app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])]}
                 open={statusMenuOpen}
                 onOpenChange={setStatusMenuOpen}
                 onChange={setNewStatus}
