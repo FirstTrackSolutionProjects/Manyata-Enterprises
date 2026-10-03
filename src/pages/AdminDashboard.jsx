@@ -899,8 +899,10 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
   const [showFilters, setShowFilters] = useState(false);
+  const [workList, setWorkList] = useState("all");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [listedTotal, setListedTotal] = useState(0);
   const listRequestId = useRef(0);
   const limit = 20;
 
@@ -936,6 +938,8 @@ function ApplicationsTab({ initialLocation = "" }) {
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
       if (f.updatedBy) params.updatedBy = f.updatedBy;
+      if (user?.role === "employee" && workList === "updated") params.updatedBy = user.id;
+      if (user?.role === "employee" && workList === "remaining") params.updatedByNot = "1";
       if (f.status) params.status = f.status;
       if (f.branchId) params.branchId = f.branchId;
       if (f.location) params.location = f.location;
@@ -949,6 +953,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       const res = await listApplications(params);
       if (requestId !== listRequestId.current) return;
       setItems(res.data.items || []);
+      setListedTotal(Number(res.data.total || 0));
       setTotalPages(res.data.pages || 1);
     } catch (err) {
       console.error(err);
@@ -961,7 +966,7 @@ function ApplicationsTab({ initialLocation = "" }) {
     setPage(1);
     load(1);
     // eslint-disable-next-line
-  }, [filters]);
+  }, [filters, workList]);
 
   useEffect(() => {
     let active = true;
@@ -991,6 +996,10 @@ function ApplicationsTab({ initialLocation = "" }) {
 
   return (
     <div className="space-y-4">
+      {user?.role === "employee" && <div className="flex flex-wrap gap-2" role="tablist" aria-label="Application update lists">
+        { [["all", "All records"], ["updated", "Updated by me"], ["remaining", "Not updated by me"]].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={workList === key} onClick={() => { setPage(1); setWorkList(key); }} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${workList === key ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-muted hover:border-amber"}`}>{label}</button>)}
+        <span className="self-center text-xs text-muted">{listedTotal} records</span>
+      </div>}
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
@@ -1056,6 +1065,8 @@ function ApplicationsTab({ initialLocation = "" }) {
         {canExportApplications && <button onClick={async () => {
           try {
             const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== ""));
+            if (user?.role === "employee" && workList === "updated") params.set("updatedBy", String(user.id));
+            if (user?.role === "employee" && workList === "remaining") params.set("updatedByNot", "1");
             await downloadCsvExport(`/applications/export.csv?${params}`, "applications.csv");
           } catch (error) { window.alert(error.message || "Could not download applications."); }
         }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
@@ -1071,7 +1082,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
-            <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />
+            {user?.role === "owner" && <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <FilterSelect
@@ -2494,6 +2505,7 @@ function InstallationsTab({ location }) {
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
   const [updatedByFilter, setUpdatedByFilter] = useState("");
+  const [workList, setWorkList] = useState("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
@@ -2502,7 +2514,10 @@ function InstallationsTab({ location }) {
     const requestId = ++listRequestId.current;
     setLoading(true);
     try {
-      const res = await listInstallations(location, { search: searchValue.trim(), fromDate, toDate, sortBy, sortOrder, updatedBy: updatedByFilter, limit: "500" });
+      const params = { search: searchValue.trim(), fromDate, toDate, sortBy, sortOrder, updatedBy: user?.role === "owner" ? updatedByFilter : "", limit: "500" };
+      if (user?.role === "employee" && workList === "updated") params.updatedBy = String(user.id);
+      if (user?.role === "employee" && workList === "remaining") params.updatedByNot = "1";
+      const res = await listInstallations(location, params);
       if (requestId !== listRequestId.current) return;
       setItems(res.data.items || []);
     } catch (err) {
@@ -2514,7 +2529,7 @@ function InstallationsTab({ location }) {
   };
   useEffect(() => {
     load();
-  }, [location, search, fromDate, toDate, sortBy, sortOrder, updatedByFilter]);
+  }, [location, search, fromDate, toDate, sortBy, sortOrder, updatedByFilter, workList]);
 
   useEffect(() => {
     let active = true;
@@ -2547,6 +2562,10 @@ function InstallationsTab({ location }) {
   const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(updatedByFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
+    {user?.role === "employee" && <div className="flex flex-wrap gap-2" role="tablist" aria-label="Installation update lists">
+      { [["all", "All records"], ["updated", "Updated by me"], ["remaining", "Not updated by me"]].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={workList === key} onClick={() => setWorkList(key)} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${workList === key ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-muted hover:border-amber"}`}>{label}</button>)}
+      <span className="self-center text-xs text-muted">{filteredItems.length} records</span>
+    </div>}
     <div className={`grid grid-cols-2 gap-3 ${location ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-3"}`}>
       {location ? <>
         {[
@@ -2580,6 +2599,8 @@ function InstallationsTab({ location }) {
           if (emailFilter.trim()) params.set("email", emailFilter.trim());
           if (phoneFilter.trim()) params.set("phone", phoneFilter.trim());
           if (updatedByFilter.trim()) params.set("updatedBy", updatedByFilter.trim());
+          if (user?.role === "employee" && workList === "updated") params.set("updatedBy", String(user.id));
+          if (user?.role === "employee" && workList === "remaining") params.set("updatedByNot", "1");
           if (statusFilter) params.set("status", statusFilter);
           if (typeFilter) params.set("installationType", typeFilter);
           if (fromDate) params.set("fromDate", fromDate);
@@ -2594,7 +2615,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
-      <FilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />
+      {user?.role === "owner" && <FilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
       <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES} placeholder="All statuses" />
       <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
