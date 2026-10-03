@@ -22,8 +22,6 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
 import { hasActionPermission } from "../utils/permissions";
-import { updateMyEmployeeProfile, uploadFilesToS3 } from "../services/api";
-import JoinUsDetailsModal from "./JoinUsDetailsModal";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
@@ -39,36 +37,6 @@ const OWNER_NAV = [
   { id: "submissions", label: "Submissions", icon: Briefcase },
 ];
 
-function EmployeeProfileModal({ user, onClose, onSave }) {
-  const profileDetails = user?.profileDetails || {};
-  const nameParts = String(user?.name || "").trim().split(/\s+/);
-  const submission = {
-    ...profileDetails,
-    id: user?.id,
-    created_at: user?.createdAt || new Date().toISOString(),
-    firstName: profileDetails.firstName || nameParts.shift() || "",
-    lastName: profileDetails.lastName || nameParts.join(" "),
-    email: user?.email || "",
-    phone: user?.phone || "",
-    streetAddress: profileDetails.streetAddress || user?.address || "",
-    city: profileDetails.city || user?.city || "",
-    state: profileDetails.state || user?.state || "",
-    postalCode: profileDetails.postalCode || user?.pincode || "",
-    profileDetails,
-    documentUrls: {},
-  };
-
-  return (
-    <JoinUsDetailsModal
-      submission={submission}
-      employeeProfile
-      onClose={onClose}
-      onSaveProfile={onSave}
-      onSaved={onClose}
-    />
-  );
-}
-
 export default function DashboardLayout({
   children,
   title,
@@ -76,10 +44,9 @@ export default function DashboardLayout({
   activeSection,
   onSectionChange,
 }) {
-  const { user, logout, refresh } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [profileEditorOpen, setProfileEditorOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState(() => ({
     applications: user?.role === "employee",
     installations: user?.role === "employee",
@@ -223,7 +190,7 @@ export default function DashboardLayout({
                 type="button"
                 onClick={() => {
                   setSidebarOpen(false);
-                  setProfileEditorOpen(true);
+                  handleNavClick("employee-profile");
                 }}
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white"
               >
@@ -242,7 +209,7 @@ export default function DashboardLayout({
             {/* User footer */}
             <button
               type="button"
-              onClick={() => user?.role === "employee" && setProfileEditorOpen(true)}
+              onClick={() => user?.role === "employee" && handleNavClick("employee-profile")}
               className="mt-3 flex w-full items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2.5 text-left transition-colors hover:bg-white/10"
               aria-label="Edit employee profile"
             >
@@ -279,22 +246,6 @@ export default function DashboardLayout({
       )}
 
       {/* ── Main content area ────────────────────────────── */}
-      {user?.role === "employee" && profileEditorOpen && (
-        <EmployeeProfileModal
-          user={user}
-          onClose={() => setProfileEditorOpen(false)}
-          onSave={async (payload, photo) => {
-            const files = photo ? await uploadFilesToS3("employee-profiles", { profilePhoto: photo }) : {};
-            const result = await updateMyEmployeeProfile({
-              ...payload,
-              ...(files.profilePhoto ? { profilePhoto: files.profilePhoto } : {}),
-            });
-            await refresh();
-            return result;
-          }}
-        />
-      )}
-
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar for mobile (with hamburger) */}
         <header className="sticky top-0 z-30 flex items-center justify-between border-b border-navy/10 bg-white px-4 py-3 lg:hidden">

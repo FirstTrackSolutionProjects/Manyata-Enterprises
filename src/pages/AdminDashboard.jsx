@@ -71,6 +71,7 @@ import {
   downloadSalarySlip,
   listCommissionPayouts,
   updateCommissionPayoutStatus,
+  updateMyEmployeeProfile,
   getMyAttendance,
   attendancePhotoHref,
   clockInToAttendance,
@@ -91,6 +92,7 @@ import {
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
+import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
 
 const TECHNICAL_APPLICATION_STATUS_VALUES = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
 const EMPLOYEE_APPLICATION_STATUS_OPTIONS = [
@@ -106,7 +108,7 @@ export default function AdminDashboard() {
   const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
   const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || "no-access");
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
-  const hasAccess = user?.role === "owner" || ((requiredModule === "applications" || requiredModule === "installations")
+  const hasAccess = user?.role === "owner" || (tab === "employee-profile" && user?.role === "employee") || ((requiredModule === "applications" || requiredModule === "installations")
     ? hasActionPermission(user, requiredModule, "view")
     : ((tab === "salary-slips" || tab === "leave-requests" || tab === "attendance") && user?.role === "employee") || ((tab === "salary-management" || tab === "attendance") && isHr) ? true : permissions.includes(requiredModule));
 
@@ -121,6 +123,7 @@ export default function AdminDashboard() {
     >
       {!hasAccess || (tab === "overview" && user?.role !== "owner") ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">The owner has not granted you access to any dashboard sections yet.</div> : null}
       {hasAccess && tab === "overview" && <OverviewTab />}
+      {hasAccess && tab === "employee-profile" && user?.role === "employee" && <EmployeeProfileTab />}
       {hasAccess && tab === "applications" && <ApplicationsTab />}
       {hasAccess && tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}
       {hasAccess && tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
@@ -139,6 +142,41 @@ export default function AdminDashboard() {
 }
 
 /* ── Overview ─────────────────────────────────────── */
+
+function EmployeeProfileTab() {
+  const { user, refresh } = useAuth();
+  const [editing, setEditing] = useState(false);
+  const profile = user?.profileDetails || {};
+  const nameParts = String(user?.name || "").trim().split(/\s+/).filter(Boolean);
+  const submission = {
+    ...profile,
+    id: user?.id,
+    created_at: user?.createdAt || new Date().toISOString(),
+    firstName: profile.firstName || nameParts.shift() || "",
+    lastName: profile.lastName || nameParts.join(" "),
+    email: user?.email || "",
+    phone: user?.phone || "",
+    streetAddress: profile.streetAddress || user?.address || "",
+    city: profile.city || user?.city || "",
+    state: profile.state || user?.state || "",
+    postalCode: profile.postalCode || user?.pincode || "",
+    profileDetails: profile,
+    documentUrls: {},
+  };
+  const groups = [
+    { title: "Personal Details", fields: [["Full Name", user?.name], ["Email", user?.email], ["Phone", user?.phone], ["Date of Birth", profile.dob], ["Gender", profile.gender], ["Father's Name", profile.fatherName], ["Mother's Name", profile.motherName], ["Blood Group", profile.bloodGroup], ["Marital Status", profile.maritalStatus]] },
+    { title: "Address", fields: [["Street Address", profile.streetAddress || user?.address], ["City", profile.city || user?.city], ["District", profile.district], ["State", profile.state || user?.state], ["Postal Code", profile.postalCode || user?.pincode], ["Country", profile.country], ["Location / Posting Preference", profile.location]] },
+    { title: "Education & Experience", fields: [["Qualification", profile.qualification], ["Institution", profile.institutionName], ["Year of Passing", profile.yearOfPassing], ["Experience", profile.experience], ["Company", profile.companyName], ["Designation", profile.designation || user?.designation]] },
+    { title: "Bank Details", fields: [["Bank Name", profile.bankName], ["Account Number", profile.accountNumber], ["IFSC Code", profile.ifscCode]] },
+  ];
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold text-navy">Employee Profile</h2><p className="mt-1 text-sm text-muted">View your saved profile information.</p></div><button onClick={() => setEditing(true)} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy">Edit Profile</button></div>
+    <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-lg font-bold text-navy">{user?.name || "Employee"}</p><p className="mt-1 text-sm text-muted">{user?.userId || user?.user_id || ""} · {user?.department || "Employee"}{user?.designation ? ` · ${user.designation}` : ""}</p></div>
+    {groups.map((group) => <section key={group.title} className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="font-bold text-navy">{group.title}</h3><div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">{group.fields.map(([label, value]) => <div key={label}><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 break-words text-sm text-navy">{value || "—"}</p></div>)}</div></section>)}
+    {profile.description && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="font-bold text-navy">About</h3><p className="mt-2 whitespace-pre-wrap text-sm text-navy">{profile.description}</p></section>}
+    {editing && <JoinUsDetailsModal submission={submission} employeeProfile onClose={() => setEditing(false)} onSaveProfile={async (payload) => { const result = await updateMyEmployeeProfile(payload); await refresh(); return result; }} onSaved={() => setEditing(false)} />}
+  </div>;
+}
 
 function EmployeeSalarySlipsTab() {
   const [items, setItems] = useState([]);
