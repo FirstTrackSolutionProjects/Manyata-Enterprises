@@ -4,7 +4,7 @@ import CameraFileInput from "./CameraFileInput";
 
 const FIELDS = [
   ["firstName", "First Name"], ["lastName", "Last Name"], ["email", "Email", "email"], ["phone", "Phone"],
-  ["dob", "Date of Birth"], ["gender", "Gender"], ["fatherName", "Father's Name"], ["motherName", "Mother's Name"], ["bloodGroup", "Blood Group"], ["guardianName", "Guardian Name"], ["guardianMobile", "Guardian Mobile Number"], ["maritalStatus", "Marital Status"],
+  ["dob", "Date of Birth", "date"], ["gender", "Gender"], ["fatherName", "Father's Name"], ["motherName", "Mother's Name"], ["bloodGroup", "Blood Group"], ["guardianName", "Guardian Name"], ["guardianMobile", "Guardian Mobile Number"], ["maritalStatus", "Marital Status"],
   ["streetAddress", "Street Address"], ["city", "City"], ["district", "District"], ["state", "State"], ["location", "Location / Posting Preference"], ["postalCode", "Postal Code"], ["country", "Country"],
   ["permanentAddress", "Permanent Address"], ["permanentCity", "Permanent City"], ["permanentState", "Permanent State"], ["permanentPostalCode", "Permanent Postal Code"],
   ["aadhaarNumber", "Aadhaar Number"], ["panNumber", "PAN Number"], ["qualification", "Qualification"], ["institutionName", "Institution"], ["yearOfPassing", "Year of Passing"],
