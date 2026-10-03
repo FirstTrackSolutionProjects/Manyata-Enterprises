@@ -277,7 +277,32 @@ function AttendanceTab({ isManager }) {
     const [response, calendarResponse, settingsResponse, correctionsResponse] = await Promise.all([
       getAttendanceRegister({ from: fromDate, to: toDate, search: search.trim() }), getAttendanceCalendar({ from: fromDate, to: toDate }), getAttendanceSettings(), getAttendanceCorrections(false, "all"),
     ]);
-    setRegister(response.data || { items: [], summary: {}, events: [] });
+    let registerData = response.data || { items: [], summary: {}, events: [] };
+    const searchText = search.trim().toLocaleLowerCase();
+    if (searchText) {
+      if (!registerData.items?.length) {
+        const fallback = await getAttendanceRegister({ from: fromDate, to: toDate });
+        registerData = fallback.data || registerData;
+      }
+      const matchesSearch = (record, fields) => fields.some((field) => String(record[field] ?? "").toLocaleLowerCase().includes(searchText));
+      const items = (registerData.items || []).filter((item) => matchesSearch(item, ["employee_name", "employee_user_id", "employee_department", "employee_designation", "branch_name"]));
+      const events = (registerData.events || []).filter((item) => matchesSearch(item, ["employee_name", "employee_user_id"]));
+      const employeeIds = new Set(items.map((item) => item.employee_id));
+      const completedItems = items.filter((item) => item.clock_out_at);
+      registerData = {
+        ...registerData,
+        items,
+        events,
+        summary: {
+          records: items.length,
+          employees: employeeIds.size,
+          open_records: items.filter((item) => !item.clock_out_at).length,
+          total_worked_minutes: completedItems.length ? completedItems.reduce((sum, item) => sum + Number(item.worked_minutes || 0), 0) : null,
+          total_break_minutes: items.reduce((sum, item) => sum + Number(item.break_minutes || 0), 0),
+        },
+      };
+    }
+    setRegister(registerData);
     setCalendar(calendarResponse.data || { items: [], counts: {} });
     setSettings(settingsResponse.data || null);
     setCorrections(correctionsResponse.data?.items || []);
