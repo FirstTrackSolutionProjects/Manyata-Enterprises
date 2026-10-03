@@ -169,11 +169,18 @@ function EmployeeProfileTab() {
     { title: "Education & Experience", fields: [["Qualification", profile.qualification], ["Institution", profile.institutionName], ["Year of Passing", profile.yearOfPassing], ["Experience", profile.experience], ["Company", profile.companyName], ["Designation", profile.designation || user?.designation]] },
     { title: "Bank Details", fields: [["Bank Name", profile.bankName], ["Account Number", profile.accountNumber], ["IFSC Code", profile.ifscCode]] },
   ];
+  const displayProfileValue = (value) => {
+    if (value === null || value === undefined || value === "") return "—";
+    if (typeof value === "object") {
+      try { return JSON.stringify(value); } catch { return "—"; }
+    }
+    return String(value);
+  };
   return <div className="space-y-4">
     <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-xl font-extrabold text-navy">Employee Profile</h2><p className="mt-1 text-sm text-muted">View your saved profile information.</p></div><button onClick={() => setEditing(true)} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy">Edit Profile</button></div>
     <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-lg font-bold text-navy">{user?.name || "Employee"}</p><p className="mt-1 text-sm text-muted">{user?.userId || user?.user_id || ""} · {user?.department || "Employee"}{user?.designation ? ` · ${user.designation}` : ""}</p></div>
-    {groups.map((group) => <section key={group.title} className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="font-bold text-navy">{group.title}</h3><div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">{group.fields.map(([label, value]) => <div key={label}><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 break-words text-sm text-navy">{value || "—"}</p></div>)}</div></section>)}
-    {profile.description && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="font-bold text-navy">About</h3><p className="mt-2 whitespace-pre-wrap text-sm text-navy">{profile.description}</p></section>}
+    {groups.map((group) => <section key={group.title} className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="font-bold text-navy">{group.title}</h3><div className="mt-4 grid gap-x-6 gap-y-4 sm:grid-cols-2 lg:grid-cols-3">{group.fields.map(([label, value]) => <div key={label}><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 break-words text-sm text-navy">{displayProfileValue(value)}</p></div>)}</div></section>)}
+    {profile.description && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="font-bold text-navy">About</h3><p className="mt-2 whitespace-pre-wrap text-sm text-navy">{displayProfileValue(profile.description)}</p></section>}
     {editing && <JoinUsDetailsModal submission={submission} employeeProfile onClose={() => setEditing(false)} onSaveProfile={async (payload) => { const result = await updateMyEmployeeProfile(payload); await refresh(); return result; }} onSaved={() => setEditing(false)} />}
   </div>;
 }
