@@ -954,7 +954,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Verified", Number(applicationStatusCounts.verified || 0)],
           ["Submitted to Govt Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
-          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
+          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.vendor_side_pending_for_bank_forward || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
         ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
