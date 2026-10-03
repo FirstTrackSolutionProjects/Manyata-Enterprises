@@ -36,7 +36,7 @@ import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
 import SubmissionCreateModal from "../components/SubmissionCreateModal";
 import LeaveRequests from "../components/LeaveRequests";
-import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
+import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 import { INSTALLATION_STATUSES } from "../constants/installationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -91,6 +91,12 @@ import {
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
+
+const TECHNICAL_APPLICATION_STATUS_VALUES = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
+const EMPLOYEE_APPLICATION_STATUS_OPTIONS = [
+  ...APPLICATION_UPDATE_STATUSES,
+  ...APPLICATION_STATUSES.filter((status) => TECHNICAL_APPLICATION_STATUS_VALUES.includes(status.value)),
+];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -1769,6 +1775,9 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     edit: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.edit) : existingModules.includes(module),
     download: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.download) : existingModules.includes(module),
     export: Boolean(employee?.actionPermissions?.[module]?.export),
+    statusUpdates: Array.isArray(employee?.actionPermissions?.[module]?.statusUpdates)
+      ? employee.actionPermissions[module].statusUpdates
+      : (module === "applications" ? EMPLOYEE_APPLICATION_STATUS_OPTIONS.map((status) => status.value) : INSTALLATION_STATUSES.map((status) => status.value)),
   }]));
   initialActionPermissions.partners = { export: Boolean(employee?.actionPermissions?.partners?.export) };
   const [form, setForm] = useState({
@@ -1795,7 +1804,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     ...current,
     permissions: checked ? [...new Set([...current.permissions, module])] : current.permissions.filter((permission) => permission !== module),
     ...(["applications", "installations"].includes(module) ? {
-      actionPermissions: { ...current.actionPermissions, [module]: checked ? { view: true, edit: true, download: true } : { view: false, edit: false, download: false } },
+      actionPermissions: { ...current.actionPermissions, [module]: { ...current.actionPermissions[module], view: checked, edit: checked, download: checked } },
     } : module === "partners" && !checked ? { actionPermissions: { ...current.actionPermissions, partners: { export: false } } } : {}),
   }));
 
@@ -1811,6 +1820,25 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     if (action === "view" && checked && !permissions.includes(module)) permissions = [...permissions, module];
     return { ...current, permissions, actionPermissions: { ...current.actionPermissions, [module]: next } };
   });
+
+  const toggleStatusUpdate = (module, status, checked) => setForm((current) => {
+    const statusUpdates = current.actionPermissions[module]?.statusUpdates || [];
+    return {
+      ...current,
+      actionPermissions: {
+        ...current.actionPermissions,
+        [module]: {
+          ...current.actionPermissions[module],
+          statusUpdates: checked ? [...new Set([...statusUpdates, status])] : statusUpdates.filter((value) => value !== status),
+        },
+      },
+    };
+  });
+
+  const setModuleStatusUpdates = (module, statuses) => setForm((current) => ({
+    ...current,
+    actionPermissions: { ...current.actionPermissions, [module]: { ...current.actionPermissions[module], statusUpdates: statuses } },
+  }));
 
   const toggleLocationPermission = (module, location, checked) => setForm((current) => {
     const selected = current.locationPermissions?.[module] || [];
@@ -1964,6 +1992,21 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
                   </label>
                   {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div></div>}
                   {["applications", "installations", "partners"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{(value === "partners" ? [["export", "Excel export"]] : [["view", "View"], ["edit", "Edit"], ["download", "PDF download"], ["export", "Excel export"]]).map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={value !== "partners" && action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
+                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <details className="mt-2 border-t border-navy/10 pt-2">
+                    <summary className="cursor-pointer text-[11px] font-semibold text-navy">Update Status access ({form.actionPermissions[value]?.statusUpdates?.length || 0})</summary>
+                    <div className="mt-2 rounded-lg border border-navy/10 bg-white p-2">
+                      <div className="mb-2 flex gap-3 text-[11px]">
+                        <button type="button" onClick={() => setModuleStatusUpdates(value, (value === "applications" ? EMPLOYEE_APPLICATION_STATUS_OPTIONS : INSTALLATION_STATUSES).map((status) => status.value))} className="font-semibold text-amber">Select all</button>
+                        <button type="button" onClick={() => setModuleStatusUpdates(value, [])} className="font-semibold text-muted">Clear</button>
+                      </div>
+                      <div className="max-h-40 space-y-1 overflow-y-auto">
+                        {(value === "applications" ? EMPLOYEE_APPLICATION_STATUS_OPTIONS : INSTALLATION_STATUSES).map((status) => <label key={status.value} className="flex items-start gap-2 text-[11px] text-navy/80">
+                          <input type="checkbox" checked={Boolean(form.actionPermissions[value]?.statusUpdates?.includes(status.value))} disabled={!form.actionPermissions[value]?.edit} onChange={(event) => toggleStatusUpdate(value, status.value, event.target.checked)} className="mt-0.5 accent-amber" />
+                          <span>{status.label}</span>
+                        </label>)}
+                      </div>
+                    </div>
+                  </details>}
                 </div>
               ))}
             </div>

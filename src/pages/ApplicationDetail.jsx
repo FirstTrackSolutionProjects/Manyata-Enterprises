@@ -38,6 +38,14 @@ export default function ApplicationDetail() {
   const canDownload = hasActionPermission(user, "applications", "download");
   const isOwner = user?.role === "owner";
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
+  const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
+  const baseStatusOptions = isTechnicalEmployee
+    ? APPLICATION_STATUSES.filter((status) => technicalStatusValues.includes(status.value))
+    : APPLICATION_UPDATE_STATUSES;
+  const grantedStatusUpdates = user?.actionPermissions?.applications?.statusUpdates;
+  const availableStatusOptions = user?.role !== "owner" && Array.isArray(grantedStatusUpdates)
+    ? baseStatusOptions.filter((status) => grantedStatusUpdates.includes(status.value))
+    : baseStatusOptions;
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
@@ -321,7 +329,7 @@ export default function ApplicationDetail() {
             <div className="mt-4 space-y-3">
               <StatusDropdown
                 value={newStatus}
-                options={isTechnicalEmployee ? [...APPLICATION_STATUSES.filter((status) => ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value)), ...(!["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])] : [...APPLICATION_UPDATE_STATUSES, ...(!APPLICATION_UPDATE_STATUSES.some((status) => status.value === app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])]}
+                options={[...availableStatusOptions, ...(!availableStatusOptions.some((status) => status.value === app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])]}
                 open={statusMenuOpen}
                 onOpenChange={setStatusMenuOpen}
                 onChange={setNewStatus}

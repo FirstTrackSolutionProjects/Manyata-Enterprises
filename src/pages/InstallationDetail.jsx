@@ -39,6 +39,12 @@ export default function InstallationDetail() {
   const isHrManager = user?.role === "employee" && /\bhr\b|human resources/i.test(`${user?.designation || ""} ${user?.department || ""}`) && canEdit;
   const canAssignTechnicalWork = isOwner || isHrManager;
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
+  const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
+  const grantedStatusUpdates = user?.actionPermissions?.installations?.statusUpdates;
+  const availableStatusOptions = INSTALLATION_STATUSES.filter((status) =>
+    (!isTechnicalEmployee || technicalStatusValues.includes(status.value)) &&
+    (user?.role === "owner" || !Array.isArray(grantedStatusUpdates) || grantedStatusUpdates.includes(status.value))
+  );
   const installationsPath = user?.role === "employee" ? "/employee?section=installations" : "/admin?section=installations";
   const [item, setItem] = useState(null);
   const [history, setHistory] = useState([]);
@@ -178,7 +184,7 @@ export default function InstallationDetail() {
         </aside>}
         <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="font-bold text-navy">Update Status</h3>
-          {canEdit ? <div className="mt-4 space-y-3"><select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-amber bg-white px-3.5 py-2.5 text-sm focus:outline-none">{!INSTALLATION_STATUSES.some((status) => status.value === newStatus && (!isTechnicalEmployee || ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value))) && <option value={newStatus}>{installationStatusLabel(newStatus)} (current)</option>}{INSTALLATION_STATUSES.filter((status) => !isTechnicalEmployee || ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"].includes(status.value)).map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" /><button onClick={saveStatus} disabled={savingStatus || newStatus === item.status} className="w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{savingStatus ? "Saving..." : "Save Status"}</button></div> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
+          {canEdit ? <div className="mt-4 space-y-3"><select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} className="w-full rounded-lg border border-amber bg-white px-3.5 py-2.5 text-sm focus:outline-none">{!availableStatusOptions.some((status) => status.value === newStatus) && <option value={newStatus}>{installationStatusLabel(newStatus)} (current)</option>}{availableStatusOptions.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} placeholder="Note (optional)" rows={3} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none" /><button onClick={saveStatus} disabled={savingStatus || newStatus === item.status} className="w-full rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{savingStatus ? "Saving..." : "Save Status"}</button></div> : <p className="mt-4 text-sm text-muted">Status changes are not available for your account.</p>}
         </aside>
         <aside className="h-fit rounded-2xl border border-navy/10 bg-white p-6">
           <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock size={16} className="text-amber" />Status Timeline</h3>
