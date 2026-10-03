@@ -2507,7 +2507,6 @@ function InstallationsTab({ location }) {
     (!locationFilter || item.location === locationFilter)
   ), { fromDate, toDate, sortBy, sortOrder, nameKey: "customer_name" });
   const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(updatedByFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
-  if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin text-amber" /></div>;
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
     <div className={`grid grid-cols-2 gap-3 ${location ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-3"}`}>
@@ -2530,6 +2529,7 @@ function InstallationsTab({ location }) {
         <input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); load(event.currentTarget.value); } }} placeholder="Search installations..." className="w-full rounded-lg border border-navy/15 py-2.5 pl-9 pr-3.5 text-sm focus:border-amber focus:outline-none" />
       </div>
       <button onClick={() => load(search)} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">Search</button>
+      {loading && items.length > 0 && <span role="status" className="self-center text-xs text-muted">Updating results…</span>}
       <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
       <button onClick={async () => { await load(); const statsQuery = location ? `?location=${encodeURIComponent(location)}` : ""; const statsRes = await apiFetch(`/installations/stats/overview${statsQuery}`); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); setInstallationStatusCounts(statsRes.data.byStatus || {}); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
       {canExport && <button onClick={async () => {
@@ -2566,7 +2566,9 @@ function InstallationsTab({ location }) {
       <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
       <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setUpdatedByFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
     </div>}
-    {filteredItems.length === 0 ? (
+    {loading && items.length === 0 ? (
+      <div role="status" className="flex justify-center rounded-xl border border-navy/10 bg-white p-8"><Loader2 className="animate-spin text-amber" /></div>
+    ) : filteredItems.length === 0 ? (
       <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
         {search ? "No matching installations found." : "No installation submissions found."}
       </p>
