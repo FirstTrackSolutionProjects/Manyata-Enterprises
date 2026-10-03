@@ -37,6 +37,7 @@ export default function ApplicationDetail() {
   const canEdit = hasActionPermission(user, "applications", "edit");
   const canDownload = hasActionPermission(user, "applications", "download");
   const isOwner = user?.role === "owner";
+  const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const availableStatusOptions = getApplicationUpdateStatusOptions(user);
   const { id } = useParams();
   const navigate = useNavigate();
