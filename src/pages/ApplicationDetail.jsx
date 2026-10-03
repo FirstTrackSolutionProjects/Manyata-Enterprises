@@ -25,7 +25,7 @@ import {
   listUsers,
   assignApplicationTechnicalWork,
 } from "../services/api";
-import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
+import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel, getApplicationUpdateStatusOptions } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
@@ -37,15 +37,7 @@ export default function ApplicationDetail() {
   const canEdit = hasActionPermission(user, "applications", "edit");
   const canDownload = hasActionPermission(user, "applications", "download");
   const isOwner = user?.role === "owner";
-  const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
-  const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
-  const baseStatusOptions = isTechnicalEmployee
-    ? APPLICATION_STATUSES.filter((status) => technicalStatusValues.includes(status.value))
-    : APPLICATION_UPDATE_STATUSES;
-  const grantedStatusUpdates = user?.actionPermissions?.applications?.statusUpdates;
-  const availableStatusOptions = user?.role !== "owner" && Array.isArray(grantedStatusUpdates)
-    ? baseStatusOptions.filter((status) => grantedStatusUpdates.includes(status.value))
-    : baseStatusOptions;
+  const availableStatusOptions = getApplicationUpdateStatusOptions(user);
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);

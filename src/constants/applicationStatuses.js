@@ -74,6 +74,20 @@ export const APPLICATION_UPDATE_STATUSES = [
   "consumer_subsidy_pending", "consumer_subsidy_disbursed", "office_side_issue", "other",
 ].map((value) => APPLICATION_STATUSES.find((status) => status.value === value));
 
+export const getApplicationUpdateStatusOptions = (user) => {
+  const isTechnicalEmployee = user?.role === "employee"
+    && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
+  const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
+  const baseOptions = isTechnicalEmployee
+    ? APPLICATION_STATUSES.filter((status) => technicalStatusValues.includes(status.value))
+    : APPLICATION_UPDATE_STATUSES;
+  const grantedStatusUpdates = user?.actionPermissions?.applications?.statusUpdates;
+
+  return user?.role !== "owner" && Array.isArray(grantedStatusUpdates)
+    ? baseOptions.filter((status) => grantedStatusUpdates.includes(status.value))
+    : baseOptions;
+};
+
 export const applicationStatusLabel = (value) =>
   value === "vendor_side_pending_for_bank_forward"
     ? "Customer Side - Bank Forward - Pending"

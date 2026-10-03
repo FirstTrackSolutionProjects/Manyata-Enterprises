@@ -36,7 +36,7 @@ import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
 import SubmissionCreateModal from "../components/SubmissionCreateModal";
 import LeaveRequests from "../components/LeaveRequests";
-import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
+import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel, getApplicationUpdateStatusOptions } from "../constants/applicationStatuses";
 import { INSTALLATION_STATUSES } from "../constants/installationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -1001,6 +1001,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       v !== EMPTY_FILTERS[k]
   ).length;
   const assignedApplicationStatuses = user?.actionPermissions?.applications?.statusUpdates;
+  const visibleApplicationFilterStatusOptions = getApplicationUpdateStatusOptions(user);
   const roleSpecificStatusCards = user?.role === "employee" && Array.isArray(assignedApplicationStatuses)
     ? assignedApplicationStatuses
       .map((statusValue) => APPLICATION_STATUSES.find((status) => status.value === statusValue))
@@ -1106,7 +1107,7 @@ function ApplicationsTab({ initialLocation = "" }) {
               label="Status"
               value={filters.status}
               onChange={(v) => updateFilter("status", v)}
-              options={APPLICATION_STATUSES}
+              options={visibleApplicationFilterStatusOptions}
               placeholder="All statuses"
             />
 
