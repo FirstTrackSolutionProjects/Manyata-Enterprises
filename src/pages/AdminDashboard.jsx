@@ -77,6 +77,7 @@ import {
   clockOutOfAttendance,
   getAttendanceRegister,
   addManagerAttendanceEvent,
+  updateAttendanceRegisterTime,
   startAttendanceBreak,
   endAttendanceBreak,
   getAttendanceSettings,
@@ -390,16 +391,16 @@ function AttendanceTab({ isManager }) {
     if (!value) { setError("Choose a clock-in or clock-out date and time first."); return; }
     setSavingTimeRecord(key); setError(""); setNotice("");
     try {
-      await addManagerAttendanceEvent({
-        employee_id: String(item.employee_id),
-        attendance_date: String(item.attendance_date).slice(0, 10),
+      await updateAttendanceRegisterTime(item.id, {
         event_at: value,
         event_type: eventType,
-        event_label: eventType === "clock_in" ? "Owner corrected clock-in" : "Owner corrected clock-out",
-        break_type: "rest",
-        note: `Owner corrected ${eventType === "clock_in" ? "clock-in" : "clock-out"} time from the attendance register.`,
       });
       setNotice(`${eventType === "clock_in" ? "Clock-in" : "Clock-out"} time updated for ${item.employee_name}.`);
+      setRowTimeEdits((current) => {
+        const next = { ...current };
+        delete next[item.id];
+        return next;
+      });
       await loadRegister();
     } catch (err) { setError(err.message || "Could not update the attendance time."); }
     finally { setSavingTimeRecord(""); }
