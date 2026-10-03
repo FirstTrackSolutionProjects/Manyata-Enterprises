@@ -950,19 +950,11 @@ function ApplicationsTab({ initialLocation = "" }) {
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {[
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
-          ["Verified", Number(applicationStatusCounts.verified || 0)],
-          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0) + Number(applicationStatusCounts.vendor_side_pending_for_bank_forward || 0)],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
-          ["Customer - Full Loan Amount Disbursed", Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
-          ["Customer - KYC Pending from the Bank Side", Number(applicationStatusCounts.customer_kyc_pending_from_bank_side || 0)],
+          ["Submitted to Govt Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0)],
+          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0) + Number(applicationStatusCounts.vendor_side_pending_for_bank_forward || 0)],
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
-          ["Bank Forwarded", ["customer_side_bank_forward", "vendor_side_re_bank_forward", "docx_forwarded_to_bank_loan_phase_2"].reduce((sum, status) => sum + Number(applicationStatusCounts[status] || 0), 0)],
-          ["Under Review", Number(applicationStatusCounts.under_review || 0)],
-          ["Electricity Bill - Name Mismatch", Number(applicationStatusCounts.electricity_bill_name_mismatch || 0)],
-          ["Electricity Bill - Ownership Transfer", Number(applicationStatusCounts.electricity_bill_mismatch_ownership_transfer || 0)],
-          ["Customer Side - Login - OTP Pending - Customer Not Responding Call", Number(applicationStatusCounts.customer_side_login_otp_pending_customer_not_responding_call || 0)],
-          ["Vendor Side - Login - OTP Pending - Customer Not Responding Call", Number(applicationStatusCounts.vendor_side_login_otp_pending_customer_not_responding_call || 0)],
           ["Loan Disbursed - Phase 1", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0)],
           ["Loan Disbursed - Phase 2", Number(applicationStatusCounts.loan_disbursed_phase_2 || 0)],
         ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
