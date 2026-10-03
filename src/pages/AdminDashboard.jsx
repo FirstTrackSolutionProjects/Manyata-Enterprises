@@ -1000,6 +1000,13 @@ function ApplicationsTab({ initialLocation = "" }) {
       v !== "" &&
       v !== EMPTY_FILTERS[k]
   ).length;
+  const assignedApplicationStatuses = user?.actionPermissions?.applications?.statusUpdates;
+  const roleSpecificStatusCards = user?.role === "employee" && Array.isArray(assignedApplicationStatuses)
+    ? assignedApplicationStatuses
+      .map((statusValue) => APPLICATION_STATUSES.find((status) => status.value === statusValue))
+      .filter(Boolean)
+      .map((status) => [status.label, Number(applicationStatusCounts[status.value] || 0), status.value])
+    : null;
 
   return (
     <div className="space-y-4">
@@ -1008,16 +1015,19 @@ function ApplicationsTab({ initialLocation = "" }) {
         <span className="self-center text-xs text-muted">{listedTotal} records</span>
       </div>}
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {[
+        {(roleSpecificStatusCards ? [
+          [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0), "total-applications"],
+          ...roleSpecificStatusCards,
+        ] : [
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
           ["Pending", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
           ["Submitted to Govt Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
-          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.vendor_side_pending_for_bank_forward || 0)],
+          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
-        ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
+        ]).map(([label, value, key]) => <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
       </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
