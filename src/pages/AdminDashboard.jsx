@@ -225,6 +225,35 @@ const indiaDateTimeInput = (value = new Date()) => {
 const indiaNowDateTimeInput = () => indiaDateTimeInput();
 const breakTypeLabel = (type) => ({ tea_coffee: "Tea / coffee", lunch: "Lunch", dinner: "Dinner", snack: "Snack", emergency: "Emergency", rest: "Rest", personal: "Personal", meal: "Meal (legacy)", other: "Other" }[type] || type);
 const csvCell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+const attendanceSearchWords = (value) => String(value ?? "").toLocaleLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(Boolean);
+const attendanceSearchWordsMatch = (left, right) => {
+  if (left.includes(right) || right.includes(left)) return true;
+  if (Math.abs(left.length - right.length) > 1 || Math.min(left.length, right.length) < 4) return false;
+  let leftIndex = 0;
+  let rightIndex = 0;
+  let differences = 0;
+  while (leftIndex < left.length && rightIndex < right.length) {
+    if (left[leftIndex] === right[rightIndex]) {
+      leftIndex += 1;
+      rightIndex += 1;
+      continue;
+    }
+    differences += 1;
+    if (differences > 1) return false;
+    if (left.length > right.length) leftIndex += 1;
+    else if (right.length > left.length) rightIndex += 1;
+    else {
+      leftIndex += 1;
+      rightIndex += 1;
+    }
+  }
+  return differences + Number(leftIndex < left.length || rightIndex < right.length) <= 1;
+};
+const attendanceRecordMatchesSearch = (record, fields, search) => {
+  const queryWords = attendanceSearchWords(search);
+  const recordWords = fields.flatMap((field) => attendanceSearchWords(record[field]));
+  return queryWords.every((queryWord) => recordWords.some((recordWord) => attendanceSearchWordsMatch(recordWord, queryWord)));
+};
 
 function AttendanceTab({ isManager }) {
   const { user } = useAuth();
@@ -284,9 +313,8 @@ function AttendanceTab({ isManager }) {
         const fallback = await getAttendanceRegister({ from: fromDate, to: toDate });
         registerData = fallback.data || registerData;
       }
-      const matchesSearch = (record, fields) => fields.some((field) => String(record[field] ?? "").toLocaleLowerCase().includes(searchText));
-      const items = (registerData.items || []).filter((item) => matchesSearch(item, ["employee_name", "employee_user_id", "employee_department", "employee_designation", "branch_name"]));
-      const events = (registerData.events || []).filter((item) => matchesSearch(item, ["employee_name", "employee_user_id"]));
+      const items = (registerData.items || []).filter((item) => attendanceRecordMatchesSearch(item, ["employee_name", "employee_user_id", "employee_department", "employee_designation", "branch_name"], searchText));
+      const events = (registerData.events || []).filter((item) => attendanceRecordMatchesSearch(item, ["employee_name", "employee_user_id"], searchText));
       const employeeIds = new Set(items.map((item) => item.employee_id));
       const completedItems = items.filter((item) => item.clock_out_at);
       registerData = {
