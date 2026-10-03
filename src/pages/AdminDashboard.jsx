@@ -156,16 +156,16 @@ function EmployeeProfileTab() {
     lastName: profile.lastName || nameParts.join(" "),
     email: user?.email || "",
     phone: user?.phone || "",
-    streetAddress: profile.streetAddress || user?.address || "",
-    city: profile.city || user?.city || "",
-    state: profile.state || user?.state || "",
-    postalCode: profile.postalCode || user?.pincode || "",
+    streetAddress: user?.address || profile.streetAddress || "",
+    city: user?.city || profile.city || "",
+    state: user?.state || profile.state || "",
+    postalCode: user?.pincode || profile.postalCode || "",
     profileDetails: profile,
     documentUrls: {},
   };
   const groups = [
     { title: "Personal Details", fields: [["Full Name", user?.name], ["Email", user?.email], ["Phone", user?.phone], ["Date of Birth", profile.dob], ["Gender", profile.gender], ["Father's Name", profile.fatherName], ["Mother's Name", profile.motherName], ["Blood Group", profile.bloodGroup], ["Marital Status", profile.maritalStatus]] },
-    { title: "Address", fields: [["Street Address", profile.streetAddress || user?.address], ["City", profile.city || user?.city], ["District", profile.district], ["State", profile.state || user?.state], ["Postal Code", profile.postalCode || user?.pincode], ["Country", profile.country], ["Location / Posting Preference", profile.location]] },
+    { title: "Address", fields: [["Street Address", user?.address || profile.streetAddress], ["City", user?.city || profile.city], ["District", profile.district], ["State", user?.state || profile.state], ["Postal Code", user?.pincode || profile.postalCode], ["Country", profile.country], ["Location / Posting Preference", profile.location]] },
     { title: "Education & Experience", fields: [["Qualification", profile.qualification], ["Institution", profile.institutionName], ["Year of Passing", profile.yearOfPassing], ["Experience", profile.experience], ["Company", profile.companyName], ["Designation", profile.designation || user?.designation]] },
     { title: "Bank Details", fields: [["Bank Name", profile.bankName], ["Account Number", profile.accountNumber], ["IFSC Code", profile.ifscCode]] },
   ];
