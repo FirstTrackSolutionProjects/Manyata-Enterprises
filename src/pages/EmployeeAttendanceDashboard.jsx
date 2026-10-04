@@ -42,8 +42,16 @@ export default function EmployeeAttendanceDashboard({ context }) {
 
   const [tab, setTab] = useState("history");
   const [showCorrection, setShowCorrection] = useState(false);
+const [page, setPage] = useState(0);
 
-  if (!isEmployee) return null;
+ if (!isEmployee) return null;
+
+const PAGE_SIZE = 7;
+const activeList =
+  tab === "history" ? monthRows : tab === "breaks" ? mine.monthBreaks || [] : mine.corrections || [];
+const totalPages = Math.max(1, Math.ceil(activeList.length / PAGE_SIZE));
+const safePage = Math.min(page, totalPages - 1);
+const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
 
   const money = (value) =>
     `₹${Number(value).toLocaleString("en-IN", { minimumFractionDigits: 2 })}`;
@@ -444,7 +452,10 @@ export default function EmployeeAttendanceDashboard({ context }) {
             <input
               type="month"
               value={month}
-              onChange={(event) => setMonth(event.target.value)}
+              onChange={(event) => {
+  setMonth(event.target.value);
+  setPage(0);
+}}
               className="mt-1 block rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy"
             />
           </label>
@@ -506,7 +517,10 @@ export default function EmployeeAttendanceDashboard({ context }) {
             <button
               key={key}
               type="button"
-              onClick={() => setTab(key)}
+              onClick={() => {
+  setTab(key);
+  setPage(0);
+}}
               className={`rounded-full px-4 py-1.5 text-sm font-bold ${
                 tab === key ? "bg-amber text-navy" : "text-muted hover:bg-offwhite"
               }`}
@@ -524,7 +538,7 @@ export default function EmployeeAttendanceDashboard({ context }) {
           ) : !monthRows.length ? (
             <p className="p-5 text-sm text-muted">No attendance records for this month.</p>
           ) : (
-            <div className="max-h-[420px] overflow-auto">
+            <div className="overflow-x-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
                 <thead className="sticky top-0 z-10 bg-offwhite text-xs text-muted">
                   <tr>
@@ -538,7 +552,7 @@ export default function EmployeeAttendanceDashboard({ context }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/5">
-                  {monthRows.map((item) => (
+                  {pageSlice(monthRows).map((item) => (
                     <tr key={item.id}>
                       <td className={`${tdClass} font-semibold text-navy`}>
                         {attendanceDateLabel(item.attendance_date)}
@@ -616,7 +630,7 @@ export default function EmployeeAttendanceDashboard({ context }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/5">
-                  {mine.monthBreaks.map((item) => (
+                  {pageSlice(mine.monthBreaks).map((item) => (
                     <tr key={item.id}>
                       <td className={tdClass}>{attendanceDateLabel(item.attendance_date)}</td>
                       <td className={`${tdClass} capitalize`}>{item.break_type}</td>
@@ -650,7 +664,7 @@ export default function EmployeeAttendanceDashboard({ context }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy/5">
-                  {mine.corrections.map((item) => (
+                 {pageSlice(mine.corrections).map((item) => (
                     <tr key={item.id}>
                       <td className={tdClass}>{attendanceDateLabel(item.attendance_date)}</td>
                       <td className={tdClass}>
@@ -672,7 +686,33 @@ export default function EmployeeAttendanceDashboard({ context }) {
                 </tbody>
               </table>
             </div>
-          ))}
+                   ))}
+
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-navy/10 px-5 py-3 text-sm">
+            <span className="text-muted">
+              Page {safePage + 1} of {totalPages} · {activeList.length} records
+            </span>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(safePage - 1)}
+                disabled={safePage === 0}
+                className="rounded-full border border-navy/15 px-4 py-1.5 text-xs font-bold text-navy disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage(safePage + 1)}
+                disabled={safePage >= totalPages - 1}
+                className="rounded-full bg-amber px-4 py-1.5 text-xs font-bold text-navy disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </>
   );
