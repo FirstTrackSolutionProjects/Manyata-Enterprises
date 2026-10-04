@@ -1,5 +1,5 @@
 export const APPLICATION_STATUSES = [
-  { value: "pending", label: "Pending" },
+  { value: "pending", label: "New Customer Application" },
   { value: "verified", label: "Verified" },
   { value: "mobile_number_linked", label: "Mobile Number Linked" },
   { value: "demand_note_payment", label: "Demand Note Payment" },

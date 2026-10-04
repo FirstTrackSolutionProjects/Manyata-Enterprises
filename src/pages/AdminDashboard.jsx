@@ -1057,7 +1057,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const visibleApplicationFilterStatusOptions = getApplicationUpdateStatusOptions(user);
   const roleSpecificStatusCards = user?.role === "employee" && Array.isArray(assignedApplicationStatuses)
     ? [
-      ["Pending", Number(applicationStatusCounts.pending || 0), "pending"],
+      ["New Customer Application", Number(applicationStatusCounts.pending || 0), "pending"],
       ...assignedApplicationStatuses.filter((statusValue) => statusValue !== "pending")
       .map((statusValue) => APPLICATION_STATUSES.find((status) => status.value === statusValue))
       .filter(Boolean)
@@ -1077,7 +1077,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ...roleSpecificStatusCards,
         ] : [
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0)],
-          ["Pending", Number(applicationStatusCounts.pending || 0)],
+          ["New Customer Application", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
           ["Submitted to Govt Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
