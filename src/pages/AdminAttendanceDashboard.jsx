@@ -684,6 +684,16 @@ export default function AdminAttendanceDashboard({ context }) {
           ))}
 
         {/* Manual update history */}
+        {tab === "history" && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-navy/10 px-5 py-3">
+            <p className="text-xs text-muted">
+              Owner and HR attendance edits for the selected date range.
+            </p>
+            <span className="rounded-full bg-offwhite px-3 py-1 text-xs font-bold text-muted">
+              {historyRows.length} updates
+            </span>
+          </div>
+        )}
         {tab === "history" &&
           (!historyRows.length ? (
             <p className="p-5 text-sm text-muted">No manual updates in this date range.</p>
