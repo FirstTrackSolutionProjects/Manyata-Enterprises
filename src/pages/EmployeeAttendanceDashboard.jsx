@@ -524,9 +524,9 @@ export default function EmployeeAttendanceDashboard({ context }) {
           ) : !monthRows.length ? (
             <p className="p-5 text-sm text-muted">No attendance records for this month.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="max-h-[420px] overflow-auto">
               <table className="w-full min-w-[820px] text-left text-sm">
-                <thead className="bg-offwhite text-xs text-muted">
+                <thead className="sticky top-0 z-10 bg-offwhite text-xs text-muted">
                   <tr>
                     <th className={thClass}>Date</th>
                     <th className={thClass}>Clock in</th>
