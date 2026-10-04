@@ -31,6 +31,7 @@ const TAB_LABELS = [
   ["register", "Register"],
   ["calendar", "Team calendar"],
   ["corrections", "Corrections"],
+  ["photos", "Photos"],
   ["locations", "Locations"],
   ["history", "Updates history"],
 ];
@@ -133,11 +134,13 @@ export default function AdminAttendanceDashboard({ context }) {
     (item) => item.clock_in_latitude != null || item.clock_out_latitude != null
   );
   const historyRows = register.events || [];
+  const photoRows = registerRows.filter((item) => item.clock_in_photo_key || item.clock_out_photo_key);
 
   const lists = {
     register: registerRows,
     calendar: calendarRows,
     corrections: correctionRows,
+    photos: photoRows,
     locations: locationRows,
     history: historyRows,
   };
@@ -376,6 +379,9 @@ export default function AdminAttendanceDashboard({ context }) {
                           </td>
                           <td className={`${tdClass} whitespace-nowrap`}>
                             {hm(Number(item.break_minutes || 0))}
+                            <span className="block text-xs text-muted">
+                              {item.breaks?.length ? `${item.breaks.length} break(s)` : "No breaks"}
+                            </span>
                           </td>
                           <td className={tdClass}>
                             <div className="flex gap-1.5">
@@ -699,6 +705,45 @@ export default function AdminAttendanceDashboard({ context }) {
                     Entered by {event.entered_by_name || "Owner / HR"}
                   </p>
                 </article>
+              ))}
+            </div>
+          ))}
+
+        {/* Team attendance photos */}
+        {tab === "photos" &&
+          (!photoRows.length ? (
+            <p className="p-5 text-sm text-muted">No attendance photos in this date range.</p>
+          ) : (
+            <div className="space-y-2 p-4">
+              {pageItems.map((item) => (
+                <div
+                  key={`team-attendance-photo-${item.id}`}
+                  className="flex flex-wrap items-center gap-3 rounded-lg bg-offwhite p-3 text-sm"
+                >
+                  <span className="mr-auto font-semibold text-navy">
+                    {item.employee_name} · {attendanceDateLabel(item.attendance_date)}
+                  </span>
+                  {item.clock_in_photo_key && (
+                    <a
+                      href={attendancePhotoHref(item.id, "clock-in")}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-blue-700 underline"
+                    >
+                      Clock-in photo
+                    </a>
+                  )}
+                  {item.clock_out_photo_key && (
+                    <a
+                      href={attendancePhotoHref(item.id, "clock-out")}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-semibold text-blue-700 underline"
+                    >
+                      Clock-out photo
+                    </a>
+                  )}
+                </div>
               ))}
             </div>
           ))}
