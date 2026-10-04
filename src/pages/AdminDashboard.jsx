@@ -1056,10 +1056,13 @@ function ApplicationsTab({ initialLocation = "" }) {
   const assignedApplicationStatuses = user?.actionPermissions?.applications?.statusUpdates;
   const visibleApplicationFilterStatusOptions = getApplicationUpdateStatusOptions(user);
   const roleSpecificStatusCards = user?.role === "employee" && Array.isArray(assignedApplicationStatuses)
-    ? assignedApplicationStatuses
+    ? [
+      ["Pending", Number(applicationStatusCounts.pending || 0), "pending"],
+      ...assignedApplicationStatuses.filter((statusValue) => statusValue !== "pending")
       .map((statusValue) => APPLICATION_STATUSES.find((status) => status.value === statusValue))
       .filter(Boolean)
-      .map((status) => [status.label, Number(applicationStatusCounts[status.value] || 0), status.value])
+      .map((status) => [status.label, Number(applicationStatusCounts[status.value] || 0), status.value]),
+    ]
     : null;
 
   return (
