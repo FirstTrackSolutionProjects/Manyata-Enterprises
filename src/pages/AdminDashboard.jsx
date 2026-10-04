@@ -1062,7 +1062,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       .map((statusValue) => APPLICATION_STATUSES.find((status) => status.value === statusValue))
       .filter(Boolean)
       .map((status) => [status.label, Number(applicationStatusCounts[status.value] || 0), status.value]),
-    ].filter(([, count]) => count > 0)
+    ]
     : null;
 
   return (
