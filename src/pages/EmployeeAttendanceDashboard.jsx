@@ -258,7 +258,7 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
               autoPlay
               playsInline
               muted
-              className="mt-3 aspect-video max-h-40 w-full rounded-xl bg-navy object-cover"
+              className="mt-3 aspect-[3/4] max-h-[50svh] w-full rounded-xl bg-navy object-cover sm:aspect-video sm:max-h-40"
             />
           ) : hasPhotoCapture ? (
             <img
@@ -411,7 +411,7 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
         </div>
 
         <div className="mt-4 overflow-x-auto">
-          <div className="grid min-w-[560px] grid-cols-7 gap-1.5">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {WEEK_DAYS.map((d) => (
               <div key={d} className="px-1 text-center text-[11px] font-bold uppercase text-muted">
                 {d}
@@ -424,12 +424,12 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
               <div
                 key={item.date}
                 title={item.holiday_title || item.leave_type || ""}
-                className="flex min-h-[64px] flex-col justify-between rounded-lg border border-navy/10 bg-offwhite p-1.5"
+                className="flex min-h-[56px] flex-col justify-between rounded-lg border border-navy/10 bg-offwhite p-1 sm:min-h-[64px] sm:p-1.5"
               >
                 <span className="text-xs font-bold text-navy">
                   {Number(String(item.date).slice(8, 10))}
                 </span>
-                <span className="truncate rounded-full bg-white px-1.5 py-0.5 text-center text-[10px] font-bold text-muted">
+                <span className="truncate rounded-full bg-white px-1 py-0.5 text-center text-[9px] font-bold text-muted sm:px-1.5 sm:text-[10px]">
                   {statusLabel(item.status)}
                 </span>
               </div>
