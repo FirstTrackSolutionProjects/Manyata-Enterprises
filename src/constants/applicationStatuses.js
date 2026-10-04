@@ -64,7 +64,7 @@ export const APPLICATION_STATUSES = [
 ];
 
 export const APPLICATION_UPDATE_STATUSES = [
-  "verified", "electricity_bill_name_mismatch", "mobile_number_linked", "demand_note_payment", "ads_payment",
+  "pending", "verified", "electricity_bill_name_mismatch", "mobile_number_linked", "demand_note_payment", "ads_payment",
   "consumer_login_submitted_to_govt_portal", "customer_side_login_otp_pending_customer_not_responding_call",
   "vendor_side_quotation_agreement_pending", "vendor_side_login_otp_pending_customer_not_responding_call",
   "customer_side_bank_forward", "customer_aadhaar_not_linked_with_mobile_number", "customer_cibil_score_low",
