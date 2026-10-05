@@ -108,6 +108,8 @@ export const deleteEmployee = (id) =>
 
 export const generateEmployeeSalarySlip = (payload) =>
   apiFetch("/salaries", { method: "POST", body: JSON.stringify(payload) });
+export const publishEmployeeSalarySlip = (id) =>
+  apiFetch(`/salaries/${id}/publish`, { method: "PATCH" });
 export const getSalaryEmployees = (params = {}) => {
   const query = new URLSearchParams(params).toString();
   return apiFetch(`/salaries/employees${query ? `?${query}` : ""}`);

@@ -60,6 +60,7 @@ import {
   resetPartnerPassword,
   downloadCsvExport,
   generateEmployeeSalarySlip,
+  publishEmployeeSalarySlip,
   getSalaryEmployees,
   getSalaryAttendancePreview,
   getEmployeeSalaryAdvances,
@@ -249,7 +250,7 @@ function SalaryManagementTab() {
     .some((value) => String(value || "").toLowerCase().includes(term)));
 
   return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Generate or update a monthly salary slip for an active employee.</p></div><div className="flex gap-2"><input type="month" value={`${salaryPeriod.year}-${salaryPeriod.month.padStart(2, "0")}`} onChange={(event) => { const [year, month] = event.target.value.split("-"); setSalaryPeriod({ year, month: String(Number(month)) }); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Prepare, review, and publish monthly salary slips for active employees.</p></div><div className="flex gap-2"><input type="month" value={`${salaryPeriod.year}-${salaryPeriod.month.padStart(2, "0")}`} onChange={(event) => { const [year, month] = event.target.value.split("-"); setSalaryPeriod({ year, month: String(Number(month)) }); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
     {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : error ? <p className="p-5 text-sm text-red-600">{error}</p> : !filtered.length ? <p className="p-5 text-sm text-muted">No active employees match your search.</p> : <div className="divide-y divide-navy/5">{filtered.map((employee) => <div key={employee.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold text-navy">{employee.name} <span className="font-mono text-xs text-muted">· {employee.user_id}</span></p><p className="mt-1 text-xs text-muted">{employee.designation || "Employee"} · {employee.department || "No department"} · {employee.branch_name || "No branch"}</p><p className="mt-1 text-xs text-muted">Advance balance: <strong className="text-navy">Rs. {Number(employee.advance_outstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></p></div><div className="flex gap-2"><button onClick={() => setSelectedEmployee(employee)} className="inline-flex items-center gap-1.5 rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Advance</button><button onClick={() => setSelectedEmployee({ ...employee, openSalarySlip: true })} className="inline-flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Generate salary</button></div></div>)}</div>}
     {selectedEmployee && !selectedEmployee.openSalarySlip && <SalaryAdvanceModal key={`advance-${selectedEmployee.id}`} employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} onSaved={() => { setSelectedEmployee(null); load(); }}/>}
     {selectedEmployee?.openSalarySlip && <SalarySlipModal key={`slip-${selectedEmployee.id}`} employee={{ ...selectedEmployee, month: Number(salaryPeriod.month), year: Number(salaryPeriod.year) }} onClose={() => setSelectedEmployee(null)} onGenerate={generateEmployeeSalarySlip}/>}
@@ -1474,6 +1475,8 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const [salaryStructure, setSalaryStructure] = useState(employee.salary_structure || "standard");
   const [customStructure, setCustomStructure] = useState({ basicSalary: savedNumber("basic_salary"), hra: savedNumber("hra"), allowance: savedNumber("allowance") });
   const [saving, setSaving] = useState(false);
+  const [draftSlip, setDraftSlip] = useState(null);
+  const [hasDownloadedDraft, setHasDownloadedDraft] = useState(false);
   const [error, setError] = useState("");
   const [attendancePreview, setAttendancePreview] = useState(null);
   const [attendancePreviewError, setAttendancePreviewError] = useState("");
@@ -1515,28 +1518,57 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       .catch((err) => { if (current) setAttendancePreviewError(err.message || "Attendance calculation could not be loaded."); });
     return () => { current = false; };
   }, [employee.id, form.month, form.year]);
+  const draftPayload = () => ({
+    employeeId: employee.id, month: Number(form.month), year: Number(form.year), grossSalary: calculatedGross, salaryStructure,
+    basicSalary: basic, hra, allowance, incentive, bonus,
+    employerEpf: Number(form.employerEpf), employerEsi: Number(form.employerEsi),
+    termLifeInsurance: Number(form.termLifeInsurance), healthInsurance: Number(form.healthInsurance),
+    employeeEpf: Number(form.employeeEpf), employeeEsi: Number(form.employeeEsi),
+    professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary), attendanceDeduction,
+    attendanceStandardHours: attendancePreview?.standardHours || 0,
+    attendanceWorkedHours: attendancePreview?.workedHours || 0,
+    attendanceUnpaidHours: attendancePreview?.unpaidHours || 0,
+    attendancePaidSundays: attendancePreview?.paidSundayCount || 0,
+  });
   const submit = async (event) => {
     event.preventDefault();
     setSaving(true);
     setError("");
     try {
-      await onGenerate({
-        employeeId: employee.id, month: Number(form.month), year: Number(form.year), grossSalary: calculatedGross, salaryStructure,
-        basicSalary: basic, hra, allowance,
-        incentive, bonus, employerEpf: Number(form.employerEpf), employerEsi: Number(form.employerEsi),
-        termLifeInsurance: Number(form.termLifeInsurance), healthInsurance: Number(form.healthInsurance),
-        employeeEpf: Number(form.employeeEpf), employeeEsi: Number(form.employeeEsi),
-        professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary),
-        attendanceDeduction,
-        attendanceStandardHours: attendancePreview?.standardHours || 0,
-        attendanceWorkedHours: attendancePreview?.workedHours || 0,
-        attendanceUnpaidHours: attendancePreview?.unpaidHours || 0,
-        attendancePaidSundays: attendancePreview?.paidSundayCount || 0,
-      });
-      alert("Salary slip generated with the attendance-hours calculation. Any scheduled advance installment was also recovered.");
-      onClose();
+      const response = await onGenerate(draftPayload());
+      setDraftSlip(response.data);
+      setHasDownloadedDraft(false);
     } catch (err) {
       setError(err.message || "Could not generate salary slip.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const downloadDraft = async () => {
+    if (!draftSlip?.id) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await onGenerate(draftPayload());
+      setDraftSlip(response.data);
+      await downloadSalarySlip(response.data.id, employee.name, Number(form.month), Number(form.year));
+      setHasDownloadedDraft(true);
+    } catch (err) {
+      setError(err.message || "Could not download the salary slip preview.");
+    } finally {
+      setSaving(false);
+    }
+  };
+  const publishDraft = async () => {
+    if (!draftSlip?.id || !hasDownloadedDraft) return;
+    setSaving(true);
+    setError("");
+    try {
+      await publishEmployeeSalarySlip(draftSlip.id);
+      alert("Salary slip published. The employee can now view and download it.");
+      onClose();
+    } catch (err) {
+      setError(err.message || "Could not publish the salary slip.");
     } finally {
       setSaving(false);
     }
@@ -1545,6 +1577,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const amountInput = (key, label) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" value={form[key]} onChange={(event) => update(key, event.target.value)} className={`${inputClass} mt-1`} /></label>;
   const customAmountInput = (key, label) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" value={customStructure[key]} onChange={(event) => setCustomStructure((current) => ({ ...current, [key]: event.target.value }))} className={`${inputClass} mt-1`} /></label>;
   const readOnlyAmount = (label, value) => <div key={label} className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] text-muted">{label}</p><p className="mt-1 text-sm font-bold text-navy">Rs. {value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>;
+  const readOnlyCount = (label, value) => <div key={label} className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] text-muted">{label}</p><p className="mt-1 text-sm font-bold text-navy">{Number(value || 0)}</p></div>;
   const money = (value) => `Rs. ${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
     <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
@@ -1562,7 +1595,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {readOnlyAmount("Month standard hours", Number(attendancePreview.standardHours || 0))}
             {readOnlyAmount("Worked attendance hours", Number(attendancePreview.workedHours || 0))}
-            {readOnlyAmount("Paid Sundays", Number(attendancePreview.paidSundayCount || 0))}
+            {readOnlyCount("Paid Sundays", attendancePreview.paidSundayCount)}
             {readOnlyAmount("Unpaid hours so far", Number(attendancePreview.unpaidHours || 0))}
           </div>
           <p className="text-xs text-muted">{attendancePreview.elapsedDays} completed calendar day(s) counted · {attendancePreview.totalSundayCount} Sunday(s) this month · 8 standard hours per day.</p>
@@ -1571,9 +1604,10 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or enter a custom salary structure. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Basic salary · 50%", basic)}{readOnlyAmount("HRA · 40%", hra)}{readOnlyAmount("Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{customAmountInput("basicSalary", "Basic salary")}{customAmountInput("hra", "HRA")}{customAmountInput("allowance", "Allowance")}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3><p className="mt-1 text-xs text-muted">Shown separately; these amounts are not deducted from employee net pay.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
       <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}<label className="text-xs font-semibold text-navy/70">Attendance / unpaid hours deduction (Rs.)<input type="number" min="0" step="0.01" value={attendanceDeduction.toFixed(2)} onChange={(event) => { setAttendanceDeductionCustomized(true); update("attendanceDeduction", event.target.value); }} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
-      <div className="grid gap-3 rounded-xl bg-amber-soft p-4 sm:grid-cols-3"><div><p className="text-xs font-semibold text-navy/70">Total earnings</p><p className="mt-1 font-bold text-navy">{money(totalEarnings)}</p></div><div><p className="text-xs font-semibold text-navy/70">Total deductions</p><p className="mt-1 font-bold text-navy">{money(deductions)}</p></div><div><p className="text-xs font-semibold text-navy/70">Net salary payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div></div>
+      <div className="grid gap-3 rounded-xl bg-amber-soft p-4 sm:grid-cols-3"><div><p className="text-xs font-semibold text-navy/70">Total Earnings</p><p className="mt-1 font-bold text-navy">{money(totalEarnings)}</p></div><div><p className="text-xs font-semibold text-navy/70">Total Deductions</p><p className="mt-1 font-bold text-navy">{money(deductions)}</p></div><div><p className="text-xs font-semibold text-navy/70">Net Salary Payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div></div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !attendancePreview || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Generating..." : "Generate Slip"}</button></div>
+      {draftSlip && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">Draft saved for review. Download PDF saves the latest form values and downloads the preview. Publish becomes available after the download.</p>}
+      <div className="flex flex-wrap justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !attendancePreview || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Saving..." : draftSlip ? "Save Draft" : "Generate Draft"}</button>{draftSlip && <><button type="button" onClick={downloadDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy disabled:opacity-50"><Download size={15}/>Download PDF</button><button type="button" onClick={publishDraft} disabled={saving || !hasDownloadedDraft} className="rounded-full bg-navy px-5 py-2 text-sm font-bold text-white disabled:opacity-50">Publish</button></>}</div>
     </form>
   </div>;
 }
