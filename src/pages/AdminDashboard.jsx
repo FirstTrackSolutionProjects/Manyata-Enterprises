@@ -61,6 +61,7 @@ import {
   downloadCsvExport,
   generateEmployeeSalarySlip,
   getSalaryEmployees,
+  getSalaryAttendancePreview,
   getEmployeeSalaryAdvances,
   createEmployeeSalaryAdvance,
   getMySalarySlips,
@@ -1452,6 +1453,9 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const [customStructure, setCustomStructure] = useState({ basicSalary: savedNumber("basic_salary"), hra: savedNumber("hra"), allowance: savedNumber("allowance") });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [attendancePreview, setAttendancePreview] = useState(null);
+  const [attendancePreviewError, setAttendancePreviewError] = useState("");
+  const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false);
   const gross = Number(form.grossSalary || 0);
   const basic = salaryStructure === "custom" ? Number(customStructure.basicSalary || 0) : Math.round(gross * 50) / 100;
   const hra = salaryStructure === "custom" ? Number(customStructure.hra || 0) : Math.round(gross * 40) / 100;
@@ -1460,10 +1464,35 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const incentive = Number(form.incentive || 0);
   const bonus = Number(form.bonus || 0);
   const scheduledAdvanceRecovery = Number(employee.monthly_advance_installment || 0);
-  const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0) + scheduledAdvanceRecovery;
+  const attendanceDeductionDefault = attendancePreview?.standardHours
+    ? Math.round((calculatedGross * Number(attendancePreview.unpaidHours || 0) / Number(attendancePreview.standardHours) + Number.EPSILON) * 100) / 100
+    : 0;
+  const attendanceDeduction = attendanceDeductionCustomized
+    ? Number(form.attendanceDeduction || 0)
+    : attendanceDeductionDefault;
+  const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0) + scheduledAdvanceRecovery + attendanceDeduction;
   const totalEarnings = calculatedGross + incentive + bonus;
   const netSalary = totalEarnings - deductions;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const updatePeriod = (key, value) => {
+    setAttendanceDeductionCustomized(false);
+    update(key, value);
+  };
+  useEffect(() => {
+    let current = true;
+    setAttendancePreview(null);
+    setAttendancePreviewError("");
+    getSalaryAttendancePreview(employee.id, { month: form.month, year: form.year })
+      .then((response) => {
+        if (!current) return;
+        setAttendancePreview(response.data || null);
+        setForm((existing) => Number(existing.grossSalary || 0) > 0
+          ? existing
+          : { ...existing, grossSalary: response.data?.grossSalary ? String(response.data.grossSalary) : "" });
+      })
+      .catch((err) => { if (current) setAttendancePreviewError(err.message || "Attendance calculation could not be loaded."); });
+    return () => { current = false; };
+  }, [employee.id, form.month, form.year]);
   const submit = async (event) => {
     event.preventDefault();
     setSaving(true);
@@ -1476,8 +1505,13 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
         termLifeInsurance: Number(form.termLifeInsurance), healthInsurance: Number(form.healthInsurance),
         employeeEpf: Number(form.employeeEpf), employeeEsi: Number(form.employeeEsi),
         professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary),
+        attendanceDeduction,
+        attendanceStandardHours: attendancePreview?.standardHours || 0,
+        attendanceWorkedHours: attendancePreview?.workedHours || 0,
+        attendanceUnpaidHours: attendancePreview?.unpaidHours || 0,
+        attendancePaidSundays: attendancePreview?.paidSundayCount || 0,
       });
-      alert("Salary slip generated. Any scheduled advance installment was recovered, and the remaining balance was updated.");
+      alert("Salary slip generated with the attendance-hours calculation. Any scheduled advance installment was also recovered.");
       onClose();
     } catch (err) {
       setError(err.message || "Could not generate salary slip.");
@@ -1494,15 +1528,30 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
       <div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-bold text-navy">Generate Salary Slip</h2><p className="mt-1 text-sm text-muted">{employee.name} · {employee.user_id}</p></div><button type="button" onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-slate-100" aria-label="Close"><X size={20} /></button></div>
       <div className="grid grid-cols-2 gap-3">
-        <label className="text-xs font-semibold text-navy/70">Month<select required value={form.month} onChange={(event) => update("month", event.target.value)} className={`${inputClass} mt-1`}>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(2025, index, 1))}</option>)}</select></label>
-        <label className="text-xs font-semibold text-navy/70">Year<input required type="number" min="2000" max="2100" value={form.year} onChange={(event) => update("year", event.target.value)} className={`${inputClass} mt-1`} /></label>
+        <label className="text-xs font-semibold text-navy/70">Month<select required value={form.month} onChange={(event) => updatePeriod("month", event.target.value)} className={`${inputClass} mt-1`}>{Array.from({ length: 12 }, (_, index) => <option key={index + 1} value={index + 1}>{new Intl.DateTimeFormat("en-IN", { month: "long" }).format(new Date(2025, index, 1))}</option>)}</select></label>
+        <label className="text-xs font-semibold text-navy/70">Year<input required type="number" min="2000" max="2100" value={form.year} onChange={(event) => updatePeriod("year", event.target.value)} className={`${inputClass} mt-1`} /></label>
       </div>
+      <section className="space-y-3 rounded-xl border border-navy/10 bg-offwhite p-4">
+        <div>
+          <h3 className="font-bold text-navy">Attendance-based salary calculation</h3>
+          <p className="mt-1 text-xs text-muted">Standard hours are calendar days × 8 hours. Up to four Sundays are paid; an extra Sunday needs attendance to be paid. Default deduction = monthly gross ÷ standard hours × unpaid hours. Edit it below if needed. Current-month calculation includes completed days only.</p>
+        </div>
+        {attendancePreviewError ? <p className="text-sm text-red-600">{attendancePreviewError}</p> : attendancePreview ? <>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {readOnlyAmount("Month standard hours", Number(attendancePreview.standardHours || 0))}
+            {readOnlyAmount("Worked attendance hours", Number(attendancePreview.workedHours || 0))}
+            {readOnlyAmount("Paid Sundays", Number(attendancePreview.paidSundayCount || 0))}
+            {readOnlyAmount("Unpaid hours so far", Number(attendancePreview.unpaidHours || 0))}
+          </div>
+          <p className="text-xs text-muted">{attendancePreview.elapsedDays} completed calendar day(s) counted · {attendancePreview.totalSundayCount} Sunday(s) this month · 8 standard hours per day.</p>
+        </> : <p className="text-sm text-muted">Loading this month’s attendance hours…</p>}
+      </section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or enter a custom salary structure. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Basic salary · 50%", basic)}{readOnlyAmount("HRA · 40%", hra)}{readOnlyAmount("Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{customAmountInput("basicSalary", "Basic salary")}{customAmountInput("hra", "HRA")}{customAmountInput("allowance", "Allowance")}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3><p className="mt-1 text-xs text-muted">Shown separately; these amounts are not deducted from employee net pay.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
-      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
+      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}<label className="text-xs font-semibold text-navy/70">Attendance / unpaid hours deduction (Rs.)<input type="number" min="0" step="0.01" value={attendanceDeduction.toFixed(2)} onChange={(event) => { setAttendanceDeductionCustomized(true); update("attendanceDeduction", event.target.value); }} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
       <div className="grid gap-3 rounded-xl bg-amber-soft p-4 sm:grid-cols-3"><div><p className="text-xs font-semibold text-navy/70">Total earnings</p><p className="mt-1 font-bold text-navy">{money(totalEarnings)}</p></div><div><p className="text-xs font-semibold text-navy/70">Total deductions</p><p className="mt-1 font-bold text-navy">{money(deductions)}</p></div><div><p className="text-xs font-semibold text-navy/70">Net salary payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div></div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Generating..." : "Generate Slip"}</button></div>
+      <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !attendancePreview || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Generating..." : "Generate Slip"}</button></div>
     </form>
   </div>;
 }

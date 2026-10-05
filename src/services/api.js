@@ -112,6 +112,10 @@ export const getSalaryEmployees = (params = {}) => {
   const query = new URLSearchParams(params).toString();
   return apiFetch(`/salaries/employees${query ? `?${query}` : ""}`);
 };
+export const getSalaryAttendancePreview = (employeeId, params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiFetch(`/salaries/employees/${employeeId}/attendance-preview${query ? `?${query}` : ""}`);
+};
 export const getEmployeeSalaryAdvances = (employeeId) => apiFetch(`/salaries/employees/${employeeId}/advances`);
 export const createEmployeeSalaryAdvance = (employeeId, payload) =>
   apiFetch(`/salaries/employees/${employeeId}/advances`, { method: "POST", body: JSON.stringify(payload) });
