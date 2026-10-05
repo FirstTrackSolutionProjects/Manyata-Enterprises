@@ -90,9 +90,14 @@ export default function AdminDashboard() {
   const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
   const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || "no-access");
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
-  const hasAccess = user?.role === "owner" || (tab === "employee-profile" && user?.role === "employee") || ((requiredModule === "applications" || requiredModule === "installations")
-    ? hasActionPermission(user, requiredModule, "view")
-    : ((tab === "salary-slips" || tab === "leave-requests" || tab === "attendance") && user?.role === "employee") || ((tab === "salary-management" || tab === "attendance") && isHr) ? true : permissions.includes(requiredModule));
+  const hasAccess = user?.role === "owner"
+    || (tab === "employee-profile" && user?.role === "employee")
+    || (tab === "emp-attendance" && isHr)
+    || ((requiredModule === "applications" || requiredModule === "installations")
+      ? hasActionPermission(user, requiredModule, "view")
+      : ((tab === "salary-slips" || tab === "leave-requests" || tab === "attendance") && user?.role === "employee")
+        || (tab === "salary-management" && isHr)
+        || permissions.includes(requiredModule));
 
   const handleSectionChange = (section) => {
     setSearchParams({ section }, { replace: true });
@@ -115,7 +120,8 @@ export default function AdminDashboard() {
       {hasAccess && tab === "salary-management" && isHr && <SalaryManagementTab />}
       {hasAccess && tab === "commission-payouts" && user?.role === "owner" && <CommissionPayoutsTab />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
-      {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner" || isHr} />}
+      {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner"} />}
+      {hasAccess && tab === "emp-attendance" && (user?.role === "owner" || isHr) && <AttendanceDashboard isManager />}
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}

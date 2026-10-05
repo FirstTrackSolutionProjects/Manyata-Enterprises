@@ -30,7 +30,7 @@ const OWNER_NAV = [
   { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
   { id: "employees", label: "Employees", icon: Users },
   { id: "leave-requests", label: "Leave Requests", icon: CalendarDays },
-  { id: "attendance", label: "EMP-Attendance", icon: Clock3 },
+  { id: "emp-attendance", label: "EMP-Attendance", icon: Clock3 },
   { id: "partners", label: "Partners", icon: Handshake },
   { id: "commission-payouts", label: "Commission Payouts", icon: Banknote },
   { id: "branches", label: "Branches", icon: Building2 },
@@ -60,7 +60,7 @@ export default function DashboardLayout({
           { id: "commissions", label: "Commission History", icon: Banknote },
           ...(hasActionPermission(user, "applications", "view") ? [{ id: "applications", label: "Applications", icon: FileText }] : []),
         ]
-      : OWNER_NAV.filter((item) => item.id !== "overview" && item.id !== "attendance" && (item.id === "applications" || item.id === "installations"
+      : OWNER_NAV.filter((item) => item.id !== "overview" && item.id !== "emp-attendance" && (item.id === "applications" || item.id === "installations"
         ? hasActionPermission(user, item.id, "view")
         : (user?.permissions || ["applications"]).includes(item.id)));
   const isHr = user?.role === "employee" && String(user?.name || "").trim().toLowerCase() === "tejash parekh";
@@ -70,7 +70,7 @@ export default function DashboardLayout({
     const allowed = user?.locationPermissions?.[module];
     if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };
     return { ...item, children: item.children.filter((child) => allowed.includes(child.id.endsWith("odisha") ? "odisha" : "west_bengal")) };
-  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, { id: "attendance", label: "EMP-Attendance", icon: Clock3 }, ...(isHr ? [{ id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
+  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, { id: "attendance", label: "Attendance", icon: Clock3 }, ...(isHr ? [{ id: "emp-attendance", label: "EMP-Attendance", icon: Clock3 }, { id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
   const isEmployeeDashboard = user?.role === "employee";

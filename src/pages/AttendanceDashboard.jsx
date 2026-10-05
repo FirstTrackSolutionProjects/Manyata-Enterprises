@@ -379,11 +379,6 @@ return <div className="space-y-5">
     {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
     {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>}
 
-    {isManager
-      ? <>
-          {isEmployee && <EmployeeAttendanceDashboard context={attendanceViewContext} />}
-          <AdminAttendanceDashboard context={attendanceViewContext} />
-        </>
-      : isEmployee ? <EmployeeAttendanceDashboard context={attendanceViewContext} /> : null}
+    {isManager ? <AdminAttendanceDashboard context={attendanceViewContext} /> : isEmployee ? <EmployeeAttendanceDashboard context={attendanceViewContext} /> : null}
   </div>;
 }
