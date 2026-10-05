@@ -1,3 +1,5 @@
+import { isHrEmployee } from "../utils/employeeRoles";
+
 export const APPLICATION_STATUSES = [
   { value: "pending", label: "New Customer Application" },
   { value: "verified", label: "Verified" },
@@ -81,7 +83,7 @@ export const getApplicationUpdateStatusOptions = (user) => {
   const baseOptions = isTechnicalEmployee
     ? APPLICATION_STATUSES.filter((status) => technicalStatusValues.includes(status.value))
     : APPLICATION_UPDATE_STATUSES;
-  const grantedStatusUpdates = user?.actionPermissions?.applications?.statusUpdates;
+  const grantedStatusUpdates = isHrEmployee(user) ? null : user?.actionPermissions?.applications?.statusUpdates;
 
   return user?.role !== "owner" && Array.isArray(grantedStatusUpdates)
     ? baseOptions.filter((status) => grantedStatusUpdates.includes(status.value))

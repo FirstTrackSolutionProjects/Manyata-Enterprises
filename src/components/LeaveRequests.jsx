@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, Check, ChevronDown, Clock3, Loader2, X } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import { isHrEmployee } from "../utils/employeeRoles";
 import {
   cancelMyLeaveRequest,
   createMyLeaveRequest,
@@ -18,7 +19,7 @@ const TYPES = {
   marriage: "Marriage leave", compensatory: "Compensatory off", study: "Study / examination leave",
   sabbatical: "Sabbatical leave", notice_period: "Notice-period / exit leave", other: "Other leave",
 };
-const isHR = (user) => String(user?.name || "").trim().toLowerCase() === "tejash parekh";
+const isHR = isHrEmployee;
 const inputDate = (value) => value ? String(value).slice(0, 10) : "";
 const dateLabel = (value) => value ? new Date(`${inputDate(value)}T00:00:00`).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
 

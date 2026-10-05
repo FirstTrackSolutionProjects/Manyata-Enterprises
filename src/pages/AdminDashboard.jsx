@@ -73,6 +73,7 @@ import {
   getAttendanceRegister
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
+import { isHrEmployee } from "../utils/employeeRoles";
 import { formatApplicationLocation } from "../utils/applicationLocation";
 import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
 import AttendanceDashboard from "./AttendanceDashboard";
@@ -87,17 +88,18 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const permissions = user?.permissions || ["applications"];
-  const isHr = user?.role === "employee" && String(user?.name || "").trim().toLowerCase() === "tejash parekh";
+  const isHr = isHrEmployee(user);
   const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
-  const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || "no-access");
+  const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || (isHr ? "employees" : "no-access"));
   const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
-  const hasAccess = user?.role === "owner"
+  const hasAccess = user?.role === "owner" || isHr
     || (tab === "employee-profile" && user?.role === "employee")
     || (tab === "emp-attendance" && isHr)
+    || (tab === "employees" && isHr)
     || ((requiredModule === "applications" || requiredModule === "installations")
       ? hasActionPermission(user, requiredModule, "view")
       : ((tab === "salary-slips" || tab === "leave-requests" || tab === "attendance") && user?.role === "employee")
-        || (tab === "salary-management" && isHr)
+        || (tab === "salary-management" && (user?.role === "owner" || isHr))
         || permissions.includes(requiredModule));
 
   const handleSectionChange = (section) => {
@@ -109,7 +111,7 @@ export default function AdminDashboard() {
       activeSection={tab}
       onSectionChange={handleSectionChange}
     >
-      {!hasAccess || (tab === "overview" && user?.role !== "owner") ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">The owner has not granted you access to any dashboard sections yet.</div> : null}
+      {!hasAccess || (tab === "overview" && user?.role !== "owner" && !isHr) ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">The owner has not granted you access to any dashboard sections yet.</div> : null}
       {hasAccess && tab === "overview" && <OverviewTab />}
       {hasAccess && tab === "employee-profile" && user?.role === "employee" && <EmployeeProfileTab />}
       {hasAccess && tab === "applications" && <ApplicationsTab />}
@@ -118,10 +120,10 @@ export default function AdminDashboard() {
       {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <EmployeeSalarySlipsTab />}
-      {hasAccess && tab === "salary-management" && isHr && <SalaryManagementTab />}
-      {hasAccess && tab === "commission-payouts" && user?.role === "owner" && <CommissionPayoutsTab />}
+      {hasAccess && tab === "salary-management" && (user?.role === "owner" || isHr) && <SalaryManagementTab />}
+      {hasAccess && tab === "commission-payouts" && (user?.role === "owner" || isHr) && <CommissionPayoutsTab />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
-      {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner"} />}
+      {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner" || isHr} />}
       {hasAccess && tab === "emp-attendance" && (user?.role === "owner" || isHr) && <AttendanceDashboard isManager />}
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
@@ -585,7 +587,7 @@ function ApplicationsTab({ initialLocation = "" }) {
 
   // Load branches once for the branch filter dropdown
   useEffect(() => {
-    if (user?.role !== "owner" && !(user?.permissions || []).includes("branches")) return;
+    if (user?.role !== "owner" && !isHrEmployee(user) && !(user?.permissions || []).includes("branches")) return;
     (async () => {
       try {
         const res = await listBranches();
@@ -594,7 +596,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         console.error(err);
       }
     })();
-  }, [user?.role, user?.permissions]);
+  }, [user]);
 
   useEffect(() => {
     let active = true;
@@ -773,7 +775,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
-            {user?.role === "owner" && <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
+            {(user?.role === "owner" || isHrEmployee(user)) && <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <FilterSelect
@@ -938,7 +940,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                       {a.system_size} · {a.system_type}
                     </td>
                     <td className="p-3 whitespace-nowrap">
-                      {a.last_updated_by_name ? <StatusBadge status={a.status} /> : null}
+                      {a.last_updated_by_name ? <StatusBadge status={a.status} isApplicationRow /> : null}
                     </td>
                     <td className="p-3 text-xs text-muted whitespace-nowrap">
                       {a.last_updated_by_name ? <><span className="block font-semibold text-navy">{a.last_updated_by_name}</span>{formatDateTime(a.last_updated_by_at)}</> : "Not edited"}
@@ -1040,7 +1042,7 @@ function formatDateTime(value) {
   return value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "medium" }) : "-";
 }
 
-function StatusBadge({ status, isPartner = false }) {
+function StatusBadge({ status, isPartner = false, isApplicationRow = false }) {
   const styles = {
     pending: "bg-amber-50 text-amber-700",
     under_review: "bg-blue-50 text-blue-700",
@@ -1109,7 +1111,7 @@ function StatusBadge({ status, isPartner = false }) {
         styles[status] || "bg-slate-100 text-slate-700"
       }`}
     >
-      {labels[status] || applicationStatusLabel(status)}
+      {isApplicationRow && status === "pending" ? "Pending" : labels[status] || applicationStatusLabel(status)}
     </span>
   );
 }
@@ -1119,6 +1121,8 @@ function StatusBadge({ status, isPartner = false }) {
 function EmployeesTab() {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
+  const isHr = isHrEmployee(user);
+  const canEditEmployees = isOwner || isHr;
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1264,7 +1268,7 @@ function EmployeesTab() {
                 <th className="p-3 whitespace-nowrap">Status</th>
                 <th className="p-3 whitespace-nowrap">Last Login</th>
                 <th className="p-3 whitespace-nowrap">Last Logout</th>
-                {isOwner && <th className="p-3 whitespace-nowrap">Actions</th>}
+                {canEditEmployees && <th className="p-3 whitespace-nowrap">Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -1320,9 +1324,9 @@ function EmployeesTab() {
                       ? new Date(u.last_logout_at).toLocaleString("en-IN")
                       : "Never"}
                   </td>
-                  {isOwner && <td className="p-3">
+                  {canEditEmployees && <td className="p-3">
                     <div className="flex flex-wrap gap-1.5">
-                      <button
+                      {(isOwner || Number(u.id) !== Number(user?.id)) && <button
                         onClick={() => {
                           setEditing(u);
                           setShowModal(true);
@@ -1330,7 +1334,8 @@ function EmployeesTab() {
                         className="rounded bg-navy/10 px-2 py-1 text-xs font-semibold text-navy hover:bg-navy/20"
                       >
                         Edit
-                      </button>
+                      </button>}
+                      {isOwner && <>
                       <button
                         onClick={() => setTrackingEmployee(u)}
                         className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 hover:bg-blue-100"
@@ -1363,6 +1368,7 @@ function EmployeesTab() {
                           <UserCheck size={12} />
                         )}
                       </button>
+                      </>}
                     </div>
                   </td>}
                 </tr>
@@ -1967,6 +1973,7 @@ function Input({ label, value, onChange, type = "text", required, placeholder, r
 function BranchesTab() {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
+  const canManageBranches = isOwner || isHrEmployee(user);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -2010,7 +2017,7 @@ function BranchesTab() {
         </div>
         <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
         <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
-        {isOwner && <button
+        {canManageBranches && <button
           onClick={() => {
             setEditing(null);
             setShowModal(true);
@@ -2076,7 +2083,7 @@ function BranchesTab() {
                   <p className="text-muted">Applications</p>
                 </div>
               </div>
-              {isOwner && <div className="mt-4 flex gap-2">
+              {canManageBranches && <div className="mt-4 flex gap-2">
                 <button
                   onClick={() => {
                     setEditing(b);
@@ -2354,7 +2361,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
-      {user?.role === "owner" && <FilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
+      {(user?.role === "owner" || isHrEmployee(user)) && <FilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
       <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES} placeholder="All statuses" />
       <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
       <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
@@ -2504,6 +2511,8 @@ function PartnersTab() {
 function SubmissionList({ type }) {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
+  const isHr = isHrEmployee(user);
+  const canManageRecords = isOwner || isHr;
   const [items, setItems] = useState([]);
   const [partnerCounts, setPartnerCounts] = useState(null);
   const [partnerCredentials, setPartnerCredentials] = useState(null);
@@ -2731,8 +2740,8 @@ function SubmissionList({ type }) {
               await downloadCsvExport(`/admin/partners/export.csv?${params}`, "partners.csv");
             } catch (error) { window.alert(error.message || "Could not download partners."); }
           }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
-          {isPartners && isOwner && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
-          {(isCareers || isJoinUs) && isOwner && <button onClick={() => setShowSubmissionCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> {isCareers ? "Add Career Application" : "Add Join-Us Submission"}</button>}
+          {isPartners && canManageRecords && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
+          {(isCareers || isJoinUs) && canManageRecords && <button onClick={() => setShowSubmissionCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> {isCareers ? "Add Career Application" : "Add Join-Us Submission"}</button>}
           {isPartners && isOwner && <button onClick={() => { setShowPartnerOnboard(true); setOnboardCredentials(null); setOnboardError(""); setOnboardPartnerId(""); }} className="flex items-center gap-1.5 rounded-full border border-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-soft"><UserCheck size={15} /> Onboard Partner</button>}
       </div>
 
@@ -2799,9 +2808,9 @@ function SubmissionList({ type }) {
                 {formatDateTime(it.created_at)}
               </td>
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
+               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
               {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
+               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
               {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
               {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
@@ -2809,9 +2818,9 @@ function SubmissionList({ type }) {
                 <td className="p-3 whitespace-nowrap">
                   <div className="flex flex-wrap gap-1.5">
                     <Link to={`/admin/partners/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13} /> View</Link>
-                     {isOwner && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
+                     {canManageRecords && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
                     </>}
-                    {isOwner && it.status !== "approved" && (
+                    {canManageRecords && it.status !== "approved" && (
                       <button
                         disabled={updating}
                         onClick={() => updateStatus(it.id, "approved")}
@@ -2820,7 +2829,7 @@ function SubmissionList({ type }) {
                         Approve
                       </button>
                     )}
-                    {isOwner && it.status !== "rejected" && (
+                    {canManageRecords && it.status !== "rejected" && (
                       <button
                         disabled={updating}
                         onClick={() => updateStatus(it.id, "rejected")}
@@ -2829,7 +2838,7 @@ function SubmissionList({ type }) {
                         Reject
                       </button>
                     )}
-                    {isOwner && it.status !== "reviewed" &&
+                    {canManageRecords && it.status !== "reviewed" &&
                       it.status !== "approved" &&
                       it.status !== "rejected" && (
                         <button
@@ -2854,8 +2863,8 @@ function SubmissionList({ type }) {
         <p className="text-xs text-muted">Showing {items.length} of {partnerTotal} partners</p>
         {items.length < partnerTotal && <button onClick={() => load(partnerPage + 1, true)} disabled={loadingMore || loading} className="rounded-full border border-amber bg-white px-6 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft disabled:cursor-wait disabled:opacity-60">{loadingMore ? "Loading..." : "Load More"}</button>}
       </div>}
-      {isPartners && isOwner && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
-      {(isCareers || isJoinUs) && isOwner && showSubmissionCreate && <SubmissionCreateModal type={type} onClose={() => setShowSubmissionCreate(false)} onSaved={async () => { setShowSubmissionCreate(false); await load(); }} />}
+      {isPartners && canManageRecords && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
+      {(isCareers || isJoinUs) && canManageRecords && showSubmissionCreate && <SubmissionCreateModal type={type} onClose={() => setShowSubmissionCreate(false)} onSaved={async () => { setShowSubmissionCreate(false); await load(); }} />}
       {isPartners && isOwner && showPartnerOnboard && <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-navy/60 p-4"><div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-extrabold text-navy">Onboard Partner</h3><p className="mt-1 text-xs text-muted">Owner assigns the partner level, referral parent, and login access here.</p></div><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18} /></button></div>
         {onboardError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{onboardError}</p>}
         <label className="mt-5 block text-xs font-semibold text-navy/70">New Partner Type<select value={onboardType} onChange={(event) => { setOnboardType(event.target.value); setOnboardPartnerId(""); setOnboardParentId(""); setOnboardCredentials(null); }} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select></label>
@@ -2872,7 +2881,7 @@ function SubmissionList({ type }) {
           key={`${selectedPartner.partner.id}-${selectedPartner.editing ? "edit" : "view"}`}
           partner={selectedPartner.partner}
           editing={selectedPartner.editing}
-          isOwner={isOwner}
+          isOwner={canManageRecords}
           onClose={() => setSelectedPartner(null)}
           onEdit={() => setSelectedPartner({ ...selectedPartner, editing: true })}
           onSaved={async () => { setSelectedPartner(null); await load(); }}

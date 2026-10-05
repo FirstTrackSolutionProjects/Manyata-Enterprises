@@ -22,6 +22,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
 import { hasActionPermission } from "../utils/permissions";
+import { isHrEmployee } from "../utils/employeeRoles";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
@@ -29,6 +30,7 @@ const OWNER_NAV = [
   { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "West Bengal" }] },
   { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
   { id: "employees", label: "Employees", icon: Users },
+  { id: "salary-management", label: "Salary Management", icon: Banknote },
   { id: "leave-requests", label: "Leave Requests", icon: CalendarDays },
   { id: "emp-attendance", label: "EMP-Attendance", icon: Clock3 },
   { id: "partners", label: "Partners", icon: Handshake },
@@ -52,20 +54,23 @@ export default function DashboardLayout({
     installations: user?.role === "employee",
   }));
 
+  const isHr = isHrEmployee(user);
   const baseNavItems = user?.role === "owner"
     ? OWNER_NAV
+    : isHr
+      ? OWNER_NAV.filter((item) => !["salary-management", "emp-attendance"].includes(item.id))
     : user?.role === "partner"
       ? [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
           { id: "commissions", label: "Commission History", icon: Banknote },
           ...(hasActionPermission(user, "applications", "view") ? [{ id: "applications", label: "Applications", icon: FileText }] : []),
         ]
-      : OWNER_NAV.filter((item) => item.id !== "overview" && item.id !== "emp-attendance" && (item.id === "applications" || item.id === "installations"
+      : OWNER_NAV.filter((item) => item.id !== "overview" && item.id !== "emp-attendance" && item.id !== "salary-management" && (item.id === "applications" || item.id === "installations"
         ? hasActionPermission(user, item.id, "view")
-        : (user?.permissions || ["applications"]).includes(item.id)));
-  const isHr = user?.role === "employee" && String(user?.name || "").trim().toLowerCase() === "tejash parekh";
+        : (item.id === "employees" && isHr) || (user?.permissions || ["applications"]).includes(item.id)));
   const NAV_ITEMS = user?.role === "employee" ? [...baseNavItems.map((item) => {
     if (!item.children) return item;
+    if (isHr) return item;
     const module = item.id;
     const allowed = user?.locationPermissions?.[module];
     if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };

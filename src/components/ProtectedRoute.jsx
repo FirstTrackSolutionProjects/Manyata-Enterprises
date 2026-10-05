@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { isHrEmployee } from "../utils/employeeRoles";
 
 export default function ProtectedRoute({ children, roles = [], permission }) {
   const { user, loading } = useAuth();
@@ -30,7 +31,7 @@ export default function ProtectedRoute({ children, roles = [], permission }) {
     );
   }
 
-  if (permission && user.role !== "owner" && !(user.permissions || ["applications"]).includes(permission)) {
+  if (permission && user.role !== "owner" && !isHrEmployee(user) && !(user.permissions || ["applications"]).includes(permission)) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center bg-offwhite px-5">
         <div className="max-w-md rounded-2xl border border-red-200 bg-red-50 p-6 text-center">

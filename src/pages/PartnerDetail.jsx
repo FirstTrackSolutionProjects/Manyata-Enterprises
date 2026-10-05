@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, BadgeCheck, Briefcase, Building2, CalendarDays, Check, Clock, Copy, ExternalLink, Download, FileText, Hash, KeyRound, Landmark, Loader2, Mail, MapPin, Pencil, Phone, Send, ShieldCheck, User, Wallet, Zap } from "lucide-react";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { useAuth } from "../contexts/AuthContext";
+import { isHrEmployee } from "../utils/employeeRoles";
 import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, setOwnerPartnerCommission, updatePartnerDashboardAccess, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
@@ -80,6 +81,7 @@ const hasValue = (value) => Array.isArray(value) ? value.length > 0 : value !== 
 export default function PartnerDetail() {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
+  const canEditPartner = isOwner || isHrEmployee(user);
   const { id } = useParams();
   const navigate = useNavigate();
   const [partner, setPartner] = useState(null);
@@ -312,7 +314,7 @@ export default function PartnerDetail() {
             </div>
 
             <div className="flex w-full flex-wrap gap-2 border-t border-navy/10 pt-5">
-              {isOwner && <button onClick={() => setEditOpen(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}><Pencil size={15} /></span>Edit Details</button>}
+              {canEditPartner && <button onClick={() => setEditOpen(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}><Pencil size={15} /></span>Edit Details</button>}
               <button onClick={() => downloadSubmissionPdf("partners", partner.id)} className={HERO_PRIMARY}><span className={BUBBLE_ON_AMBER}><Download size={15} /></span>Download PDF</button>
               {isOwner && <>
                 <button onClick={downloadAgreement} disabled={downloadingAgreement} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{downloadingAgreement ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}</span>{downloadingAgreement ? "Downloading..." : "Download Agreement (Word)"}</button>
@@ -332,7 +334,7 @@ export default function PartnerDetail() {
 
       {error && <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">{error}</p>}
       {notice && <p role="status" className="mb-4 rounded-xl border border-green-200 bg-green-50 p-3.5 text-sm text-green-800">{notice}</p>}
-      {editOpen && <PartnerDetailsModal partner={partner} editing isOwner={isOwner} onClose={() => setEditOpen(false)} onEdit={() => {}} onSaved={async () => { setEditOpen(false); await load(); }} />}
+      {editOpen && <PartnerDetailsModal partner={partner} editing isOwner={canEditPartner} onClose={() => setEditOpen(false)} onEdit={() => {}} onSaved={async () => { setEditOpen(false); await load(); }} />}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -355,7 +357,7 @@ export default function PartnerDetail() {
             ]],
             ["About the Business", [["Business Description", partner.description]]],
           ]} />
-          {isOwner && <InfoSection title="Referral Commission Offered to This Partner" items={[
+          {canEditPartner && <InfoSection title="Referral Commission Offered to This Partner" items={[
             ["On-Grid", partner.referral_commission?.commission_rates?.on_grid === undefined ? "Not set" : `₹${Number(partner.referral_commission.commission_rates.on_grid).toLocaleString("en-IN")} per completed installation`],
             ["Hybrid", partner.referral_commission?.commission_rates?.hybrid === undefined ? "Not set" : `₹${Number(partner.referral_commission.commission_rates.hybrid).toLocaleString("en-IN")} per completed installation`],
             ["Paid by", partner.referral_commission?.payer_partner_id ? partner.referrer_company_name || partner.referrer_contact_name || "Direct referrer" : "Owner"],
@@ -395,17 +397,17 @@ export default function PartnerDetail() {
                 <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${STATUS_STYLES[partner.status] || "bg-slate-100 text-slate-700 ring-slate-200"}`}><BadgeCheck size={12} />{partnerStatusLabel(partner.status)}</span>
               </div>
               <label className="block text-xs font-semibold text-muted">Change status to
-                <select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} disabled={!isOwner} className="mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm font-semibold text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30 disabled:bg-slate-100">
+                <select value={newStatus} onChange={(event) => setNewStatus(event.target.value)} disabled={!canEditPartner} className="mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm font-semibold text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30 disabled:bg-slate-100">
                   {STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                   {isOwner && <option value={SEND_AGREEMENT_ACTION}>Send Agreement Mail</option>}
                 </select>
               </label>
               {isOwner && newStatus === SEND_AGREEMENT_ACTION && <p className="rounded-xl bg-amber-soft/50 px-4 py-3 text-xs leading-relaxed text-navy">{partner.status !== "approved" ? "Approve and save this partner first, then send the agreement." : !partner.email ? "Add the partner email before sending." : "Save this action to email the agreement PDF. Partner status will remain Approved."}</p>}
               <label className="block text-xs font-semibold text-muted">Note
-                <textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} disabled={!isOwner} placeholder="Note (optional)" rows={3} className="mt-1.5 w-full rounded-xl border border-navy/15 px-4 py-3 text-sm font-normal text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30 disabled:bg-slate-100" />
+                <textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} disabled={!canEditPartner} placeholder="Note (optional)" rows={3} className="mt-1.5 w-full rounded-xl border border-navy/15 px-4 py-3 text-sm font-normal text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30 disabled:bg-slate-100" />
               </label>
               <div className="space-y-2.5 pt-1">
-                <button onClick={saveStatus} disabled={!isOwner || updating || sendingAgreement || (newStatus === partner.status)} className={BTN_PRIMARY}>{(updating || sendingAgreement) && <Loader2 size={16} className="animate-spin" />}{newStatus === SEND_AGREEMENT_ACTION ? "Send Agreement Mail" : "Save Status"}</button>
+                <button onClick={saveStatus} disabled={!canEditPartner || updating || sendingAgreement || (newStatus === partner.status)} className={BTN_PRIMARY}>{(updating || sendingAgreement) && <Loader2 size={16} className="animate-spin" />}{newStatus === SEND_AGREEMENT_ACTION ? "Send Agreement Mail" : "Save Status"}</button>
                 {isOwner && <button onClick={sendAgreement} disabled={sendingAgreement || partner.status !== "approved" || !partner.email} className={BTN_OUTLINE}><Send size={15} />{sendingAgreement ? "Sending Agreement..." : "Send Agreement Mail"}</button>}
                 {isOwner && ["super_vendor", "vendor", "sub_vendor", "dealer"].includes(partner.partner_type) && (partner.partner_type === "super_vendor" || partner.referred_by_partner_id) && partner.status === "approved" && !partner.partner_login_id && <button onClick={createPartnerLogin} disabled={creatingLogin} className={BTN_OUTLINE}><KeyRound size={15} />{creatingLogin ? "Creating Login..." : "Create Partner Login"}</button>}
                 {isOwner && ["super_vendor", "vendor", "sub_vendor", "dealer"].includes(partner.partner_type) && ["approved", "active"].includes(partner.status) && partner.partner_login_id && <button onClick={resetPartnerLogin} disabled={resettingLogin} className={BTN_OUTLINE}><KeyRound size={15} />{resettingLogin ? "Resetting Password..." : "Reset Partner Password"}</button>}
@@ -422,7 +424,7 @@ export default function PartnerDetail() {
               <button onClick={saveDashboardAccess} disabled={savingDashboardAccess || !["approved", "active"].includes(partner.status)} className={`${BTN_PRIMARY} mt-4`}>{savingDashboardAccess ? "Saving..." : "Save Access"}</button>
             </> : <div className="rounded-xl border border-dashed border-navy/15 px-4 py-6 text-center"><span className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-amber-soft text-amber"><KeyRound size={18} /></span><p className="mt-2 text-xs text-muted">Create the partner login first to manage dashboard access.</p></div>}
           </SideCard>}
-          {isOwner && !partner.referred_by_partner_id && <OwnerReferralCommissionCard partner={partner} onSaved={load} />}
+          {canEditPartner && !partner.referred_by_partner_id && <OwnerReferralCommissionCard partner={partner} onSaved={load} />}
           <SideCard icon={Clock} title="Status Timeline" subtitle="Every status change, newest first." badge={<span className="shrink-0 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy">{timeline.length} {timeline.length === 1 ? "update" : "updates"}</span>}>
             <div className="ml-2 space-y-6 border-l-2 border-amber/30 pl-6">
               {timeline.map((entry, index) => <div key={entry.id} className="relative">
