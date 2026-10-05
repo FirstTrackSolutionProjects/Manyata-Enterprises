@@ -1123,6 +1123,7 @@ function EmployeesTab() {
   const isOwner = user?.role === "owner";
   const isHr = isHrEmployee(user);
   const canEditEmployees = isOwner || isHr;
+  const canManageEmployeeAccounts = isOwner || isHr;
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1185,6 +1186,16 @@ function EmployeesTab() {
     try {
       await setUserStatus(u.id, newStatus);
       load();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleRejectEmployee = async (u) => {
+    if (!confirm(`Reject ${u.name}'s employee account? They will no longer be able to sign in.`)) return;
+    try {
+      await setUserStatus(u.id, "rejected");
+      await load();
     } catch (err) {
       alert(err.message);
     }
@@ -1326,7 +1337,7 @@ function EmployeesTab() {
                   </td>
                   {canEditEmployees && <td className="p-3">
                     <div className="flex flex-wrap gap-1.5">
-                      {(isOwner || Number(u.id) !== Number(user?.id)) && <button
+                      <button
                         onClick={() => {
                           setEditing(u);
                           setShowModal(true);
@@ -1334,8 +1345,8 @@ function EmployeesTab() {
                         className="rounded bg-navy/10 px-2 py-1 text-xs font-semibold text-navy hover:bg-navy/20"
                       >
                         Edit
-                      </button>}
-                      {isOwner && <>
+                      </button>
+                      {canManageEmployeeAccounts && <>
                       <button
                         onClick={() => setTrackingEmployee(u)}
                         className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-800 hover:bg-blue-100"
@@ -1368,6 +1379,11 @@ function EmployeesTab() {
                           <UserCheck size={12} />
                         )}
                       </button>
+                      {u.status !== "rejected" && <button
+                        onClick={() => handleRejectEmployee(u)}
+                        className="rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
+                        title="Reject employee account"
+                      >Reject</button>}
                       </>}
                     </div>
                   </td>}
