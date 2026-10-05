@@ -15,7 +15,17 @@ const BREAK_OPTIONS = [
   ["meal", "Meal (legacy)"],
 ];
 
-const WEEK_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEK_DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const WEEK_DAY_NUMBERS = [0, 1, 2, 3, 4, 5, 6];
+const getConfiguredWorkDays = (settings) => {
+  if (!settings?.work_days) return null;
+  try {
+    const days = typeof settings.work_days === "string" ? JSON.parse(settings.work_days) : settings.work_days;
+    return new Set(Array.isArray(days) ? days.map(Number) : []);
+  } catch {
+    return null;
+  }
+};
 
 const TABS = [
   ["history", "History"],
@@ -99,8 +109,9 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
 
   const calendarItems = mine.calendar || [];
   const calendarPad = calendarItems.length
-    ? (new Date(`${String(calendarItems[0].date).slice(0, 10)}T00:00:00Z`).getUTCDay() + 6) % 7
+    ? new Date(`${String(calendarItems[0].date).slice(0, 10)}T00:00:00Z`).getUTCDay()
     : 0;
+  const configuredWorkDays = getConfiguredWorkDays(mine.settings);
 
   const hasPhotoCapture = Boolean(punchPhoto);
 
@@ -410,6 +421,35 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
           </div>
         </div>
 
+        <div className="mt-4 rounded-xl bg-offwhite p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 className="text-sm font-bold text-navy">Weekly working days</h3>
+              <p className="mt-0.5 text-xs text-muted">
+                {configuredWorkDays
+                  ? `${mine.scheduledShiftHours ?? "—"} scheduled hours per working day${mine.settings?.shift_start && mine.settings?.shift_end ? ` · ${String(mine.settings.shift_start).slice(0, 5)}–${String(mine.settings.shift_end).slice(0, 5)}` : ""}`
+                  : "The work schedule has not been configured yet."}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-1.5" aria-label="Weekly work schedule">
+              {WEEK_DAY_NUMBERS.map((day, index) => {
+                const isWorkingDay = configuredWorkDays?.has(day);
+                return (
+                  <span
+                    key={day}
+                    title={configuredWorkDays ? (isWorkingDay ? "Working day" : "Weekly off") : "Schedule not configured"}
+                    className={`rounded-full px-2.5 py-1 text-xs font-bold ${
+                      isWorkingDay ? "bg-amber text-navy" : "bg-white text-muted"
+                    }`}
+                  >
+                    {WEEK_DAYS[index]}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
         <div className="mt-4 overflow-x-auto">
           <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
             {WEEK_DAYS.map((d) => (
@@ -461,7 +501,8 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
           </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+          {statCard("Working days", configuredWorkDays ? (mine.expectedWorkdays ?? "—") : "—", "Scheduled days this month, excluding holidays")}
           {statCard("Days attended", monthSummary.attendance_days ?? "—", "Days with a recorded clock-in")}
           {statCard("Completed days", monthSummary.completed_days ?? "—", `${monthSummary.open_days || 0} open shift(s)`)}
           {statCard("Net work time", hm(Number(monthSummary.worked_minutes || 0)), "Break time excluded")}
