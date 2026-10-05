@@ -191,7 +191,7 @@ function EmployeeSalarySlipsTab() {
       : items.length === 0 ? <p className="p-5 text-sm text-muted">No salary slips have been generated for you yet.</p>
       : <div className="divide-y divide-navy/5">{items.map((slip) => <div key={slip.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <div><p className="font-semibold text-navy">{new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(Number(slip.pay_year), Number(slip.pay_month) - 1, 1))}</p><p className="mt-1 text-xs text-muted">Net salary: ₹{Number(slip.net_salary || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>
-        <button onClick={() => downloadSalarySlip(slip.id, slip.employee_name).catch((err) => alert(err.message))} className="inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2 text-xs font-bold text-white hover:bg-navy-light"><Download size={14}/>Download PDF</button>
+        <button onClick={() => downloadSalarySlip(slip.id, slip.employee_name, slip.pay_month, slip.pay_year).catch((err) => alert(err.message))} className="inline-flex items-center gap-2 rounded-full bg-navy px-4 py-2 text-xs font-bold text-white hover:bg-navy-light"><Download size={14}/>Download PDF</button>
       </div>)}</div>}
   </section>;
 }

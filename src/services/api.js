@@ -116,7 +116,7 @@ export const getEmployeeSalaryAdvances = (employeeId) => apiFetch(`/salaries/emp
 export const createEmployeeSalaryAdvance = (employeeId, payload) =>
   apiFetch(`/salaries/employees/${employeeId}/advances`, { method: "POST", body: JSON.stringify(payload) });
 export const getMySalarySlips = () => apiFetch("/salaries/my");
-export const downloadSalarySlip = async (id, employeeName) => {
+export const downloadSalarySlip = async (id, employeeName, payMonth, payYear) => {
   const response = await fetch(`${API_URL}/salaries/${id}/pdf`, { credentials: "include" });
   if (!response.ok) {
     let data = null;
@@ -126,7 +126,14 @@ export const downloadSalarySlip = async (id, employeeName) => {
   const blob = await response.blob();
   const contentDispositionFilename = response.headers.get("content-disposition")?.match(/filename="?([^";]+)"?/i)?.[1];
   const safeEmployeeName = String(employeeName || "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim();
-  const filename = safeEmployeeName ? `${safeEmployeeName}.pdf` : contentDispositionFilename || `salary-slip-${id}.pdf`;
+  const month = Number(payMonth);
+  const year = Number(payYear);
+  const period = month >= 1 && month <= 12 && year > 0
+    ? new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(Date.UTC(year, month - 1, 1)))
+    : "";
+  const filename = safeEmployeeName && period
+    ? `${safeEmployeeName} _Salary Slip- ${period}.pdf`
+    : contentDispositionFilename || `salary-slip-${id}.pdf`;
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
