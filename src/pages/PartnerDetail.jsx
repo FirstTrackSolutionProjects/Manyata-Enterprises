@@ -4,7 +4,7 @@ import { ArrowLeft, BadgeCheck, Briefcase, Building2, CalendarDays, Check, Clock
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import { useAuth } from "../contexts/AuthContext";
 import { isHrEmployee } from "../utils/employeeRoles";
-import { downloadPartnerAgreement, downloadPartnerAgreementPdf, downloadSubmissionPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, setOwnerPartnerCommission, updatePartnerDashboardAccess, updatePartnerStatus } from "../services/api";
+import { downloadPartnerAgreement, downloadPartnerAgreementPdf, fileUrl, getPartnerDetail, resetPartnerPassword, sendPartnerAgreement, setOwnerPartnerCommission, updatePartnerDashboardAccess, updatePartnerStatus } from "../services/api";
 
 const STATUS_OPTIONS = [
   ["new", "Submitted"], ["reviewed", "Under Review"], ["approved", "Approved"], ["active", "Active"], ["inactive", "Inactive"], ["rewarded", "Rewarded"], ["rejected", "Rejected"],
@@ -71,10 +71,10 @@ const BTN_PRIMARY = "inline-flex w-full items-center justify-center gap-2 rounde
 const BTN_OUTLINE = "inline-flex w-full items-center justify-center gap-2 rounded-full border border-navy/20 bg-white px-5 py-2.5 text-sm font-bold text-navy transition hover:-translate-y-0.5 hover:border-amber hover:bg-amber-soft/40 hover:shadow-sm active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
 const HERO_BASE = "group inline-flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-5 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
 const HERO_NAVY = `${HERO_BASE} bg-navy text-white shadow-sm hover:bg-navy-light hover:shadow-lg`;
-const HERO_PRIMARY = `${HERO_BASE} bg-gradient-to-r from-amber to-amber-hover text-navy shadow-md shadow-amber/30 hover:shadow-lg hover:shadow-amber/40`;
+
 const HERO_OUTLINE = `${HERO_BASE} border border-navy/20 bg-white text-navy shadow-sm hover:border-amber hover:shadow-md`;
 const BUBBLE_ON_NAVY = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber text-navy transition group-hover:scale-110";
-const BUBBLE_ON_AMBER = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-navy text-amber transition group-hover:scale-110";
+
 const BUBBLE_ON_WHITE = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber-soft text-amber transition group-hover:bg-amber group-hover:text-navy";
 const hasValue = (value) => Array.isArray(value) ? value.length > 0 : value !== null && value !== undefined && value !== "";
 
@@ -315,7 +315,7 @@ export default function PartnerDetail() {
 
             <div className="flex w-full flex-wrap gap-2 border-t border-navy/10 pt-5">
               {canEditPartner && <button onClick={() => setEditOpen(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}><Pencil size={15} /></span>Edit Details</button>}
-              <button onClick={() => downloadSubmissionPdf("partners", partner.id)} className={HERO_PRIMARY}><span className={BUBBLE_ON_AMBER}><Download size={15} /></span>Download PDF</button>
+              
               {isOwner && <>
                 <button onClick={downloadAgreement} disabled={downloadingAgreement} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{downloadingAgreement ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}</span>{downloadingAgreement ? "Downloading..." : "Download Agreement (Word)"}</button>
                 <button onClick={downloadAgreementPdf} disabled={downloadingAgreementPdf} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{downloadingAgreementPdf ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}</span>{downloadingAgreementPdf ? "Downloading..." : "Download Agreement PDF"}</button>
