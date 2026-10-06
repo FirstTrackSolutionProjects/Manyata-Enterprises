@@ -1491,7 +1491,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       ? Math.round((calculatedGross * Number(attendancePreview.unpaidHours || 0) / Number(attendancePreview.standardHours) + Number.EPSILON) * 100) / 100
       : 0;
   const standardHoursValue = Number(attendancePreview?.standardHours || 0);
-  const workedHoursValue = Number(attendancePreview?.workedHours || 0);
+  const workedHoursValue = Math.floor(Number(attendancePreview?.workedHours || 0) + 1e-9);
   const hourlyRate = standardHoursValue > 0 ? Math.ceil(calculatedGross / standardHoursValue / 0.25 - 1e-9) * 0.25 : 0;
   const hoursSalary = standardHoursValue > 0 ? Math.floor(hourlyRate * workedHoursValue + 1e-9) : calculatedGross;
   const unpaidHoursValue = Math.max(0, standardHoursValue - workedHoursValue);
@@ -1611,6 +1611,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
               {attendanceMetricInput("workedDays", "Present days", "0.5")}
               {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
               {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Total present (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)}</p></div>
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">Rs. {hourlyRate.toFixed(2)}</p></div>
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours<p className="mt-1 py-2.5 text-sm font-bold text-navy">Rs. {hoursSalary.toLocaleString("en-IN")}</p></div>
             </> : <>
