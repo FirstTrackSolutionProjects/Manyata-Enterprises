@@ -3,15 +3,33 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  BadgeCheck,
+  Briefcase,
+  Building2,
+  CalendarDays,
+  Camera,
+  Check,
+  Copy,
   Download,
+  ExternalLink,
+  Hash,
+  Landmark,
   Loader2,
   CheckCircle2,
   Clock,
   FileText,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Pencil,
+  Phone,
   Send,
   AlertCircle,
   ChevronDown,
   Search,
+  User,
+  Wrench,
+  Zap,
 } from "lucide-react";
 import {
   getApplication,
@@ -33,6 +51,50 @@ import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
 import CameraFileInput from "../components/CameraFileInput";
 import { formatApplicationLocation } from "../utils/applicationLocation";
+
+/* ── UI-only helpers (styles, icons) ───────────────── */
+
+const statusStyle = (status) => {
+  const value = String(status || "");
+  if (value === "pending") return "bg-amber-50 text-amber-700 ring-amber-200";
+  if (value === "rejected") return "bg-red-50 text-red-700 ring-red-200";
+  if (value === "verified" || value === "approved" || value === "installed") return "bg-emerald-50 text-emerald-700 ring-emerald-200";
+  if (value === "submitted_to_govt") return "bg-indigo-50 text-indigo-700 ring-indigo-200";
+  return "bg-blue-50 text-blue-700 ring-blue-200";
+};
+const SECTION_ICONS = {
+  "Application Details": FileText,
+  "Personal Details": User,
+  "Address": MapPin,
+  "Electricity Connection": Zap,
+  "Bank Details": Landmark,
+  "Uploaded Documents": FileText,
+  "Site Documentation": Camera,
+  "Customer Remarks": MessageSquare,
+};
+const FIELD_ICONS = {
+  "Location": MapPin, "System Type": Zap, "System Size": Zap,
+  "Super-vendor": Briefcase, "Vendor": Briefcase, "Sub Vendor": Briefcase, "Sales Executive": User, "Income Source": Briefcase,
+  "Full Name": User, "Phone": Phone, "Gender": User, "Date of Birth": CalendarDays, "Email": Mail,
+  "State": MapPin, "District": MapPin, "Block": MapPin, "Gram Panchayat": MapPin, "Building / Plot": Building2, "Village": MapPin,
+  "City": MapPin, "Post Office": Mail, "PIN Code": Hash, "Landmark": MapPin, "Municipality": Building2, "Ward Number": Hash, "Street / Locality": MapPin,
+  "Consumer Number": Hash, "Sub Division": Building2, "Tariff": Zap,
+  "Bank Name": Landmark, "Account Number": Hash, "IFSC Code": Hash,
+  "Latitude": MapPin, "Longitude": MapPin, "GPS accuracy": Zap,
+};
+const COPYABLE = new Set(["Phone", "Email", "Consumer Number", "Account Number", "IFSC Code", "Latitude", "Longitude"]);
+const initials = (name = "") => name.trim().split(/\s+/).slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "A";
+const isImageUrl = (value) => /\.(png|jpe?g|webp|gif)(\?|#|$)/i.test(String(value || ""));
+const formatDT = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
+
+const BTN_PRIMARY = "inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-3 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-hover hover:shadow-md active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none";
+const BTN_NAVY = "inline-flex w-full items-center justify-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-navy-light hover:shadow-md active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
+const FIELD_INPUT = "mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm font-normal text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30";
+const HERO_BASE = "group inline-flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-5 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
+const HERO_NAVY = `${HERO_BASE} bg-navy text-white shadow-sm hover:bg-navy-light hover:shadow-lg`;
+const HERO_PRIMARY = `${HERO_BASE} bg-gradient-to-r from-amber to-amber-hover text-navy shadow-md shadow-amber/30 hover:shadow-lg hover:shadow-amber/40`;
+const BUBBLE_ON_NAVY = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber text-navy transition group-hover:scale-110";
+const BUBBLE_ON_AMBER = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-navy text-amber transition group-hover:scale-110";
 
 export default function ApplicationDetail() {
   const { user } = useAuth();
@@ -189,30 +251,62 @@ export default function ApplicationDetail() {
       </div>
     );
 
+  const documentList = [
+    ["file_aadhaar_front", "Aadhaar Front"],
+    ["file_aadhaar_back", "Aadhaar Back"],
+    ["file_pan_card", "PAN Front"],
+    ["file_pan_back", "PAN Back"],
+    ["file_photo", "Photo"],
+    ["file_signature", "Signature"],
+    ["file_electricity_bill", "Electricity Bill"],
+    ["file_cheque_passbook", "Cheque / Passbook"],
+    ["file_site_photo", "Site Photo"],
+  ].filter(([key]) => documentPresence[key] || app[key]);
+  const systemLabel = [app.system_size, app.system_type].filter(Boolean).join(" · ") || "—";
+  const hasGps = app.site_latitude != null && app.site_longitude != null;
+
   return (
     <>
-      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <button
-            onClick={() => navigate(-1)}
-            className="mb-3 inline-flex items-center gap-2 rounded-full border border-navy/20 px-4 py-2 text-xs font-semibold text-navy hover:border-amber"
-          >
-            <ArrowLeft size={14} />
-            Back
-          </button>
-          <p className="font-mono text-xs text-amber">
-            {app.application_no}
-          </p>
-          <h2 className="mt-1 text-2xl font-extrabold text-navy">
-            {app.full_name}
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            {app.phone_number} · {app.email || "No email"}
-          </p>
+      <div className="mb-6 overflow-hidden rounded-2xl border border-navy/10 bg-white shadow-sm">
+        <div className="relative h-36 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light sm:h-40">
+          <div className="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full bg-amber/20" />
+          <div className="pointer-events-none absolute right-40 top-14 h-28 w-28 rounded-full bg-amber/10" />
+          <div className="pointer-events-none absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-white/5" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" />
+          <div className="absolute inset-x-5 top-5 flex flex-wrap items-center justify-between gap-2 sm:inset-x-6">
+            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white ring-1 ring-white/25 backdrop-blur transition hover:bg-white/20"><ArrowLeft size={14} />Back</button>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-amber px-3 py-1 font-mono text-[11px] font-bold text-navy">{app.application_no}</span>
+              <span className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ring-1 ring-inset ${statusStyle(app.status)}`}><BadgeCheck size={12} />{applicationStatusLabel(app.status)}</span>
+            </div>
+          </div>
         </div>
-        <div className="flex gap-2">
-          {canEdit && <button onClick={() => setShowEditForm(true)} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy hover:border-amber">{isTechnicalEmployee ? "Upload Progress Photos" : "Edit Details"}</button>}
-          {canDownload && <button onClick={() => downloadApplicationPdf(app.id)} className="flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover"><Download size={16} />Download PDF</button>}
+
+        <div className="px-5 pb-6 sm:px-6">
+          <div className="flex flex-wrap items-start gap-4 sm:gap-6">
+            <div className="relative z-10 -mt-14 grid h-28 w-28 shrink-0 place-items-center rounded-full bg-amber-soft text-3xl font-extrabold text-navy shadow-lg ring-4 ring-white sm:-mt-16 sm:h-32 sm:w-32">{initials(app.full_name)}</div>
+
+            <div className="min-w-[260px] flex-1 pt-1 sm:pt-3">
+              <h2 className="break-words text-2xl font-extrabold tracking-tight text-navy sm:text-3xl">{app.full_name}</h2>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {app.phone_number && <span className="inline-flex items-center gap-1.5 rounded-full bg-offwhite px-3 py-1.5 text-xs font-semibold text-navy"><Phone size={13} className="text-amber" />{app.phone_number}</span>}
+                <span className="inline-flex items-center gap-1.5 break-all rounded-full bg-offwhite px-3 py-1.5 text-xs font-semibold text-navy"><Mail size={13} className="text-amber" />{app.email || "No email"}</span>
+              </div>
+              {(app.created_at || app.last_updated_by_name) && <p className="mt-3 flex items-center gap-1.5 text-xs text-muted"><Clock size={12} className="text-amber" />{app.created_at ? `Created ${formatDT(app.created_at)}` : ""}{app.last_updated_by_name ? ` · Updated by ${app.last_updated_by_name}: ${formatDT(app.last_updated_by_at)}` : ""}</p>}
+            </div>
+
+            {(canEdit || canDownload) && <div className="flex w-full flex-wrap gap-2 border-t border-navy/10 pt-5">
+              {canEdit && <button onClick={() => setShowEditForm(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}>{isTechnicalEmployee ? <Camera size={15} /> : <Pencil size={15} />}</span>{isTechnicalEmployee ? "Upload Progress Photos" : "Edit Details"}</button>}
+              {canDownload && <button onClick={() => downloadApplicationPdf(app.id)} className={HERO_PRIMARY}><span className={BUBBLE_ON_AMBER}><Download size={15} /></span>Download PDF</button>}
+            </div>}
+          </div>
+
+          <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <HeroStat icon={MapPin} label="Location">{formatApplicationLocation(app.location) || "—"}</HeroStat>
+            <HeroStat icon={Zap} label="System">{systemLabel}</HeroStat>
+            <HeroStat icon={User} label="Sales Executive">{app.sales_executive_name || "—"}</HeroStat>
+            <HeroStat icon={FileText} label="Documents">{documentList.length ? `${documentList.length} uploaded` : "None uploaded"}</HeroStat>
+          </div>
         </div>
       </div>
 
@@ -220,235 +314,224 @@ export default function ApplicationDetail() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <InfoSection title="Application Details">
-            <InfoGrid
-              items={[
-                [
-                  "Location",
-                  formatApplicationLocation(app.location),
-                ],
-                ["System Type", app.system_type],
-                ["System Size", app.system_size],
-                ["Super-vendor", app.super_vendor_name],
-                ["Vendor", app.vendor_name],
-                ["Sub Vendor", app.sub_vendor_name],
-                ["Sales Executive", app.sales_executive_name],
-                ["Income Source", app.income_source],
-              ]}
-            />
-          </InfoSection>
+          <InfoSection
+            title="Application Details"
+            items={[
+              ["Location", formatApplicationLocation(app.location)],
+              ["System Type", app.system_type],
+              ["System Size", app.system_size],
+              ["Super-vendor", app.super_vendor_name],
+              ["Vendor", app.vendor_name],
+              ["Sub Vendor", app.sub_vendor_name],
+              ["Sales Executive", app.sales_executive_name],
+              ["Income Source", app.income_source],
+            ]}
+          />
 
-          <InfoSection title="Personal Details">
-            <InfoGrid
-              items={[
-                ["Full Name", app.full_name],
-                ["Phone", app.phone_number],
-                ["Gender", app.gender],
-                ["Date of Birth", app.dob],
-                ["Email", app.email],
-              ]}
-            />
-          </InfoSection>
+          <InfoSection
+            title="Personal Details"
+            items={[
+              ["Full Name", app.full_name],
+              ["Phone", app.phone_number],
+              ["Gender", app.gender],
+              ["Date of Birth", app.dob],
+              ["Email", app.email],
+            ]}
+          />
 
-          <InfoSection title="Address">
-            <InfoGrid
-              items={[
-                ["State", app.state],
-                ["District", app.district],
-                ["Block", app.block],
-                ["Gram Panchayat", app.gram_panchayat],
-                ["Building / Plot", app.building_plot],
-                ["Village", app.village_name],
-                ["City", app.city],
-                ["Post Office", app.post_office],
-                ["PIN Code", app.pin_code],
-                ["Landmark", app.landmark],
-                ["Municipality", app.municipality],
-                ["Ward Number", app.ward_number],
-                ["Street / Locality", app.street_locality],
-              ]}
-            />
-          </InfoSection>
+          <InfoSection
+            title="Address"
+            items={[
+              ["State", app.state],
+              ["District", app.district],
+              ["Block", app.block],
+              ["Gram Panchayat", app.gram_panchayat],
+              ["Building / Plot", app.building_plot],
+              ["Village", app.village_name],
+              ["City", app.city],
+              ["Post Office", app.post_office],
+              ["PIN Code", app.pin_code],
+              ["Landmark", app.landmark],
+              ["Municipality", app.municipality],
+              ["Ward Number", app.ward_number],
+              ["Street / Locality", app.street_locality],
+            ]}
+          />
 
-          <InfoSection title="Electricity Connection">
-            <InfoGrid
-              items={[
-                ["Consumer Number", app.consumer_number],
-                ["Sub Division", app.sub_division],
-                ["Tariff", app.tariff],
-              ]}
-            />
-          </InfoSection>
+          <InfoSection
+            title="Electricity Connection"
+            items={[
+              ["Consumer Number", app.consumer_number],
+              ["Sub Division", app.sub_division],
+              ["Tariff", app.tariff],
+            ]}
+          />
 
-          <InfoSection title="Bank Details">
-            <InfoGrid
-              items={[
-                ["Bank Name", app.bank_name],
-                ["Account Number", app.account_number],
-                ["IFSC Code", app.ifsc_code],
-              ]}
-            />
-          </InfoSection>
+          <InfoSection
+            title="Bank Details"
+            items={[
+              ["Bank Name", app.bank_name],
+              ["Account Number", app.account_number],
+              ["IFSC Code", app.ifsc_code],
+            ]}
+          />
 
-          <InfoSection title="Uploaded Documents">
+          <InfoSection title="Uploaded Documents" badge={documentList.length ? `${documentList.length} ${documentList.length === 1 ? "file" : "files"}` : ""} empty={!documentList.length}>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {[
-                ["file_aadhaar_front", "Aadhaar Front"],
-                ["file_aadhaar_back", "Aadhaar Back"],
-                ["file_pan_card", "PAN Front"],
-                ["file_pan_back", "PAN Back"],
-                ["file_photo", "Photo"],
-                ["file_signature", "Signature"],
-                ["file_electricity_bill", "Electricity Bill"],
-                ["file_cheque_passbook", "Cheque / Passbook"],
-                ["file_site_photo", "Site Photo"],
-              ].filter(([key]) => documentPresence[key] || app[key]).map(([key, label]) => canDownload && app[key] ? (
-                <a key={key} href={fileUrl(app[key])} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 rounded-lg border border-navy/10 bg-white p-3 hover:border-amber">
-                  <FileText size={18} className="text-amber" />
-                  <span className="text-sm font-semibold text-navy">{label}</span>
-                  <Download size={15} className="ml-auto text-muted" />
+              {documentList.map(([key, label]) => canDownload && app[key] ? (
+                <a key={key} href={fileUrl(app[key])} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 rounded-xl border border-navy/10 bg-white p-3 transition hover:border-amber hover:shadow-sm">
+                  {isImageUrl(app[key]) || isImageUrl(fileUrl(app[key]))
+                    ? <img src={fileUrl(app[key])} alt={label} loading="lazy" className="h-11 w-11 shrink-0 rounded-lg border border-navy/10 object-cover" />
+                    : <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-amber-soft text-amber"><FileText size={18} /></span>}
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-navy">{label}</span><span className="block text-xs text-muted">Click to view</span></span>
+                  <Download size={15} className="shrink-0 text-muted transition group-hover:text-amber" />
                 </a>
-              ) : <div key={key} className="flex items-center gap-3 rounded-lg border border-navy/10 bg-slate-50 p-3"><FileText size={18} className="text-muted" /><span className="text-sm font-semibold text-muted">{label} · no download access</span></div>)}
-              {!Object.values(documentPresence).some(Boolean) && ![
-                app.file_aadhaar_front, app.file_aadhaar_back, app.file_pan_card, app.file_pan_back, app.file_photo, app.file_signature,
-                app.file_electricity_bill, app.file_cheque_passbook, app.file_site_photo,
-              ].some(Boolean) && (
-                <p className="text-sm text-muted">No documents uploaded.</p>
-              )}
+              ) : <div key={key} className="flex items-center gap-3 rounded-xl border border-navy/10 bg-slate-50 p-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-white text-muted"><FileText size={18} /></span><span className="text-sm font-semibold text-muted">{label} · no download access</span></div>)}
             </div>
           </InfoSection>
 
-          <InfoSection title="Site Documentation">
-            {app.file_site_photo && <div className="mb-4 overflow-hidden rounded-xl border border-navy/10 bg-slate-50">
+          <InfoSection title="Site Documentation" badge={hasGps ? "GPS captured" : ""} empty={false}>
+            {app.file_site_photo && <div className="mb-4 overflow-hidden rounded-xl border border-navy/10 bg-offwhite">
               <a href={fileUrl(app.file_site_photo)} target="_blank" rel="noopener noreferrer" aria-label="Open site photo">
                 <img src={fileUrl(app.file_site_photo)} alt="Submitted site documentation" loading="lazy" className="max-h-80 w-full object-contain" />
               </a>
-              <div className="flex items-center justify-between gap-3 border-t border-navy/10 bg-white px-3 py-2">
-                <span className="text-sm font-semibold text-navy">GPS Site Photo</span>
-                {canDownload && <a href={fileUrl(app.file_site_photo)} download className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:underline"><Download size={14} /> Download</a>}
+              <div className="flex items-center justify-between gap-3 border-t border-navy/10 bg-white px-4 py-3">
+                <span className="inline-flex items-center gap-2 text-sm font-semibold text-navy"><Camera size={15} className="text-amber" />GPS Site Photo</span>
+                {canDownload && <a href={fileUrl(app.file_site_photo)} download className="inline-flex items-center gap-1.5 rounded-full border border-navy/20 px-3.5 py-1.5 text-xs font-bold text-navy transition hover:border-amber"><Download size={13} /> Download</a>}
               </div>
             </div>}
-            {app.site_latitude != null && app.site_longitude != null ? <>
+            {hasGps ? <>
               <div className="grid gap-3 sm:grid-cols-3">
                 <GpsValue label="Latitude" value={`${Number(app.site_latitude).toFixed(7)}°`} />
                 <GpsValue label="Longitude" value={`${Number(app.site_longitude).toFixed(7)}°`} />
                 <GpsValue label="GPS accuracy" value={app.site_accuracy_m != null ? `±${app.site_accuracy_m} m` : "Not recorded"} />
               </div>
-              <div className="mt-4 overflow-hidden rounded-xl border border-navy/10">
+              <div className="mt-4 overflow-hidden rounded-xl border border-navy/10 shadow-sm">
                 <iframe title="Application site map" src={`https://www.google.com/maps?q=${encodeURIComponent(`${app.site_latitude},${app.site_longitude}`)}&z=16&output=embed`} className="h-64 w-full border-0" loading="lazy" referrerPolicy="no-referrer-when-downgrade" />
               </div>
-              <a className="mt-3 inline-flex text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${app.site_latitude},${app.site_longitude}`} target="_blank" rel="noreferrer">Open site in Google Maps</a>
-            </> : <p className="text-sm text-muted">GPS coordinates were not captured for this application.</p>}
-            {!app.file_site_photo && <p className="text-sm text-muted">No GPS site photo was uploaded.</p>}
+              <a className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-navy/20 px-4 py-2 text-xs font-bold text-navy transition hover:border-amber" href={`https://maps.google.com/?q=${app.site_latitude},${app.site_longitude}`} target="_blank" rel="noreferrer"><ExternalLink size={13} />Open site in Google Maps</a>
+            </> : <p className="rounded-xl border border-dashed border-navy/15 px-4 py-5 text-center text-sm text-muted">GPS coordinates were not captured for this application.</p>}
+            {!app.file_site_photo && <p className="mt-3 rounded-xl border border-dashed border-navy/15 px-4 py-5 text-center text-sm text-muted">No GPS site photo was uploaded.</p>}
           </InfoSection>
 
           {app.remarks && (
             <InfoSection title="Customer Remarks">
-              <p className="text-sm text-navy">{app.remarks}</p>
+              <p className="whitespace-pre-wrap rounded-xl bg-offwhite px-4 py-3 text-sm font-medium italic text-navy">{app.remarks}</p>
             </InfoSection>
           )}
         </div>
 
         <div className="space-y-6">
-          {(app.technical_assignee_name || app.technical_instructions) && <div className="rounded-2xl border border-amber/20 bg-amber/5 p-5">
-            <h3 className="text-sm font-bold text-navy">Technical assignment</h3>
-            {app.technical_assignee_name && <p className="mt-2 text-sm text-navy">Assigned to: <strong>{app.technical_assignee_name}</strong></p>}
-            {app.technical_instructions && <p className="mt-2 whitespace-pre-wrap text-sm text-muted">{app.technical_instructions}</p>}
-          </div>}
-          {app.forwarded_to_employee_name && <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5">
-            <h3 className="text-sm font-bold text-navy">Back Office handoff</h3>
-            <p className="mt-2 text-sm text-navy">Forwarded to: <strong>{app.forwarded_to_employee_name}</strong></p>
-            {app.forwarded_by_employee_name && <p className="mt-1 text-xs text-muted">Forwarded by {app.forwarded_by_employee_name}{app.forwarded_at ? ` · ${new Date(app.forwarded_at).toLocaleString("en-IN")}` : ""}</p>}
-          </div>}
-          {isOwner && <div className="rounded-2xl border border-amber/30 bg-white p-5">
-            <h3 className="text-sm font-bold text-navy">Technical work assignment</h3>
-            <p className="mt-1 text-xs text-muted">Assign the application to a technical employee with access to its state.</p>
-            <div className="mt-4 space-y-3"><select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className="w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm"><option value="">Unassigned</option>{technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.location || "Any location"}</option>)}</select><textarea value={technicalInstructions} onChange={(event) => setTechnicalInstructions(event.target.value)} rows={3} maxLength={4000} placeholder="Work instructions (optional)" className="w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm" /><button onClick={saveTechnicalAssignment} disabled={savingAssignment} className="w-full rounded-full bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">{savingAssignment ? "Saving..." : "Save Assignment"}</button></div>
-          </div>}
-          {canEdit && <div className="rounded-2xl border border-navy/10 bg-white p-5">
-            <h3 className="text-sm font-bold text-navy">Update Status</h3>
-            <div className="mt-4 space-y-3">
-              <StatusDropdown
-                value={newStatus}
-                options={[...availableStatusOptions, ...(!availableStatusOptions.some((status) => status.value === app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])]}
-                open={statusMenuOpen}
-                onOpenChange={setStatusMenuOpen}
-                onChange={setNewStatus}
-                  />
-              <textarea
-                value={statusNote}
-                onChange={(e) => setStatusNote(e.target.value)}
-                placeholder={newStatus === "other" ? "Describe the other status (required)" : "Note (optional)"}
-                rows={3}
-                required={newStatus === "other"}
-                className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm focus:border-amber focus:outline-none"
-              />
-              <button
-                onClick={handleUpdateStatus}
-                disabled={updating || newStatus === app.status || (newStatus === "other" && !statusNote.trim())}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-hover disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {updating ? (
-                  <Loader2 size={16} className="animate-spin" />
-                ) : null}
-                Save Status
-              </button>
-
-              {app.status === "verified" && (
-                <>
-                  <button
-                    onClick={() => setShowGovtModal(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-full bg-navy px-5 py-2.5 text-sm font-bold text-white hover:bg-navy-light"
-                  >
-                    <Send size={16} />
-                    Submit to Govt Portal
-                  </button>
-                </>
-              )}
+          {(app.technical_assignee_name || app.technical_instructions) && <SideCard icon={Wrench} title="Technical assignment" subtitle="Work assigned for this installation.">
+            {app.technical_assignee_name && <p className="flex items-center justify-between gap-3 rounded-xl bg-offwhite px-4 py-3 text-sm text-navy"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Assigned to</span><strong>{app.technical_assignee_name}</strong></p>}
+            {app.technical_instructions && <p className="mt-3 whitespace-pre-wrap rounded-xl bg-offwhite px-4 py-3 text-sm text-muted">{app.technical_instructions}</p>}
+          </SideCard>}
+          {app.forwarded_to_employee_name && <SideCard icon={Send} title="Back Office handoff" subtitle="This application was forwarded.">
+            <p className="flex items-center justify-between gap-3 rounded-xl bg-offwhite px-4 py-3 text-sm text-navy"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Forwarded to</span><strong>{app.forwarded_to_employee_name}</strong></p>
+            {app.forwarded_by_employee_name && <p className="mt-3 text-xs text-muted">Forwarded by {app.forwarded_by_employee_name}{app.forwarded_at ? ` · ${new Date(app.forwarded_at).toLocaleString("en-IN")}` : ""}</p>}
+          </SideCard>}
+          {isOwner && <SideCard icon={Wrench} title="Technical work assignment" subtitle="Assign the application to a technical employee with access to its state.">
+            <div className="space-y-4">
+              <label className="block text-xs font-semibold text-muted">Technical employee
+                <select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className={`${FIELD_INPUT} font-semibold`}>
+                  <option value="">Unassigned</option>
+                  {technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.location || "Any location"}</option>)}
+                </select>
+              </label>
+              <label className="block text-xs font-semibold text-muted">Work instructions
+                <textarea value={technicalInstructions} onChange={(event) => setTechnicalInstructions(event.target.value)} rows={3} maxLength={4000} placeholder="Work instructions (optional)" className={FIELD_INPUT} />
+              </label>
+              <button onClick={saveTechnicalAssignment} disabled={savingAssignment} className={BTN_NAVY}>{savingAssignment ? "Saving..." : "Save Assignment"}</button>
             </div>
-          </div>}
+          </SideCard>}
+          {canEdit && <SideCard icon={BadgeCheck} title="Update Status" subtitle="Change the application's current status and leave a note.">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3 rounded-xl bg-offwhite px-4 py-3">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Current status</span>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-right text-[11px] font-bold ring-1 ring-inset ${statusStyle(app.status)}`}><BadgeCheck size={12} className="shrink-0" />{applicationStatusLabel(app.status)}</span>
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-semibold text-muted">Change status to</p>
+                <StatusDropdown
+                  value={newStatus}
+                  options={[...availableStatusOptions, ...(!availableStatusOptions.some((status) => status.value === app.status) ? [{ value: app.status, label: `${applicationStatusLabel(app.status)} (current)` }] : [])]}
+                  open={statusMenuOpen}
+                  onOpenChange={setStatusMenuOpen}
+                  onChange={setNewStatus}
+                />
+              </div>
+              <label className="block text-xs font-semibold text-muted">Note
+                <textarea
+                  value={statusNote}
+                  onChange={(e) => setStatusNote(e.target.value)}
+                  placeholder={newStatus === "other" ? "Describe the other status (required)" : "Note (optional)"}
+                  rows={3}
+                  required={newStatus === "other"}
+                  className={FIELD_INPUT}
+                />
+              </label>
+              <div className="space-y-2.5 pt-1">
+                <button
+                  onClick={handleUpdateStatus}
+                  disabled={updating || newStatus === app.status || (newStatus === "other" && !statusNote.trim())}
+                  className={BTN_PRIMARY}
+                >
+                  {updating ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : null}
+                  Save Status
+                </button>
 
-          {user?.role === "employee" && <div className="rounded-2xl border border-amber/30 bg-white p-5">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Send size={16} className="text-amber" />Forward to Back Office</h3>
-            <p className="mt-1 text-xs text-muted">Select the active Back Office employee who should receive this application.</p>
-            {forwardError && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">{forwardError}</p>}
-            {loadingForwardOptions ? <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-muted">Loading Back Office employees…</p>
-              : backOfficeEmployees.length ? <label className="mt-3 block text-xs font-semibold text-navy/70">Back Office employee<select value={forwardEmployeeId} onChange={(event) => setForwardEmployeeId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm">{backOfficeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.designation ? ` · ${employee.designation}` : ""}</option>)}</select></label>
-                : !forwardError && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-muted">No eligible Back Office employees were found.</p>}
-            {!canEdit && <p className="mt-3 rounded-lg bg-amber/10 p-3 text-xs text-navy">Ask the Owner/HR to grant Applications edit access before forwarding.</p>}
-            {!canForwardApplication && <p className="mt-3 rounded-lg bg-amber/10 p-3 text-xs text-navy">Forward becomes available after this application is submitted to the Govt Portal.</p>}
-            <button type="button" onClick={handleForward} disabled={forwarding || !forwardEmployeeId || !canForwardApplication || !canEdit} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50">{forwarding ? "Forwarding…" : "Forward application"}</button>
-          </div>}
+                {app.status === "verified" && (
+                  <>
+                    <button
+                      onClick={() => setShowGovtModal(true)}
+                      className={BTN_NAVY}
+                    >
+                      <Send size={16} />
+                      Submit to Govt Portal
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </SideCard>}
 
-          <div className="rounded-2xl border border-navy/10 bg-white p-5">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-navy">
-              <Clock size={16} className="text-amber" />
-              Status Timeline
-            </h3>
-            <div className="mt-4 space-y-3">
-              {history.length === 0 && (
-                <p className="text-xs text-muted">No history yet.</p>
-              )}
-              {history.map((h) => (
-                <div key={h.id} className="border-l-2 border-amber/40 pl-3">
-                  <p className="text-xs font-bold capitalize text-navy">
-                    {applicationStatusLabel(h.new_status)}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {new Date(h.created_at).toLocaleString("en-IN")}
-                  </p>
+          {user?.role === "employee" && <SideCard icon={Send} title="Forward to Back Office" subtitle="Select the active Back Office employee who should receive this application.">
+            <div className="space-y-3">
+              {forwardError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">{forwardError}</p>}
+              {loadingForwardOptions ? <p className="rounded-xl bg-offwhite px-4 py-3 text-xs text-muted">Loading Back Office employees…</p>
+                : backOfficeEmployees.length ? <label className="block text-xs font-semibold text-muted">Back Office employee<select value={forwardEmployeeId} onChange={(event) => setForwardEmployeeId(event.target.value)} className={`${FIELD_INPUT} font-semibold`}>{backOfficeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.designation ? ` · ${employee.designation}` : ""}</option>)}</select></label>
+                  : !forwardError && <p className="rounded-xl bg-offwhite px-4 py-3 text-xs text-muted">No eligible Back Office employees were found.</p>}
+              {!canEdit && <p className="rounded-xl bg-amber-soft/50 px-4 py-3 text-xs leading-relaxed text-navy">Ask the Owner/HR to grant Applications edit access before forwarding.</p>}
+              {!canForwardApplication && <p className="rounded-xl bg-amber-soft/50 px-4 py-3 text-xs leading-relaxed text-navy">Forward becomes available after this application is submitted to the Govt Portal.</p>}
+              <button type="button" onClick={handleForward} disabled={forwarding || !forwardEmployeeId || !canForwardApplication || !canEdit} className={BTN_PRIMARY}>{forwarding ? "Forwarding…" : "Forward application"}</button>
+            </div>
+          </SideCard>}
+
+          <SideCard icon={Clock} title="Status Timeline" subtitle="Every status change, newest first." badge={<span className="shrink-0 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy">{history.length} {history.length === 1 ? "update" : "updates"}</span>}>
+            {history.length === 0 && (
+              <p className="rounded-xl border border-dashed border-navy/15 px-4 py-6 text-center text-xs text-muted">No history yet.</p>
+            )}
+            {history.length > 0 && <div className="ml-2 space-y-6 border-l-2 border-amber/30 pl-6">
+              {history.map((h, index) => (
+                <div key={h.id} className="relative">
+                  <span className={`absolute -left-[31px] top-1 h-3 w-3 rounded-full border-2 border-white ring-2 ${index === 0 ? "bg-amber ring-amber/40" : "bg-amber/40 ring-amber/15"}`} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${statusStyle(h.new_status)}`}>{applicationStatusLabel(h.new_status)}</span>
+                    {index === 0 && <span className="rounded-full bg-navy px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Latest</span>}
+                  </div>
+                  <p className="mt-1.5 text-xs font-semibold text-navy">{new Date(h.created_at).toLocaleString("en-IN")}</p>
                   {h.changed_by_name && (
-                    <p className="text-xs text-muted">
-                      by {h.changed_by_name}
-                    </p>
+                    <p className="text-xs text-muted">by {h.changed_by_name}</p>
                   )}
                   {h.note && (
-                    <p className="mt-1 text-xs italic text-muted">{h.note}</p>
+                    <p className="mt-2 rounded-lg bg-offwhite px-3 py-2 text-xs italic text-muted">{h.note}</p>
                   )}
                 </div>
               ))}
-            </div>
-          </div>
+            </div>}
+          </SideCard>
         </div>
       </div>
 
@@ -574,12 +657,63 @@ function ApplicationEditForm({ app, technicalOnly = false, onClose, onSaved }) {
 </div><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : technicalOnly ? "Upload Progress" : "Save All Changes"}</button></div></form></div>;
 }
 
-function InfoSection({ title, children }) {
-  return (
-    <div className="rounded-2xl border border-navy/10 bg-white p-5">
-      <h3 className="text-sm font-bold text-navy">{title}</h3>
-      <div className="mt-4">{children}</div>
+function HeroStat({ icon: Icon, label, children }) {
+  return <div className="flex items-start gap-3 rounded-xl border border-navy/10 border-l-4 border-l-amber bg-offwhite px-4 py-3 transition hover:shadow-sm">
+    <span className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-amber-soft text-amber"><Icon size={16} /></span>
+    <div className="min-w-0">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-0.5 break-words text-sm font-semibold text-navy">{children}</p>
     </div>
+  </div>;
+}
+
+function SideCard({ icon: Icon, title, subtitle, badge, children }) {
+  return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white shadow-sm">
+    <div className="flex items-start gap-3 border-b border-navy/10 bg-gradient-to-r from-amber-soft/60 to-white px-5 py-4">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber text-navy shadow-sm"><Icon size={18} /></span>
+      <div className="min-w-0 flex-1"><h3 className="text-base font-bold text-navy">{title}</h3>{subtitle && <p className="mt-0.5 text-xs leading-relaxed text-muted">{subtitle}</p>}</div>
+      {badge}
+    </div>
+    <div className="p-5">{children}</div>
+  </section>;
+}
+
+function CopyButton({ text }) {
+  const [done, setDone] = useState(false);
+  return <button type="button" aria-label="Copy value" onClick={async () => { try { await navigator.clipboard.writeText(text); setDone(true); setTimeout(() => setDone(false), 1500); } catch { /* clipboard blocked */ } }} className="shrink-0 rounded-md p-1.5 text-muted transition hover:bg-white hover:text-amber focus:opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+    {done ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+  </button>;
+}
+
+function FieldTile({ label, value }) {
+  const Icon = FIELD_ICONS[label];
+  const wide = String(value).length > 48;
+  return <div className={`group flex items-start gap-3 rounded-xl border border-transparent bg-offwhite px-4 py-3 transition hover:border-amber/40 ${wide ? "sm:col-span-2 xl:col-span-3" : ""}`}>
+    {Icon && <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-navy/10 bg-white text-amber"><Icon size={15} /></span>}
+    <div className="min-w-0 flex-1">
+      <dt className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</dt>
+      <dd className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-navy">{value}</dd>
+    </div>
+    {COPYABLE.has(label) && <CopyButton text={String(value)} />}
+  </div>;
+}
+
+function InfoSection({ title, items, children, badge, empty }) {
+  const Icon = SECTION_ICONS[title] || FileText;
+  const visibleItems = (items || []).filter(([, v]) => v !== undefined && v !== null && v !== "");
+  const hasContent = children ? !empty : visibleItems.length > 0;
+  return (
+    <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+      <div className={`flex items-center gap-3 px-5 py-4 ${hasContent ? "border-b border-navy/10" : ""}`}>
+        <span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-soft text-amber"><Icon size={18} /></span>
+        <h3 className="flex-1 text-base font-bold text-navy">{title}</h3>
+        {badge && <span className="rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy">{badge}</span>}
+        {!hasContent && <span className="rounded-full bg-navy/5 px-3 py-1 text-xs font-semibold text-muted">Not provided</span>}
+      </div>
+      {hasContent && <div className="p-5">
+        {children || <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">{visibleItems.map(([label, value]) => <FieldTile key={label} label={label} value={value} />)}</dl>}
+      </div>}
+    </section>
   );
 }
 
@@ -618,7 +752,7 @@ function StatusDropdown({ value, options, open, onOpenChange, onChange }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => onOpenChange(!open)}
-        className="flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-left text-sm text-navy hover:border-amber focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/20"
+        className="flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border border-navy/15 bg-white px-4 py-3 text-left text-sm font-semibold text-navy transition hover:border-amber focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30"
       >
         <span className="line-clamp-2">{selected?.label || "Select status"}</span>
         <ChevronDown size={16} className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
@@ -664,27 +798,15 @@ function StatusDropdown({ value, options, open, onOpenChange, onChange }) {
   );
 }
 
-function InfoGrid({ items }) {
-  const filtered = items.filter(([, v]) => v !== undefined && v !== null && v !== "");
-  if (filtered.length === 0) {
-    return <p className="text-sm text-muted">No data.</p>;
-  }
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {filtered.map(([label, value]) => (
-        <div key={label}>
-          <p className="text-xs font-semibold text-muted">{label}</p>
-          <p className="mt-0.5 text-sm font-medium text-navy">{value}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function GpsValue({ label, value }) {
-  return <div className="rounded-lg bg-slate-50 px-3 py-2.5">
-    <p className="text-xs font-semibold text-muted">{label}</p>
-    <p className="mt-1 break-all text-sm font-semibold text-navy">{value}</p>
+  const Icon = FIELD_ICONS[label];
+  return <div className="group flex items-start gap-3 rounded-xl border border-transparent bg-offwhite px-4 py-3 transition hover:border-amber/40">
+    {Icon && <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-navy/10 bg-white text-amber"><Icon size={15} /></span>}
+    <div className="min-w-0 flex-1">
+      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 break-all text-sm font-semibold text-navy">{value}</p>
+    </div>
+    {COPYABLE.has(label) && <CopyButton text={String(value)} />}
   </div>;
 }
 
