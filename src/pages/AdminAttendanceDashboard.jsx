@@ -436,12 +436,12 @@ export default function AdminAttendanceDashboard({ context }) {
                           <td className={tdClass}>
                             <button
                               type="button"
-                              onClick={() => setExpandedId(isOpen ? null : item.id)}
-                              style={item.isAbsent ? { display: "none" } : undefined}
+                              onClick={() => item.isAbsent ? (setManualEvent((current) => ({ ...current, employee_id: String(item.employee_id) })), syncManualDate(item.attendance_date), setShowManual(true)) : setExpandedId(isOpen ? null : item.id)}
+                              
                               className="inline-flex items-center gap-1 rounded-full border border-navy/15 px-3 py-1 text-xs font-bold text-navy hover:bg-offwhite"
                             >
                               {isOpen ? <ChevronUp size={13} /> : <Pencil size={13} />}
-                              {isOpen ? "Close" : "Edit"}
+                              {isOpen ? "Close" : item.isAbsent ? "Add punch" : "Edit"}
                             </button>
                           </td>
                         </tr>
