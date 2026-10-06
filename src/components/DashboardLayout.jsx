@@ -32,7 +32,7 @@ const OWNER_NAV = [
   { id: "employees", label: "Employees", icon: Users },
   { id: "salary-management", label: "Salary Management", icon: Banknote },
   { id: "leave-requests", label: "Leave Requests", icon: CalendarDays },
-  { id: "emp-attendance", label: "EMP-Attendance", icon: Clock3 },
+  { id: "emp-attendance", label: "Manage Attendance", icon: Clock3 },
   { id: "partners", label: "Partners", icon: Handshake },
   { id: "commission-payouts", label: "Commission Payouts", icon: Banknote },
   { id: "branches", label: "Branches", icon: Building2 },
@@ -75,7 +75,7 @@ export default function DashboardLayout({
     const allowed = user?.locationPermissions?.[module];
     if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };
     return { ...item, children: item.children.filter((child) => allowed.includes(child.id.endsWith("odisha") ? "odisha" : "west_bengal")) };
-  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, { id: "attendance", label: "Attendance", icon: Clock3 }, ...(isHr ? [{ id: "emp-attendance", label: "EMP-Attendance", icon: Clock3 }, { id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
+  }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, { id: "attendance", label: "Attendance", icon: Clock3 }, ...(isHr ? [{ id: "emp-attendance", label: "Manage Attendance", icon: Clock3 }, { id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
   const isEmployeeDashboard = user?.role === "employee";
