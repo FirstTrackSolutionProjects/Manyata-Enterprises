@@ -676,7 +676,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         ? user.actionPermissions.applications.statusUpdates
         : []
     : null;
-  const roleScopedCards = user?.role === "employee"
+  const roleScopedCards = user?.role === "employee" && !isHrEmployee(user)
     ? APPLICATION_STATUSES.filter((status) => assignedApplicationStatuses.includes(status.value)).map((status) => ({
       label: status.value === "pending"
         ? "New Customer Application"
