@@ -1476,7 +1476,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const [attendancePreview, setAttendancePreview] = useState(null);
   const [attendanceCalculationMode, setAttendanceCalculationMode] = useState("hours");
   const [attendancePreviewError, setAttendancePreviewError] = useState("");
-  const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false);
+  const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false); const [rateOverride, setRateOverride] = useState(""); const [hoursSalaryOverride, setHoursSalaryOverride] = useState(""); const [netOverride, setNetOverride] = useState(""); const [unpaidHoursOverride, setUnpaidHoursOverride] = useState("");
   const gross = Number(form.grossSalary || 0);
   const basic = salaryStructure === "custom" ? Number(customStructure.basicSalary || 0) : Math.round(gross * 50) / 100;
   const hra = salaryStructure === "custom" ? Number(customStructure.hra || 0) : Math.round(gross * 40) / 100;
@@ -1492,9 +1492,9 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       : 0;
   const standardHoursValue = Number(attendancePreview?.standardHours || 0);
   const workedHoursValue = Math.floor(Number(attendancePreview?.workedHours || 0) + 1e-9);
-  const hourlyRate = standardHoursValue > 0 ? Math.ceil(calculatedGross / standardHoursValue / 0.25 - 1e-9) * 0.25 : 0;
-  const hoursSalary = standardHoursValue > 0 ? Math.floor(hourlyRate * workedHoursValue + 1e-9) : calculatedGross;
-  const unpaidHoursValue = Math.max(0, standardHoursValue - workedHoursValue);
+ const hourlyRateAuto = standardHoursValue > 0 ? Math.ceil(calculatedGross / standardHoursValue / 0.25 - 1e-9) * 0.25 : 0;
+  const hourlyRate = rateOverride !== "" ? Number(rateOverride) : hourlyRateAuto; const hoursSalaryAuto = standardHoursValue > 0 ? Math.floor(hourlyRate * workedHoursValue + 1e-9) : calculatedGross;
+  const hoursSalary = hoursSalaryOverride !== "" ? Number(hoursSalaryOverride) : hoursSalaryAuto; const unpaidHoursAuto = Math.max(0, standardHoursValue - workedHoursValue); const unpaidHoursValue = unpaidHoursOverride !== "" ? Number(unpaidHoursOverride) : unpaidHoursAuto;
   const attendanceDeductionDefault = attendanceCalculationMode === "days"
     ? Math.round((calculatedGross * Number(attendancePreview?.unpaidDays || 0) / Math.max(1, Number(attendancePreview?.standardDays || attendancePreview?.daysInMonth || 0)) + Number.EPSILON) * 100) / 100
     : Math.max(0, Math.round((calculatedGross - hoursSalary + Number.EPSILON) * 100) / 100);
@@ -1503,9 +1503,9 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     : attendanceDeductionDefault;
   const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0) + scheduledAdvanceRecovery + attendanceDeduction;
   const totalEarnings = calculatedGross + incentive + bonus;
-  const netSalary = totalEarnings - deductions;
+  const netSalaryAuto = totalEarnings - deductions; const netSalary = netOverride !== "" ? Number(netOverride) : netSalaryAuto; const attendanceDeductionFinal = netOverride !== "" ? Math.max(0, Math.round((totalEarnings - (deductions - attendanceDeduction) - netSalary + Number.EPSILON) * 100) / 100) : attendanceDeduction;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const updatePeriod = (key, value) => {
+  const updatePeriod = (key, value) => { setRateOverride(""); setHoursSalaryOverride(""); setNetOverride(""); setUnpaidHoursOverride("");
     setAttendanceDeductionCustomized(false);
     update(key, value);
   };
@@ -1531,7 +1531,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     employerEpf: Number(form.employerEpf), employerEsi: Number(form.employerEsi),
     termLifeInsurance: Number(form.termLifeInsurance), healthInsurance: Number(form.healthInsurance),
     employeeEpf: Number(form.employeeEpf), employeeEsi: Number(form.employeeEsi),
-    professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary), attendanceDeduction,
+    professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary), attendanceDeduction: attendanceDeductionFinal, attendanceDeductionManual: rateOverride !== "" || hoursSalaryOverride !== "" || netOverride !== "" || attendanceDeductionCustomized,
     attendanceStandardHours: attendancePreview?.standardHours || 0,
     attendanceWorkedHours: attendancePreview?.workedHours || 0,
        attendanceUnpaidHours: attendanceCalculationMode === "hours" ? unpaidHoursValue : (attendancePreview?.unpaidHours || 0),
@@ -1607,13 +1607,13 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
               {attendanceMetricInput("standardHours", "Month standard hours")}
               {attendanceMetricInput("workedHours", "Worked attendance hours")}
               
-              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Unpaid hours (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{unpaidHoursValue.toFixed(2)}</p></div>
+             <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Unpaid hours<input type="number" min="0" step="0.01" value={unpaidHoursOverride !== "" ? unpaidHoursOverride : unpaidHoursAuto.toFixed(2)} onChange={(event) => setUnpaidHoursOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
               {attendanceMetricInput("workedDays", "Present days", "0.5")}
               {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
               {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Total present (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)}</p></div>
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">Rs. {hourlyRate.toFixed(2)}</p></div>
-              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours<p className="mt-1 py-2.5 text-sm font-bold text-navy">Rs. {hoursSalary.toLocaleString("en-IN")}</p></div>
+              <div c<label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours (Rs.)<input type="number" min="0" step="0.01" value={hoursSalaryOverride !== "" ? hoursSalaryOverride : hoursSalaryAuto} onChange={(event) => setHoursSalaryOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
             </> : <>
               {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
               {attendanceMetricInput("workedDays", "Attended days", "0.5")}
@@ -1627,8 +1627,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or edit Basic, HRA, and Allowance. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{salaryComponentInput("basicSalary", "Basic salary · 50%", basic)}{salaryComponentInput("hra", "HRA · 40%", hra)}{salaryComponentInput("allowance", "Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{salaryComponentInput("basicSalary", "Basic salary", basic)}{salaryComponentInput("hra", "HRA", hra)}{salaryComponentInput("allowance", "Allowance", allowance)}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
       <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
-      <div className="rounded-xl bg-amber-soft p-4"><p className="text-xs font-semibold text-navy/70">Net Salary Payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="rounded-xl bg-amber-soft p-4"><p className="text-xs font-semibold text-navy/70">Net Salary Payable (Rs.) · edit kar sakte ho</p><input type="number" min="0" step="0.01" value={netOverride !== "" ? netOverride : netSalaryAuto.toFixed(2)} onChange={(event) => setNetOverride(event.target.value)} className={`${inputClass} mt-1 bg-white text-xl font-extrabold text-navy`} />{netOverride !== "" && <button type="button" onClick={() => setNetOverride("")} className="mt-2 text-xs font-semibold text-navy underline">Auto calculation par wapas jao</button>}</div>
       {draftSlip && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">Draft saved for review. Download PDF saves the latest form values and downloads the preview. Publish becomes available after the download.</p>}
       <div className="flex flex-wrap justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !attendancePreview || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Saving..." : draftSlip ? "Save Draft" : "Generate Draft"}</button>{draftSlip && <><button type="button" onClick={downloadDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy disabled:opacity-50"><Download size={15}/>Download PDF</button><button type="button" onClick={publishDraft} disabled={saving || !hasDownloadedDraft} className="rounded-full bg-navy px-5 py-2 text-sm font-bold text-white disabled:opacity-50">Publish</button></>}</div>
     </form>
