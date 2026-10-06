@@ -1467,13 +1467,22 @@ function EmployeeAttendanceModal({ employee, onClose }) {
 function SalarySlipModal({ employee, onClose, onGenerate }) {
   const now = new Date();
   const savedNumber = (key) => employee[key] == null ? "0" : String(Number(employee[key]));
+  const savedGrossSalary = Number(employee.gross_salary || employee.joining_gross_salary || 0);
+  const defaultGrossSalary = savedGrossSalary > 0 ? savedGrossSalary : 10000;
+  const defaultBasicSalary = Math.round(defaultGrossSalary * 0.5 * 100) / 100;
+  const defaultHra = Math.round(defaultGrossSalary * 0.4 * 100) / 100;
+  const defaultAllowance = Math.round((defaultGrossSalary - defaultBasicSalary - defaultHra) * 100) / 100;
   const [form, setForm] = useState(() => ({
-    month: String(employee.month || now.getMonth() + 1), year: String(employee.year || now.getFullYear()), grossSalary: savedNumber("gross_salary"),
+    month: String(employee.month || now.getMonth() + 1), year: String(employee.year || now.getFullYear()), grossSalary: String(defaultGrossSalary),
     incentive: "0", bonus: "0", employerEpf: savedNumber("employer_epf"), employerEsi: savedNumber("employer_esi"), termLifeInsurance: savedNumber("term_life_insurance"),
     healthInsurance: savedNumber("health_insurance"), employeeEpf: savedNumber("employee_epf"), employeeEsi: savedNumber("employee_esi"), professionalTax: savedNumber("professional_tax"), advanceSalary: "0",
   }));
   const [salaryStructure, setSalaryStructure] = useState(employee.salary_structure || "standard");
-  const [customStructure, setCustomStructure] = useState({ basicSalary: savedNumber("basic_salary"), hra: savedNumber("hra"), allowance: savedNumber("allowance") });
+  const [customStructure, setCustomStructure] = useState({
+    basicSalary: savedGrossSalary > 0 ? savedNumber("basic_salary") : String(defaultBasicSalary),
+    hra: savedGrossSalary > 0 ? savedNumber("hra") : String(defaultHra),
+    allowance: savedGrossSalary > 0 ? savedNumber("allowance") : String(defaultAllowance),
+  });
   const [saving, setSaving] = useState(false);
   const [draftSlip, setDraftSlip] = useState(null);
   const [hasDownloadedDraft, setHasDownloadedDraft] = useState(false);
