@@ -106,7 +106,6 @@ export default function ApplicationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
-  const canForwardApplication = ["consumer_login_submitted_to_govt_portal", "submitted_to_govt"].includes(app?.status);
   const [documentPresence, setDocumentPresence] = useState({});
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -503,9 +502,7 @@ export default function ApplicationDetail() {
               {loadingForwardOptions ? <p className="rounded-xl bg-offwhite px-4 py-3 text-xs text-muted">Loading Back Office employees…</p>
                 : backOfficeEmployees.length ? <label className="block text-xs font-semibold text-muted">Back Office employee<select value={forwardEmployeeId} onChange={(event) => setForwardEmployeeId(event.target.value)} className={`${FIELD_INPUT} font-semibold`}>{backOfficeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.designation ? ` · ${employee.designation}` : ""}</option>)}</select></label>
                   : !forwardError && <p className="rounded-xl bg-offwhite px-4 py-3 text-xs text-muted">No eligible Back Office employees were found.</p>}
-              {!canEdit && <p className="rounded-xl bg-amber-soft/50 px-4 py-3 text-xs leading-relaxed text-navy">Ask the Owner/HR to grant Applications edit access before forwarding.</p>}
-              {!canForwardApplication && <p className="rounded-xl bg-amber-soft/50 px-4 py-3 text-xs leading-relaxed text-navy">Forward becomes available after this application is submitted to the Govt Portal.</p>}
-              <button type="button" onClick={handleForward} disabled={forwarding || !forwardEmployeeId || !canForwardApplication || !canEdit} className={BTN_PRIMARY}>{forwarding ? "Forwarding…" : "Forward application"}</button>
+              <button type="button" onClick={handleForward} disabled={forwarding || !forwardEmployeeId} className={BTN_PRIMARY}>{forwarding ? "Forwarding…" : "Forward application"}</button>
             </div>
           </SideCard>}
 
