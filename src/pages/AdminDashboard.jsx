@@ -579,11 +579,8 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
   const [showFilters, setShowFilters] = useState(false);
-  const [workList, setWorkList] = useState("all");
-  const queryWorkList = user?.role === "employee" && !isHrEmployee(user) ? "remaining" : workList;
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [listedTotal, setListedTotal] = useState(0);
   const listRequestId = useRef(0);
   const limit = 20;
 
@@ -619,8 +616,6 @@ function ApplicationsTab({ initialLocation = "" }) {
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
       if (f.updatedBy) params.updatedBy = f.updatedBy;
-      if (user?.role === "employee" && queryWorkList === "updated") params.updatedBy = user.id;
-      if (user?.role === "employee" && queryWorkList === "remaining") params.updatedByNot = "1";
       if (f.status) params.status = f.status;
       if (f.branchId) params.branchId = f.branchId;
       if (f.location) params.location = f.location;
@@ -634,7 +629,6 @@ function ApplicationsTab({ initialLocation = "" }) {
       const res = await listApplications(params);
       if (requestId !== listRequestId.current) return;
       setItems(res.data.items || []);
-      setListedTotal(Number(res.data.total || 0));
       setTotalPages(res.data.pages || 1);
     } catch (err) {
       console.error(err);
@@ -647,14 +641,13 @@ function ApplicationsTab({ initialLocation = "" }) {
     setPage(1);
     load(1);
     // eslint-disable-next-line
-  }, [filters, queryWorkList]);
+  }, [filters]);
 
   useEffect(() => {
     let active = true;
     const statsParams = new URLSearchParams();
     if (filters.branchId) statsParams.set("branchId", filters.branchId);
     if (filters.location) statsParams.set("location", filters.location);
-    if (user?.role === "employee" && !isHrEmployee(user)) statsParams.set("updatedByNot", "1");
     const statsQuery = statsParams.size ? `?${statsParams}` : "";
     apiFetch(`/applications/stats/overview${statsQuery}`)
       .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); setApplicationStatusCounts(res.data.byStatus || {}); } })
@@ -675,27 +668,12 @@ function ApplicationsTab({ initialLocation = "" }) {
       v !== "" &&
       v !== EMPTY_FILTERS[k]
   ).length;
-  const assignedApplicationStatuses = user?.actionPermissions?.applications?.statusUpdates;
   const visibleApplicationFilterStatusOptions = getApplicationUpdateStatusOptions(user);
-  const roleSpecificStatusCards = user?.role === "employee" && !isHrEmployee(user)
-    ? (Array.isArray(assignedApplicationStatuses) ? assignedApplicationStatuses : [])
-      .map((statusValue) => APPLICATION_STATUSES.find((status) => status.value === statusValue))
-      .filter(Boolean)
-      .map((status) => [status.label, Number(applicationStatusCounts[status.value] || 0), status.value])
-    : null;
 
   return (
     <div className="space-y-4">
-      {user?.role === "employee" && !isHrEmployee(user) && <div className="flex flex-wrap items-center gap-2 rounded-xl bg-amber-soft px-4 py-3 text-sm text-navy">
-        <span className="font-semibold">Assigned applications still needing your update</span>
-        <span className="text-xs">{listedTotal} records</span>
-      </div>}
-      {user?.role === "employee" && isHrEmployee(user) && <div className="flex flex-wrap gap-2" role="tablist" aria-label="Application update lists">
-        {[ ["all", "All records"], ["updated", "Updated by me"], ["remaining", "Not updated by me"] ].map(([key, label]) => <button key={key} type="button" role="tab" aria-selected={workList === key} onClick={() => { setPage(1); setWorkList(key); }} className={`rounded-lg border px-4 py-2 text-sm font-semibold ${workList === key ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-muted hover:border-amber"}`}>{label}</button>)}
-        <span className="self-center text-xs text-muted">{listedTotal} records</span>
-      </div>}
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {(roleSpecificStatusCards !== null ? roleSpecificStatusCards : [
+        {[
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0), "total-applications"],
           ["New Customer Application", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
@@ -704,9 +682,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
-        ]).map(([label, value, key]) => <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
-      </div> : user?.role === "employee" && !isHrEmployee(user) ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {roleSpecificStatusCards.map(([label, value, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
+        ].map(([label, value, key]) => <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
       </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
@@ -748,7 +724,6 @@ function ApplicationsTab({ initialLocation = "" }) {
             const statsParams = new URLSearchParams();
             if (filters.branchId) statsParams.set("branchId", filters.branchId);
             if (filters.location) statsParams.set("location", filters.location);
-            if (user?.role === "employee" && !isHrEmployee(user)) statsParams.set("updatedByNot", "1");
             const statsQuery = statsParams.size ? `?${statsParams}` : "";
             const statsRes = await apiFetch(`/applications/stats/overview${statsQuery}`);
             setLocationCounts(statsRes.data.byLocation || null);
@@ -762,8 +737,6 @@ function ApplicationsTab({ initialLocation = "" }) {
         {canExportApplications && <button onClick={async () => {
           try {
             const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== ""));
-            if (user?.role === "employee" && queryWorkList === "updated") params.set("updatedBy", String(user.id));
-            if (user?.role === "employee" && queryWorkList === "remaining") params.set("updatedByNot", "1");
             await downloadCsvExport(`/applications/export.csv?${params}`, "applications.csv");
           } catch (error) { window.alert(error.message || "Could not download applications."); }
         }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}

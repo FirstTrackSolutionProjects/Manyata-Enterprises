@@ -207,6 +207,14 @@ export const assignApplicationTechnicalWork = (id, employeeId, instructions) =>
     body: JSON.stringify({ employeeId: employeeId || null, instructions }),
   });
 
+export const getApplicationForwardOptions = (id) => apiFetch(`/applications/${id}/forward-options`);
+
+export const forwardApplicationToEmployee = (id, employeeId) =>
+  apiFetch(`/applications/${id}/forward`, {
+    method: "POST",
+    body: JSON.stringify({ employeeId: Number(employeeId) }),
+  });
+
 export const updateApplication = (id, payload) =>
   apiFetch(`/applications/${id}`, {
     method: "PUT",
