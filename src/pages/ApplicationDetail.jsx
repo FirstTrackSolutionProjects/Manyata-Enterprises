@@ -41,10 +41,10 @@ export default function ApplicationDetail() {
   const isOwner = user?.role === "owner";
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const availableStatusOptions = getApplicationUpdateStatusOptions(user);
-  const canForwardApplication = ["consumer_login_submitted_to_govt_portal", "submitted_to_govt"].includes(app?.status);
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
+  const canForwardApplication = ["consumer_login_submitted_to_govt_portal", "submitted_to_govt"].includes(app?.status);
   const [documentPresence, setDocumentPresence] = useState({});
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
