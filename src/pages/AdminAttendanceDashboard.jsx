@@ -3,6 +3,8 @@ import { Loader2, Search, Download, X, Settings, Pencil, ChevronUp, Camera } fro
 
 const PAGE_SIZE = 8;
 
+const weekdayName = (value) => value ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).toLocaleDateString("en-IN", { timeZone: "UTC", weekday: "long" }) : "";
+
 const hm = (totalMinutes) => `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
 
 const BREAK_OPTIONS = [
@@ -128,6 +130,11 @@ export default function AdminAttendanceDashboard({ context }) {
         .toLowerCase()
         .includes(searchText)
   );
+  const punchedKeys = new Set(registerRows.map((item) => `${item.employee_id}|${String(item.attendance_date).slice(0, 10)}`));
+  const absentRows = calendarRows
+    .filter((item) => item.status === "absent" && !punchedKeys.has(`${item.employee_id}|${String(item.date).slice(0, 10)}`))
+    .map((item) => ({ id: `absent-${item.employee_id}-${item.date}`, isAbsent: true, employee_id: item.employee_id, employee_name: item.employee_name, employee_user_id: item.employee_user_id, employee_department: item.employee_department, branch_name: item.branch_name, attendance_date: String(item.date).slice(0, 10), clock_in_at: null, clock_out_at: null, worked_minutes: null, break_minutes: 0, breaks: [] }));
+  const registerTableRows = [...registerRows, ...absentRows].sort((a, b) => String(b.attendance_date).localeCompare(String(a.attendance_date)));
   const pendingCount = corrections.filter((item) => item.status === "pending").length;
   const correctionRows = pendingCount ? corrections : [];
   const locationRows = registerRows.filter(
@@ -137,7 +144,7 @@ export default function AdminAttendanceDashboard({ context }) {
   const photoRows = registerRows.filter((item) => item.clock_in_photo_key || item.clock_out_photo_key);
 
   const lists = {
-    register: registerRows,
+    register: registerTableRows,
     calendar: calendarRows,
     corrections: correctionRows,
     photos: photoRows,
@@ -156,6 +163,7 @@ export default function AdminAttendanceDashboard({ context }) {
   ).size;
 
   const registerStatus = (item) => {
+    if (item.isAbsent) return { text: "No punch", cls: "bg-red-50 text-red-700" };
     if (item.clock_out_at) return { text: "Logged out", cls: "bg-slate-100 text-slate-700" };
     if (item.attendance_date !== indiaTodayInput())
       return { text: "Incomplete (past)", cls: "bg-amber-50 text-amber-700" };
@@ -333,7 +341,7 @@ export default function AdminAttendanceDashboard({ context }) {
             <div className="flex justify-center p-8">
               <Loader2 className="animate-spin text-amber" />
             </div>
-          ) : !registerRows.length ? (
+          ) : !registerTableRows.length ? (
             <p className="p-5 text-sm text-muted">No attendance records match these filters.</p>
           ) : (
             <div className="overflow-x-auto">
@@ -342,6 +350,8 @@ export default function AdminAttendanceDashboard({ context }) {
                   <tr>
                     <th className={thClass}>Employee</th>
                     <th className={thClass}>Date</th>
+                    <th className={thClass}>Day</th>
+                    <th className={thClass}>Present / Absent</th>
                     <th className={thClass}>Login (IST)</th>
                     <th className={thClass}>Logout (IST)</th>
                     <th className={thClass}>Net hours</th>
@@ -367,6 +377,10 @@ export default function AdminAttendanceDashboard({ context }) {
                           </td>
                           <td className={`${tdClass} whitespace-nowrap`}>
                             {attendanceDateLabel(item.attendance_date)}
+                          </td>
+                          <td className={`${tdClass} whitespace-nowrap font-semibold ${weekdayName(item.attendance_date) === "Sunday" ? "text-red-600" : "text-navy"}`}>{weekdayName(item.attendance_date)}</td>
+                          <td className={tdClass}>
+                            <span className={`whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-bold ${item.isAbsent ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>{item.isAbsent ? "Absent" : "Present"}</span>
                           </td>
                           <td className={tdClass}>{attendanceTimeLabel(item.clock_in_at)}</td>
                           <td className={tdClass}>
@@ -423,6 +437,7 @@ export default function AdminAttendanceDashboard({ context }) {
                             <button
                               type="button"
                               onClick={() => setExpandedId(isOpen ? null : item.id)}
+                              style={item.isAbsent ? { display: "none" } : undefined}
                               className="inline-flex items-center gap-1 rounded-full border border-navy/15 px-3 py-1 text-xs font-bold text-navy hover:bg-offwhite"
                             >
                               {isOpen ? <ChevronUp size={13} /> : <Pencil size={13} />}
@@ -433,7 +448,7 @@ export default function AdminAttendanceDashboard({ context }) {
 
                         {isOpen && (
                           <tr className="bg-offwhite/60">
-                            <td colSpan={9} className="px-4 py-4">
+                            <td colSpan={11} className="px-4 py-4">
                               <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr]">
                                 <label className="block text-[11px] font-semibold text-muted">
                                   Clock-in (IST)
