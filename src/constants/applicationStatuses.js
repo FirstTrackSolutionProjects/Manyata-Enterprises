@@ -19,7 +19,7 @@ export const APPLICATION_STATUSES = [
   { value: "electricity_bill_mismatch_customer_side_on_process", label: "Electricity Bill Mismatch - Customer Side - On Process" },
   { value: "electricity_bill_ownership_transfer_customer_side_on_process", label: "Electricity Bill Ownership Transfer - Customer Side - On Process" },
   { value: "electricity_bill_name_mismatch", label: "Electricity Bill - Name Mismatch" },
-  { value: "electricity_bill_name_mismatch_completed_successfully", label: "Electricity Bill Name Mismatch – Completed Successfully" },
+  { value: "electricity_bill_name_mismatch_completed_successfully", label: "Electricity Bill Name Mismatch - Completed Successfully" },
   { value: "electricity_bill_mismatch_ownership_transfer", label: "Electricity Bill - Ownership Transfer" },
   { value: "electricity_bill_ownership_transfer_completed_successfully", label: "Electricity Bill Ownership Transfer - Completed Successfully" },
   { value: "customer_side_login_otp_pending_customer_not_responding_call", label: "Customer Side - Login - OTP Pending - Customer Not Responding Call" },
@@ -28,13 +28,13 @@ export const APPLICATION_STATUSES = [
   { value: "consumer_login_submitted_to_govt_portal", label: "Consumer Login - Submitted to Govt Portal" },
   { value: "bank_reject", label: "Bank Rejected" },
   { value: "vendor_side_re_bank_forward", label: "Vendor Side – Re-Bank Forward" },
-  { value: "pending_for_loan_phase_1", label: "Pending for Loan – Phase 1" },
+  { value: "pending_for_loan_phase_1", label: "Pending for Loan Disbursed - Phase 1" },
   { value: "loan_disbursed_successfully_phase_1", label: "Loan Disbursed - Phase 1" },
   { value: "vendor_side_invoice_generated", label: "Vendor Side – Invoice Generated" },
   { value: "e_way_bill_generated", label: "E-Way Bill Generated" },
   { value: "dcr_completed", label: "DCR Completed" },
-  { value: "stock_forwarded_to_customer_home", label: "Forward the Stock to Customer Home" },
-  { value: "technical_installation_pending", label: "Technical Side – Installation Pending" },
+  { value: "stock_forwarded_to_customer_home", label: "Stock Forwarded to Customer Home" },
+  { value: "technical_installation_pending", label: "Installation Pending" },
   { value: "technical_installation_half_work_done", label: "Technical Side – Installation Half Work Done" },
   { value: "technical_installation_completed", label: "Technical Side – Installation Completed" },
   { value: "vendor_installation_work_docx_uploaded_to_govt_portal", label: "Vendor Side – Installation Work DOCX Uploaded to Govt Portal" },
@@ -49,7 +49,7 @@ export const APPLICATION_STATUSES = [
   { value: "docx_forwarded_to_bank_loan_phase_2", label: "Forward the DOCX to Bank Loan – Phase 2" },
   { value: "je_verification_pending", label: "JE Verification Pending" },
   { value: "je_verification_approved", label: "JE Signature - Approved" },
-  { value: "pending_for_loan_disbursement_phase_2", label: "Pending for Loan Disbursement – Phase 2" },
+  { value: "pending_for_loan_disbursement_phase_2", label: "Pending for Loan Disbursed - Phase 2" },
   { value: "loan_disbursed_phase_2", label: "Loan Disbursed – Phase 2" },
   { value: "customer_full_loan_amount_disbursed", label: "Customer - Full Loan Amount Disbursed" },
   { value: "consumer_subsidy_pending", label: "Consumer - Subsidy Apply" },
@@ -67,6 +67,8 @@ export const APPLICATION_STATUSES = [
 
 export const APPLICATION_UPDATE_STATUSES = [
   "pending", "verified", "electricity_bill_name_mismatch", "mobile_number_linked", "demand_note_payment", "ads_payment",
+  "electricity_bill_name_mismatch_completed_successfully", "pending_for_loan_phase_1", "pending_for_loan_disbursement_phase_2",
+  "technical_installation_pending", "stock_forwarded_to_customer_home", "electricity_bill_ownership_transfer_completed_successfully",
   "consumer_login_submitted_to_govt_portal", "customer_side_login_otp_pending_customer_not_responding_call",
   "vendor_side_quotation_agreement_pending", "vendor_side_login_otp_pending_customer_not_responding_call",
   "customer_side_bank_forward", "customer_aadhaar_not_linked_with_mobile_number", "customer_cibil_score_low",
@@ -80,10 +82,12 @@ export const getApplicationUpdateStatusOptions = (user) => {
   const isTechnicalEmployee = user?.role === "employee"
     && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
-  const baseOptions = isTechnicalEmployee
-    ? APPLICATION_STATUSES.filter((status) => technicalStatusValues.includes(status.value))
-    : APPLICATION_UPDATE_STATUSES;
   const grantedStatusUpdates = isHrEmployee(user) ? null : user?.actionPermissions?.applications?.statusUpdates;
+  const baseOptions = Array.isArray(grantedStatusUpdates)
+    ? APPLICATION_UPDATE_STATUSES
+    : isTechnicalEmployee
+      ? APPLICATION_STATUSES.filter((status) => technicalStatusValues.includes(status.value))
+      : APPLICATION_UPDATE_STATUSES;
 
   return user?.role !== "owner" && Array.isArray(grantedStatusUpdates)
     ? baseOptions.filter((status) => grantedStatusUpdates.includes(status.value))

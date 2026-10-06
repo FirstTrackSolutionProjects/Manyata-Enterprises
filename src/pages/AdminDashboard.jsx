@@ -80,10 +80,10 @@ import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
 import AttendanceDashboard from "./AttendanceDashboard";
 
 const TECHNICAL_APPLICATION_STATUS_VALUES = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
-const EMPLOYEE_APPLICATION_STATUS_OPTIONS = [
+const EMPLOYEE_APPLICATION_STATUS_OPTIONS = [...new Map([
   ...APPLICATION_UPDATE_STATUSES,
   ...APPLICATION_STATUSES.filter((status) => TECHNICAL_APPLICATION_STATUS_VALUES.includes(status.value)),
-];
+].map((status) => [status.value, status])).values()];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -1482,6 +1482,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const [hasDownloadedDraft, setHasDownloadedDraft] = useState(false);
   const [error, setError] = useState("");
   const [attendancePreview, setAttendancePreview] = useState(null);
+  const [attendanceCalculationMode, setAttendanceCalculationMode] = useState("hours");
   const [attendancePreviewError, setAttendancePreviewError] = useState("");
   const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false);
   const gross = Number(form.grossSalary || 0);
@@ -1492,9 +1493,11 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const incentive = Number(form.incentive || 0);
   const bonus = Number(form.bonus || 0);
   const scheduledAdvanceRecovery = Number(employee.monthly_advance_installment || 0);
-  const attendanceDeductionDefault = attendancePreview?.standardHours
-    ? Math.round((calculatedGross * Number(attendancePreview.unpaidHours || 0) / Number(attendancePreview.standardHours) + Number.EPSILON) * 100) / 100
-    : 0;
+  const attendanceDeductionDefault = attendanceCalculationMode === "days"
+    ? Math.round((calculatedGross * Number(attendancePreview?.unpaidDays || 0) / Math.max(1, Number(attendancePreview?.daysInMonth || 0)) + Number.EPSILON) * 100) / 100
+    : attendancePreview?.standardHours
+      ? Math.round((calculatedGross * Number(attendancePreview.unpaidHours || 0) / Number(attendancePreview.standardHours) + Number.EPSILON) * 100) / 100
+      : 0;
   const attendanceDeduction = attendanceDeductionCustomized
     ? Number(form.attendanceDeduction || 0)
     : attendanceDeductionDefault;
@@ -1514,6 +1517,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       .then((response) => {
         if (!current) return;
         setAttendancePreview(response.data || null);
+        setAttendanceCalculationMode(response.data?.calculationMode || "hours");
         setForm((existing) => Number(existing.grossSalary || 0) > 0
           ? existing
           : { ...existing, grossSalary: response.data?.grossSalary ? String(response.data.grossSalary) : "" });
@@ -1522,7 +1526,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     return () => { current = false; };
   }, [employee.id, form.month, form.year]);
   const draftPayload = () => ({
-    employeeId: employee.id, month: Number(form.month), year: Number(form.year), grossSalary: calculatedGross, salaryStructure,
+    employeeId: employee.id, month: Number(form.month), year: Number(form.year), grossSalary: calculatedGross, salaryStructure, attendanceCalculationMode,
     basicSalary: basic, hra, allowance, incentive, bonus,
     employerEpf: Number(form.employerEpf), employerEsi: Number(form.employerEsi),
     termLifeInsurance: Number(form.termLifeInsurance), healthInsurance: Number(form.healthInsurance),
@@ -1532,6 +1536,9 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     attendanceWorkedHours: attendancePreview?.workedHours || 0,
     attendanceUnpaidHours: attendancePreview?.unpaidHours || 0,
     attendancePaidSundays: attendancePreview?.paidSundayCount || 0,
+    attendanceStandardDays: attendancePreview?.standardDays || 0,
+    attendanceWorkedDays: attendancePreview?.workedDays || 0,
+    attendanceUnpaidDays: attendancePreview?.unpaidDays || 0,
   });
   const submit = async (event) => {
     event.preventDefault();
@@ -1592,21 +1599,29 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       <section className="space-y-3 rounded-xl border border-navy/10 bg-offwhite p-4">
         <div>
           <h3 className="font-bold text-navy">Attendance-based salary calculation</h3>
-          <p className="mt-1 text-xs text-muted">Standard hours are calendar days × 8 hours. Up to four Sundays are paid; an extra Sunday needs attendance to be paid. Default deduction = monthly gross ÷ standard hours × unpaid hours. Edit it below if needed. Current-month calculation includes completed days only.</p>
+          <p className="mt-1 text-xs text-muted">Salary is calculated using the selected hours-based or day-based mode. Up to four Sundays are paid; an extra Sunday requires attendance. Current-month calculations include completed days only.</p>
         </div>
         {attendancePreviewError ? <p className="text-sm text-red-600">{attendancePreviewError}</p> : attendancePreview ? <>
+          <label className="block max-w-sm text-xs font-semibold text-navy/70">Calculation mode<select value={attendanceCalculationMode} onChange={(event) => { setAttendanceDeductionCustomized(false); setAttendanceCalculationMode(event.target.value); }} className={`${inputClass} mt-1`}><option value="hours">Working hours (HR, Back Office, Accounts)</option><option value="days">Attended days (Technical and other field staff)</option></select></label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {readOnlyAmount("Month standard hours", Number(attendancePreview.standardHours || 0))}
-            {readOnlyAmount("Worked attendance hours", Number(attendancePreview.workedHours || 0))}
-            {readOnlyCount("Paid Sundays", attendancePreview.paidSundayCount)}
-            {readOnlyAmount("Unpaid hours so far", Number(attendancePreview.unpaidHours || 0))}
+            {attendanceCalculationMode === "hours" ? <>
+              {readOnlyAmount("Month standard hours", Number(attendancePreview.standardHours || 0))}
+              {readOnlyAmount("Worked attendance hours", Number(attendancePreview.workedHours || 0))}
+              {readOnlyCount("Paid Sundays", attendancePreview.paidSundayCount)}
+              {readOnlyAmount("Unpaid hours so far", Number(attendancePreview.unpaidHours || 0))}
+            </> : <>
+              {readOnlyAmount("Calendar days in month", Number(attendancePreview.standardDays || attendancePreview.daysInMonth || 0))}
+              {readOnlyAmount("Attended days", Number(attendancePreview.workedDays || 0))}
+              {readOnlyCount("Paid Sundays", attendancePreview.paidSundayCount)}
+              {readOnlyAmount("Unpaid days so far", Number(attendancePreview.unpaidDays || 0))}
+            </>}
           </div>
-          <p className="text-xs text-muted">{attendancePreview.elapsedDays} completed calendar day(s) counted · {attendancePreview.totalSundayCount} Sunday(s) this month · 8 standard hours per day.</p>
-        </> : <p className="text-sm text-muted">Loading this month’s attendance hours…</p>}
+          <p className="text-xs text-muted">{attendancePreview.elapsedDays} completed calendar day(s) counted · {attendancePreview.totalSundayCount} Sunday(s) this month{attendanceCalculationMode === "hours" ? " · 8 standard hours per day." : "."}</p>
+        </> : <p className="text-sm text-muted">Loading this month’s attendance calculation…</p>}
       </section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or enter a custom salary structure. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Basic salary · 50%", basic)}{readOnlyAmount("HRA · 40%", hra)}{readOnlyAmount("Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{customAmountInput("basicSalary", "Basic salary")}{customAmountInput("hra", "HRA")}{customAmountInput("allowance", "Allowance")}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3><p className="mt-1 text-xs text-muted">Shown separately; these amounts are not deducted from employee net pay.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
-      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}<label className="text-xs font-semibold text-navy/70">Attendance / unpaid hours deduction (Rs.)<input type="number" min="0" step="0.01" value={attendanceDeduction.toFixed(2)} onChange={(event) => { setAttendanceDeductionCustomized(true); update("attendanceDeduction", event.target.value); }} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
+      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}<label className="text-xs font-semibold text-navy/70">Attendance / unpaid {attendanceCalculationMode === "days" ? "days" : "hours"} deduction (Rs.)<input type="number" min="0" step="0.01" value={attendanceDeduction.toFixed(2)} onChange={(event) => { setAttendanceDeductionCustomized(true); update("attendanceDeduction", event.target.value); }} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
       <div className="grid gap-3 rounded-xl bg-amber-soft p-4 sm:grid-cols-3"><div><p className="text-xs font-semibold text-navy/70">Total Earnings</p><p className="mt-1 font-bold text-navy">{money(totalEarnings)}</p></div><div><p className="text-xs font-semibold text-navy/70">Total Deductions</p><p className="mt-1 font-bold text-navy">{money(deductions)}</p></div><div><p className="text-xs font-semibold text-navy/70">Net Salary Payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div></div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {draftSlip && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">Draft saved for review. Download PDF saves the latest form values and downloads the preview. Publish becomes available after the download.</p>}
