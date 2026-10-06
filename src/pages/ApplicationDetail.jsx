@@ -41,6 +41,7 @@ export default function ApplicationDetail() {
   const isOwner = user?.role === "owner";
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const availableStatusOptions = getApplicationUpdateStatusOptions(user);
+  const canForwardApplication = ["consumer_login_submitted_to_govt_portal", "submitted_to_govt"].includes(app?.status);
   const { id } = useParams();
   const navigate = useNavigate();
   const [app, setApp] = useState(null);
@@ -61,7 +62,6 @@ export default function ApplicationDetail() {
   const [technicalAssignee, setTechnicalAssignee] = useState("");
   const [technicalInstructions, setTechnicalInstructions] = useState("");
   const [savingAssignment, setSavingAssignment] = useState(false);
-  const [showForwardModal, setShowForwardModal] = useState(false);
   const [backOfficeEmployees, setBackOfficeEmployees] = useState([]);
   const [forwardEmployeeId, setForwardEmployeeId] = useState("");
   const [forwarding, setForwarding] = useState(false);
@@ -93,6 +93,27 @@ export default function ApplicationDetail() {
   }, [id]);
 
   useEffect(() => {
+    if (user?.role !== "employee" || !app?.id) return;
+    let active = true;
+    setForwardError("");
+    setLoadingForwardOptions(true);
+    getApplicationForwardOptions(id)
+      .then((response) => {
+        if (!active) return;
+        const employees = response.data.items || [];
+        setBackOfficeEmployees(employees);
+        setForwardEmployeeId((current) => employees.some((employee) => String(employee.id) === current)
+          ? current
+          : (employees[0] ? String(employees[0].id) : ""));
+      })
+      .catch((err) => {
+        if (active) setForwardError(err.message || "Could not load Back Office employees.");
+      })
+      .finally(() => { if (active) setLoadingForwardOptions(false); });
+    return () => { active = false; };
+  }, [id, user?.role, app?.id]);
+
+  useEffect(() => {
     if (!isOwner) return;
     listUsers({ role: "employee", status: "active" })
       .then((response) => setTechnicalEmployees((response.data.items || []).filter((employee) => /technical|technician|installation engineer/i.test(`${employee.designation || ""} ${employee.department || ""}`) && employee.permissions?.includes("applications") && employee.actionPermissions?.applications?.view && employee.actionPermissions?.applications?.edit)))
@@ -104,24 +125,6 @@ export default function ApplicationDetail() {
     try { await assignApplicationTechnicalWork(id, technicalAssignee, technicalInstructions); await load(); }
     catch (err) { alert(err.message || "Could not save assignment."); }
     finally { setSavingAssignment(false); }
-  };
-
-  const openForwardModal = async () => {
-    setForwardError("");
-    setBackOfficeEmployees([]);
-    setForwardEmployeeId("");
-    setShowForwardModal(true);
-    setLoadingForwardOptions(true);
-    try {
-      const response = await getApplicationForwardOptions(id);
-      const employees = response.data.items || [];
-      setBackOfficeEmployees(employees);
-      setForwardEmployeeId(employees[0] ? String(employees[0].id) : "");
-    } catch (err) {
-      setForwardError(err.message || "Could not load Back Office employees.");
-    } finally {
-      setLoadingForwardOptions(false);
-    }
   };
 
   const handleForward = async () => {
@@ -402,16 +405,19 @@ export default function ApplicationDetail() {
                   </button>
                 </>
               )}
-              {["consumer_login_submitted_to_govt_portal", "submitted_to_govt"].includes(app.status) && user?.role === "employee" && (
-                <button
-                    onClick={openForwardModal}
-                    className="flex w-full items-center justify-center gap-2 rounded-full border border-amber bg-white px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"
-                  >
-                    <Send size={16} />
-                    Forward to Back Office
-                </button>
-              )}
             </div>
+          </div>}
+
+          {user?.role === "employee" && <div className="rounded-2xl border border-amber/30 bg-white p-5">
+            <h3 className="flex items-center gap-2 text-sm font-bold text-navy"><Send size={16} className="text-amber" />Forward to Back Office</h3>
+            <p className="mt-1 text-xs text-muted">Select the active Back Office employee who should receive this application.</p>
+            {forwardError && <p role="alert" className="mt-3 rounded-lg bg-red-50 p-3 text-xs text-red-700">{forwardError}</p>}
+            {loadingForwardOptions ? <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-muted">Loading Back Office employees…</p>
+              : backOfficeEmployees.length ? <label className="mt-3 block text-xs font-semibold text-navy/70">Back Office employee<select value={forwardEmployeeId} onChange={(event) => setForwardEmployeeId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm">{backOfficeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.designation ? ` · ${employee.designation}` : ""}</option>)}</select></label>
+                : !forwardError && <p className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-muted">No eligible Back Office employees were found.</p>}
+            {!canEdit && <p className="mt-3 rounded-lg bg-amber/10 p-3 text-xs text-navy">Ask the Owner/HR to grant Applications edit access before forwarding.</p>}
+            {!canForwardApplication && <p className="mt-3 rounded-lg bg-amber/10 p-3 text-xs text-navy">Forward becomes available after this application is submitted to the Govt Portal.</p>}
+            <button type="button" onClick={handleForward} disabled={forwarding || !forwardEmployeeId || !canForwardApplication || !canEdit} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50">{forwarding ? "Forwarding…" : "Forward application"}</button>
           </div>}
 
           <div className="rounded-2xl border border-navy/10 bg-white p-5">
@@ -445,15 +451,6 @@ export default function ApplicationDetail() {
           </div>
         </div>
       </div>
-
-      {showForwardModal && <div className="fixed inset-0 z-[60] flex items-center justify-center bg-navy/60 p-4" onClick={() => setShowForwardModal(false)}>
-        <section className="w-full max-w-md space-y-4 rounded-2xl bg-white p-6 shadow-xl" onClick={(event) => event.stopPropagation()}>
-          <div><h3 className="text-lg font-bold text-navy">Forward verified application</h3><p className="mt-1 text-sm text-muted">Choose an active Back Office employee with access to this application.</p></div>
-          {forwardError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{forwardError}</p>}
-          {backOfficeEmployees.length ? <label className="block text-sm font-semibold text-navy">Back Office employee<select value={forwardEmployeeId} onChange={(event) => setForwardEmployeeId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm">{backOfficeEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.designation ? ` · ${employee.designation}` : ""}</option>)}</select></label> : loadingForwardOptions ? <p className="rounded-lg bg-slate-50 p-3 text-sm text-muted">Loading employees…</p> : !forwardError && <p className="text-xs text-muted">No eligible Back Office employees were found.</p>}
-          <div className="flex justify-end gap-2"><button type="button" onClick={() => setShowForwardModal(false)} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button type="button" onClick={handleForward} disabled={forwarding || !forwardEmployeeId} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{forwarding ? "Forwarding…" : "Forward"}</button></div>
-        </section>
-      </div>}
 
       {showGovtModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 p-4">
