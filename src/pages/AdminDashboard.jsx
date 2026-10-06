@@ -1485,11 +1485,19 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const incentive = Number(form.incentive || 0);
   const bonus = Number(form.bonus || 0);
   const scheduledAdvanceRecovery = Number(employee.monthly_advance_installment || 0);
-  const attendanceDeductionDefault = attendanceCalculationMode === "days"
+  const attendanceDeductionOld = attendanceCalculationMode === "days"
     ? Math.round((calculatedGross * Number(attendancePreview?.unpaidDays || 0) / Math.max(1, Number(attendancePreview?.standardDays || attendancePreview?.daysInMonth || 0)) + Number.EPSILON) * 100) / 100
     : attendancePreview?.standardHours
       ? Math.round((calculatedGross * Number(attendancePreview.unpaidHours || 0) / Number(attendancePreview.standardHours) + Number.EPSILON) * 100) / 100
       : 0;
+  const standardHoursValue = Number(attendancePreview?.standardHours || 0);
+  const workedHoursValue = Number(attendancePreview?.workedHours || 0);
+  const hourlyRate = standardHoursValue > 0 ? Math.ceil(calculatedGross / standardHoursValue / 0.25 - 1e-9) * 0.25 : 0;
+  const hoursSalary = standardHoursValue > 0 ? Math.floor(hourlyRate * workedHoursValue + 1e-9) : calculatedGross;
+  const unpaidHoursValue = Math.max(0, standardHoursValue - workedHoursValue);
+  const attendanceDeductionDefault = attendanceCalculationMode === "days"
+    ? Math.round((calculatedGross * Number(attendancePreview?.unpaidDays || 0) / Math.max(1, Number(attendancePreview?.standardDays || attendancePreview?.daysInMonth || 0)) + Number.EPSILON) * 100) / 100
+    : Math.max(0, Math.round((calculatedGross - hoursSalary + Number.EPSILON) * 100) / 100);
   const attendanceDeduction = attendanceDeductionCustomized
     ? Number(form.attendanceDeduction || 0)
     : attendanceDeductionDefault;
@@ -1526,7 +1534,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     professionalTax: Number(form.professionalTax), advanceSalary: Number(form.advanceSalary), attendanceDeduction,
     attendanceStandardHours: attendancePreview?.standardHours || 0,
     attendanceWorkedHours: attendancePreview?.workedHours || 0,
-    attendanceUnpaidHours: attendancePreview?.unpaidHours || 0,
+       attendanceUnpaidHours: attendanceCalculationMode === "hours" ? unpaidHoursValue : (attendancePreview?.unpaidHours || 0),
     attendancePaidSundays: attendancePreview?.paidSundayCount || 0,
     attendanceStandardDays: attendancePreview?.standardDays || 0,
     attendanceWorkedDays: attendancePreview?.workedDays || 0,
@@ -1599,12 +1607,18 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
               {attendanceMetricInput("standardHours", "Month standard hours")}
               {attendanceMetricInput("workedHours", "Worked attendance hours")}
               
-              {attendanceMetricInput("unpaidHours", "Unpaid hours so far")}
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Unpaid hours (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{unpaidHoursValue.toFixed(2)}</p></div>
+              {attendanceMetricInput("workedDays", "Present days", "0.5")}
+              {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
+              {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">Rs. {hourlyRate.toFixed(2)}</p></div>
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours<p className="mt-1 py-2.5 text-sm font-bold text-navy">Rs. {hoursSalary.toLocaleString("en-IN")}</p></div>
             </> : <>
               {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
               {attendanceMetricInput("workedDays", "Attended days", "0.5")}
               
-              {attendanceMetricInput("unpaidDays", "Unpaid days so far", "0.5")}
+             {attendanceMetricInput("unpaidDays", "Unpaid days so far", "0.5")}
+              {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
             </>}
           </div>
         </> : <p className="text-sm text-muted">Loading this month’s attendance calculation…</p>}
