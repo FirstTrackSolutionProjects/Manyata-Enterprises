@@ -1612,8 +1612,8 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
               {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
               {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Total present (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)}</p></div>
-              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">Rs. {hourlyRate.toFixed(2)}</p></div>
-              <div c<label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours (Rs.)<input type="number" min="0" step="0.01" value={hoursSalaryOverride !== "" ? hoursSalaryOverride : hoursSalaryAuto} onChange={(event) => setHoursSalaryOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
+              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (Rs.)<input type="number" min="0" step="0.01" value={rateOverride !== "" ? rateOverride : hourlyRateAuto.toFixed(2)} onChange={(event) => setRateOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
+              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours (Rs.)<input type="number" min="0" step="0.01" value={hoursSalaryOverride !== "" ? hoursSalaryOverride : hoursSalaryAuto} onChange={(event) => setHoursSalaryOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
             </> : <>
               {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
               {attendanceMetricInput("workedDays", "Attended days", "0.5")}
