@@ -200,23 +200,9 @@ function EmployeeSalarySlipsTab() {
   </section>;
 }
 
-const attendanceDateLabel = (value) => value
-  ? new Date(`${String(value).slice(0, 10)}T00:00:00.000Z`).toLocaleDateString("en-IN", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" })
-  : "—";
-const attendanceTimeLabel = (value) => value
-  ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).format(new Date(value))
-  : "—";
 const attendanceDateTimeLabel = (value) => value
   ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium", hourCycle: "h23" }).format(new Date(value))
   : "—";
-const indiaTodayInput = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-const indiaDateTimeInput = (value = new Date()) => {
-  const parts = Object.fromEntries(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(value)).map(({ type, value: part }) => [type, part]));
-  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
-};
-const indiaNowDateTimeInput = () => indiaDateTimeInput();
-const breakTypeLabel = (type) => ({ tea_coffee: "Tea / coffee", lunch: "Lunch", dinner: "Dinner", snack: "Snack", emergency: "Emergency", rest: "Rest", personal: "Personal", meal: "Meal (legacy)", other: "Other" }[type] || type);
-const csvCell = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
 
 function SalaryManagementTab() {
   const [employees, setEmployees] = useState([]);
@@ -1594,7 +1580,6 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const salaryComponentInput = (key, label, standardValue) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" value={salaryStructure === "standard" ? standardValue.toFixed(2) : customStructure[key]} onChange={(event) => { const value = event.target.value; if (salaryStructure === "standard") { setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2), [key]: value }); setSalaryStructure("custom"); } else setCustomStructure((current) => ({ ...current, [key]: value })); }} className={`${inputClass} mt-1`} /></label>;
   const attendanceMetricInput = (key, label, step = "0.01") => <label key={key} className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">{label}<input type="number" min="0" step={step} value={attendancePreview?.[key] ?? ""} onChange={(event) => setAttendancePreview((current) => current ? { ...current, [key]: event.target.value === "" ? "" : Number(event.target.value) } : current)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>;
   const readOnlyAmount = (label, value) => <div key={label} className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] text-muted">{label}</p><p className="mt-1 text-sm font-bold text-navy">Rs. {value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>;
-  const readOnlyCount = (label, value) => <div key={label} className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] text-muted">{label}</p><p className="mt-1 text-sm font-bold text-navy">{Number(value || 0)}</p></div>;
   const money = (value) => `Rs. ${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
     <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
@@ -1606,7 +1591,6 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
       <section className="space-y-3 rounded-xl border border-navy/10 bg-offwhite p-4">
         <div>
           <h3 className="font-bold text-navy">Attendance-based salary calculation</h3>
-          <p className="mt-1 text-xs text-muted">Salary is calculated using the selected hours-based or day-based mode. Up to four Sundays are paid; an extra Sunday requires attendance. Current-month calculations include completed days only.</p>
         </div>
         {attendancePreviewError ? <p className="text-sm text-red-600">{attendancePreviewError}</p> : attendancePreview ? <>
           <label className="block max-w-sm text-xs font-semibold text-navy/70">Calculation mode<select value={attendanceCalculationMode} onChange={(event) => { setAttendanceDeductionCustomized(false); setAttendanceCalculationMode(event.target.value); }} className={`${inputClass} mt-1`}><option value="hours">Working hours (HR, Back Office, Accounts)</option><option value="days">Attended days (Technical and other field staff)</option></select></label>
@@ -1614,22 +1598,21 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
             {attendanceCalculationMode === "hours" ? <>
               {attendanceMetricInput("standardHours", "Month standard hours")}
               {attendanceMetricInput("workedHours", "Worked attendance hours")}
-              {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
+              
               {attendanceMetricInput("unpaidHours", "Unpaid hours so far")}
             </> : <>
               {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
               {attendanceMetricInput("workedDays", "Attended days", "0.5")}
-              {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
+              
               {attendanceMetricInput("unpaidDays", "Unpaid days so far", "0.5")}
             </>}
           </div>
-          <p className="text-xs text-muted">{attendancePreview.elapsedDays} completed calendar day(s) counted · {attendancePreview.totalSundayCount} Sunday(s) this month{attendanceCalculationMode === "hours" ? " · 8 standard hours per day." : "."}</p>
         </> : <p className="text-sm text-muted">Loading this month’s attendance calculation…</p>}
       </section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or edit Basic, HRA, and Allowance. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{salaryComponentInput("basicSalary", "Basic salary · 50%", basic)}{salaryComponentInput("hra", "HRA · 40%", hra)}{salaryComponentInput("allowance", "Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{salaryComponentInput("basicSalary", "Basic salary", basic)}{salaryComponentInput("hra", "HRA", hra)}{salaryComponentInput("allowance", "Allowance", allowance)}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
-      <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3><p className="mt-1 text-xs text-muted">Shown separately; these amounts are not deducted from employee net pay.</p></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
-      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}<label className="text-xs font-semibold text-navy/70">Attendance / unpaid {attendanceCalculationMode === "days" ? "days" : "hours"} deduction (Rs.)<input type="number" min="0" step="0.01" value={attendanceDeduction.toFixed(2)} onChange={(event) => { setAttendanceDeductionCustomized(true); update("attendanceDeduction", event.target.value); }} className={`${inputClass} mt-1`} /></label>{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
-      <div className="grid gap-3 rounded-xl bg-amber-soft p-4 sm:grid-cols-3"><div><p className="text-xs font-semibold text-navy/70">Total Earnings</p><p className="mt-1 font-bold text-navy">{money(totalEarnings)}</p></div><div><p className="text-xs font-semibold text-navy/70">Total Deductions</p><p className="mt-1 font-bold text-navy">{money(deductions)}</p></div><div><p className="text-xs font-semibold text-navy/70">Net Salary Payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div></div>
+      <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
+      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}{readOnlyAmount("Scheduled advance recovery", scheduledAdvanceRecovery)}{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. Scheduled installments are calculated from the selected pay month.</p>}</section>
+      <div className="rounded-xl bg-amber-soft p-4"><p className="text-xs font-semibold text-navy/70">Net Salary Payable</p><p className="mt-1 text-xl font-extrabold text-navy">{money(netSalary)}</p></div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {draftSlip && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">Draft saved for review. Download PDF saves the latest form values and downloads the preview. Publish becomes available after the download.</p>}
       <div className="flex flex-wrap justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !attendancePreview || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Saving..." : draftSlip ? "Save Draft" : "Generate Draft"}</button>{draftSlip && <><button type="button" onClick={downloadDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy disabled:opacity-50"><Download size={15}/>Download PDF</button><button type="button" onClick={publishDraft} disabled={saving || !hasDownloadedDraft} className="rounded-full bg-navy px-5 py-2 text-sm font-bold text-white disabled:opacity-50">Publish</button></>}</div>
