@@ -669,11 +669,30 @@ function ApplicationsTab({ initialLocation = "" }) {
       v !== EMPTY_FILTERS[k]
   ).length;
   const visibleApplicationFilterStatusOptions = getApplicationUpdateStatusOptions(user);
+  const assignedApplicationStatuses = user?.role === "employee"
+    ? isHrEmployee(user)
+      ? APPLICATION_STATUSES.map((status) => status.value)
+      : Array.isArray(user?.actionPermissions?.applications?.statusUpdates)
+        ? user.actionPermissions.applications.statusUpdates
+        : []
+    : null;
+  const roleScopedCards = user?.role === "employee"
+    ? APPLICATION_STATUSES.filter((status) => assignedApplicationStatuses.includes(status.value)).map((status) => ({
+      label: status.value === "pending"
+        ? "New Customer Application"
+        : status.value === "consumer_login_submitted_to_govt_portal"
+          ? "Submitted to Govt Portal"
+          : status.label,
+      value: status.value === "consumer_login_submitted_to_govt_portal"
+        ? Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)
+        : Number(applicationStatusCounts[status.value] || 0),
+    }))
+    : null;
 
   return (
     <div className="space-y-4">
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {[
+        {(roleScopedCards || [
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0), "total-applications"],
           ["New Customer Application", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
@@ -682,7 +701,12 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
-        ].map(([label, value, key]) => <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
+        ]).map((card) => {
+          const [label, value, key] = Array.isArray(card) ? card : [card.label, card.value, card.label];
+          return <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>;
+        })}
+      </div> : roleScopedCards ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {roleScopedCards.map(({ label, value }) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
       </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}

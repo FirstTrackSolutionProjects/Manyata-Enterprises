@@ -83,6 +83,7 @@ export const getApplicationUpdateStatusOptions = (user) => {
     && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
   const grantedStatusUpdates = isHrEmployee(user) ? null : user?.actionPermissions?.applications?.statusUpdates;
+  if (user?.role === "employee" && !isHrEmployee(user) && !Array.isArray(grantedStatusUpdates)) return [];
   const baseOptions = Array.isArray(grantedStatusUpdates)
     ? APPLICATION_UPDATE_STATUSES
     : isTechnicalEmployee

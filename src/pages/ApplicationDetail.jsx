@@ -400,14 +400,16 @@ export default function ApplicationDetail() {
                     <Send size={16} />
                     Submit to Govt Portal
                   </button>
-                  {user?.role === "employee" && <button
+                </>
+              )}
+              {["consumer_login_submitted_to_govt_portal", "submitted_to_govt"].includes(app.status) && user?.role === "employee" && (
+                <button
                     onClick={openForwardModal}
                     className="flex w-full items-center justify-center gap-2 rounded-full border border-amber bg-white px-5 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"
                   >
                     <Send size={16} />
                     Forward to Back Office
-                  </button>}
-                </>
+                </button>
               )}
             </div>
           </div>}
