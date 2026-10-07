@@ -54,6 +54,9 @@ export const APPLICATION_STATUSES = [
   { value: "customer_full_loan_amount_disbursed", label: "Customer - Full Loan Amount Disbursed" },
   { value: "consumer_subsidy_pending", label: "Consumer - Subsidy Apply" },
   { value: "consumer_subsidy_disbursed", label: "Consumer - Subsidy Disbursed" },
+    { value: "other_vendor", label: "Other Vendor" },
+  { value: "after_calling_some_times", label: "After Calling Some Times" },
+  { value: "bank_loan_coming_soon", label: "Bank Loan Coming Soon" },
   { value: "other", label: "Other" },
   // Legacy values remain selectable so existing records can still be managed.
   { value: "under_review", label: "Under Review" },
@@ -75,7 +78,15 @@ export const APPLICATION_UPDATE_STATUSES = [
   "bank_reject", "vendor_side_re_bank_forward", "customer_full_loan_amount_disbursed",
   "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "purchased_by_full_cash", "purchased_by_cash_1",
    "purchased_by_cash_2", "installed", "load_announcement", "net_metering_completed_by_electricals_dept", "je_verification_approved",
-  "consumer_subsidy_pending", "consumer_subsidy_disbursed", "office_side_issue", "other",
+   "consumer_subsidy_pending", "consumer_subsidy_disbursed", "office_side_issue",
+  "electricity_bill_mismatch_ownership_transfer",
+  "customer_kyc_pending_from_bank_side",
+  "customer_kyc_completed_from_bank_side",
+  "load_announcement_completed_successfully",
+  "other_vendor",
+  "after_calling_some_times",
+  "bank_loan_coming_soon",
+  "other",
 ].map((value) => APPLICATION_STATUSES.find((status) => status.value === value));
 
 export const getApplicationUpdateStatusOptions = (user) => {
