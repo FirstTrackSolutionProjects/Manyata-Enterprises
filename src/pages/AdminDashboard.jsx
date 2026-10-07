@@ -1625,7 +1625,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {attendanceCalculationMode === "hours" ? <>
               {attendanceMetricInput("standardHours", "Month standard hours")}
-              {attendanceMetricInput("workedHours", "Worked attendance hours")}
+              {attendanceMetricInput("workedHours", "Worked Present hours")}
               
              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Unpaid hours<input type="number" min="0" step="0.01" value={unpaidHoursOverride !== "" ? unpaidHoursOverride : unpaidHoursAuto.toFixed(2)} onChange={(event) => setUnpaidHoursOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
               {attendanceMetricInput("workedDays", "Present days", "0.5")}
