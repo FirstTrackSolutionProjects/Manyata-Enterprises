@@ -1484,9 +1484,16 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const activeDays = 30 - joinDay + 1;
   const sundaysFromJoin = Array.from({ length: activeDays }, (_, index) => new Date(Date.UTC(Number(form.year), Number(form.month) - 1, joinDay + index)).getUTCDay()).filter((weekday) => weekday === 0).length;
   const previewReady = Boolean(attendancePreview);
+    const joinValid = Boolean(joinMatch && Number(joinMatch[2]) === Number(form.month) && Number(joinMatch[3]) === Number(form.year));
   useEffect(() => {
-    if (attendanceCalculationMode !== "hours") return;
-    
+        if (attendanceCalculationMode !== "hours" || !previewReady || !joinValid) return;
+    setAttendancePreview((current) => {
+      if (!current) return current;
+      const paidSundays = joinValid ? Math.min(4, sundaysFromJoin) : Number(current.paidSundayCount || 0);
+      const absent = Math.max(0, activeDays - Number(current.workedDays || 0) - paidSundays);
+      return { ...current, paidSundayCount: paidSundays, unpaidDays: absent };
+    });
+    // eslint-disable-next-line
   }, [joiningDate, form.month, form.year, previewReady, attendanceCalculationMode]);
   const basic = salaryStructure === "custom" ? Number(customStructure.basicSalary || 0) : Math.round(gross * 50) / 100;
   const hra = salaryStructure === "custom" ? Number(customStructure.hra || 0) : Math.round(gross * 40) / 100;
@@ -1505,15 +1512,17 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
  const hourlyRateAuto = standardHoursValue > 0 ? Math.ceil(calculatedGross / standardHoursValue / 0.25 - 1e-9) * 0.25 : 0;
   const hourlyRate = rateOverride !== "" ? Number(rateOverride) : hourlyRateAuto; const hoursSalaryAuto = standardHoursValue > 0 ? Math.floor(hourlyRate * workedHoursValue + 1e-9) : calculatedGross;
   const hoursSalary = hoursSalaryOverride !== "" ? Number(hoursSalaryOverride) : hoursSalaryAuto; const unpaidHoursAuto = Math.max(0, standardHoursValue - workedHoursValue); const unpaidHoursValue = unpaidHoursOverride !== "" ? Number(unpaidHoursOverride) : unpaidHoursAuto;
+   const daysPresentValue = Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0);
+  const standardDaysValue = Number(attendancePreview?.standardDays || 30);
   const attendanceDeductionDefault = attendanceCalculationMode === "days"
-    ? Math.round((calculatedGross * Number(attendancePreview?.unpaidDays || 0) / Math.max(1, Number(attendancePreview?.standardDays || attendancePreview?.daysInMonth || 0)) + Number.EPSILON) * 100) / 100
+    ? Math.max(0, Math.round((calculatedGross - Math.floor((calculatedGross / standardDaysValue) * Math.min(daysPresentValue, standardDaysValue) + 1e-9)) * 100) / 100)
     : Math.max(0, Math.round((calculatedGross - hoursSalary + Number.EPSILON) * 100) / 100);
   const attendanceDeduction = attendanceDeductionCustomized
     ? Number(form.attendanceDeduction || 0)
     : attendanceDeductionDefault;
   const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0) + scheduledAdvanceRecovery + attendanceDeduction;
   const totalEarnings = calculatedGross + incentive + bonus;
-  const netSalaryAuto = totalEarnings - deductions; const netSalary = netOverride !== "" ? Number(netOverride) : netSalaryAuto; const attendanceDeductionFinal = netOverride !== "" ? Math.max(0, Math.round((totalEarnings - (deductions - attendanceDeduction) - netSalary + Number.EPSILON) * 100) / 100) : attendanceDeduction;
+    const netSalaryAuto = Math.max(0, totalEarnings - deductions); const netSalary = netOverride !== "" ? Number(netOverride) : netSalaryAuto; const attendanceDeductionFinal = netOverride !== "" ? Math.max(0, Math.round((totalEarnings - (deductions - attendanceDeduction) - netSalary + Number.EPSILON) * 100) / 100) : attendanceDeduction;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const updatePeriod = (key, value) => { setRateOverride(""); setHoursSalaryOverride(""); setNetOverride(""); setUnpaidHoursOverride("");
     setAttendanceDeductionCustomized(false);
@@ -1526,7 +1535,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     getSalaryAttendancePreview(employee.id, { month: form.month, year: form.year })
       .then((response) => {
         if (!current) return;
-        setAttendancePreview(response.data ? { ...response.data, unpaidDays: (response.data.calculationMode || "hours") === "hours" ? 0 : response.data.unpaidDays } : null);
+                setAttendancePreview(response.data || null);
         setAttendanceCalculationMode(response.data?.calculationMode || "hours");
         setForm((existing) => Number(existing.grossSalary || 0) > 0
           ? existing
