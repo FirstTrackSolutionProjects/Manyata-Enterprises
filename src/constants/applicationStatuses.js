@@ -74,7 +74,7 @@ export const APPLICATION_UPDATE_STATUSES = [
   "customer_side_bank_forward", "customer_aadhaar_not_linked_with_mobile_number", "customer_cibil_score_low",
   "bank_reject", "vendor_side_re_bank_forward", "customer_full_loan_amount_disbursed",
   "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "purchased_by_full_cash", "purchased_by_cash_1",
-  "purchased_by_cash_2", "installed", "net_metering_completed_by_electricals_dept", "je_verification_approved",
+   "purchased_by_cash_2", "installed", "load_announcement", "net_metering_completed_by_electricals_dept", "je_verification_approved",
   "consumer_subsidy_pending", "consumer_subsidy_disbursed", "office_side_issue", "other",
 ].map((value) => APPLICATION_STATUSES.find((status) => status.value === value));
 
