@@ -98,7 +98,7 @@ export default function AdminAttendanceDashboard({ context }) {
     calendar, corrections, holidayDate, setHolidayDate, holidayTitle, setHolidayTitle,
     scheduleForm, setScheduleForm, loadRegister, syncManualDate, load, reviewCorrection,
     saveSchedule, submitHoliday, submitManagerEvent, submitManualPunchTime,
-    updateRegisterTime, printAttendanceReport, downloadRegister, statCard, statusLabel,
+    updateRegisterTime, saveAttendanceBreak, printAttendanceReport, downloadRegister, statusLabel,
     attendancePhotoHref, removeAttendanceHoliday, attendanceDateLabel, attendanceTimeLabel,
     attendanceDateTimeLabel, indiaTodayInput, indiaDateTimeInput, breakTypeLabel,
   } = context;
@@ -108,6 +108,8 @@ export default function AdminAttendanceDashboard({ context }) {
   const [expandedId, setExpandedId] = useState(null);
   const [showManual, setShowManual] = useState(false);
   const [showSchedule, setShowSchedule] = useState(false);
+  const [breakEdits, setBreakEdits] = useState({});
+  const [savingBreakId, setSavingBreakId] = useState(null);
 
   // Old links like #manual-attendance-update still open the manual update popup.
   useEffect(() => {
@@ -509,13 +511,11 @@ export default function AdminAttendanceDashboard({ context }) {
                                     <ul className="mt-1 space-y-1 text-xs text-muted">
                                       {item.breaks.map((entry, index) => (
                                         <li key={entry.id || index}>
-                                          <span className="font-semibold text-navy">
-                                            {breakTypeLabel(entry.break_type)}
-                                          </span>
-                                          : {attendanceTimeLabel(entry.break_start_at)} -{" "}
-                                          {entry.break_end_at
-                                            ? attendanceTimeLabel(entry.break_end_at)
-                                            : "In progress"}
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <span><span className="font-semibold text-navy">{breakTypeLabel(entry.break_type)}</span>: {attendanceTimeLabel(entry.break_start_at)} - {entry.break_end_at ? attendanceTimeLabel(entry.break_end_at) : "In progress"}</span>
+                                            {entry.break_end_at && <button type="button" className="inline-flex items-center gap-1 rounded-md border border-navy/15 px-2 py-1 text-[11px] font-semibold text-navy hover:bg-white" onClick={() => setBreakEdits((current) => ({ ...current, [entry.id]: current[entry.id] ? null : { break_start_at: indiaDateTimeInput(entry.break_start_at), break_end_at: indiaDateTimeInput(entry.break_end_at) } }))}><Pencil size={11}/>{breakEdits[entry.id] ? "Cancel edit" : "Edit break"}</button>}
+                                          </div>
+                                          {breakEdits[entry.id] && <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg bg-white p-2"><label className="text-[11px] text-muted">Start<input type="datetime-local" className={inputClass} value={breakEdits[entry.id].break_start_at} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_start_at: event.target.value } }))}/></label><label className="text-[11px] text-muted">End<input type="datetime-local" className={inputClass} value={breakEdits[entry.id].break_end_at} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_end_at: event.target.value } }))}/></label><button type="button" disabled={savingBreakId === entry.id} className="rounded-md bg-navy px-3 py-2 text-xs font-semibold text-white disabled:opacity-50" onClick={async () => { setSavingBreakId(entry.id); await saveAttendanceBreak(entry.id, breakEdits[entry.id], item.employee_name); setBreakEdits((current) => ({ ...current, [entry.id]: null })); setSavingBreakId(null); }}>{savingBreakId === entry.id ? "Saving..." : "Save"}</button></div>}
                                         </li>
                                       ))}
                                     </ul>

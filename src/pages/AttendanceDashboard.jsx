@@ -21,6 +21,7 @@ import {
   getAttendanceRegister,
   addManagerAttendanceEvent,
   updateAttendanceRegisterTime,
+  updateAttendanceBreak,
   startAttendanceBreak,
   endAttendanceBreak,
   getAttendanceSettings,
@@ -334,6 +335,15 @@ export default function AttendanceDashboard({ isManager }) {
     } catch (err) { setError(err.message || "Could not update the attendance time."); }
     finally { setSavingTimeRecord(""); }
   };
+  const saveAttendanceBreak = async (breakId, payload, employeeName) => {
+    setBusy(true); setError(""); setNotice("");
+    try {
+      await updateAttendanceBreak(breakId, payload);
+      setNotice(`Break updated for ${employeeName}.`);
+      await loadRegister();
+    } catch (err) { setError(err.message || "Could not update the break."); }
+    finally { setBusy(false); }
+  };
   const printAttendanceReport = () => {
     const rows = isManager ? calendar.items.filter((item) => !search.trim() || `${item.employee_name} ${item.employee_user_id} ${item.employee_department} ${item.branch_name}`.toLowerCase().includes(search.trim().toLowerCase())) : (mine.calendar || []).map((item) => ({ ...item, employee_name: user?.name || "Employee", employee_user_id: user?.user_id || "", employee_department: user?.department || "", branch_name: "" }));
     const reportFrom = isManager ? from : `${month}-01`;
@@ -373,7 +383,7 @@ export default function AttendanceDashboard({ isManager }) {
   const statCard = (label, value, hint = "") => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 text-2xl font-extrabold text-navy">{value}</p>{hint && <p className="mt-1 text-xs text-muted">{hint}</p>}</div>;
   const statusLabel = (status) => ({ present: "Present", late: "Late arrival", early_departure: "Early departure", late_and_early: "Late and early", incomplete: "Incomplete", absent: "Absent", holiday: "Holiday", weekly_off: "Weekly off", approved_leave: "Approved leave", upcoming: "Upcoming", schedule_unconfigured: "Set work schedule" }[status] || status);
 
-    const attendanceViewContext = { isManager, isEmployee, mine, register, rowTimeEdits, setRowTimeEdits, savingTimeRecord, attendanceEmployees, manualEvent, setManualEvent, manualPunchTimes, setManualPunchTimes, from, setFrom, to, setTo, month, setMonth, timerNow, search, setSearch, busy, loading, setError, settings, calendar, corrections, breakType, setBreakType, useLocation, setUseLocation, cameraStream, punchPhoto, videoRef, holidayDate, setHolidayDate, holidayTitle, setHolidayTitle, correctionForm, setCorrectionForm, scheduleForm, setScheduleForm, loadRegister, syncManualDate, load, startPunchCamera, capturePunchPhoto, submitPunch, submitBreak, submitCorrection, reviewCorrection, saveSchedule, submitHoliday, submitManagerEvent, submitManualPunchTime, updateRegisterTime, printAttendanceReport, downloadRegister, activePunch, onBreak, clockedInToday, todayClosed, activeElapsedMinutes, monthRows, monthSummary, statCard, statusLabel, Loader2, Search, Download, Clock3, LogIn, LogOut, ClipboardList, Camera, attendancePhotoHref, removeAttendanceHoliday, attendanceDateLabel, attendanceTimeLabel, attendanceDateTimeLabel, indiaTodayInput, indiaDateTimeInput, breakTypeLabel };
+    const attendanceViewContext = { isManager, isEmployee, mine, register, rowTimeEdits, setRowTimeEdits, savingTimeRecord, attendanceEmployees, manualEvent, setManualEvent, manualPunchTimes, setManualPunchTimes, from, setFrom, to, setTo, month, setMonth, timerNow, search, setSearch, busy, loading, setError, settings, calendar, corrections, breakType, setBreakType, useLocation, setUseLocation, cameraStream, punchPhoto, videoRef, holidayDate, setHolidayDate, holidayTitle, setHolidayTitle, correctionForm, setCorrectionForm, scheduleForm, setScheduleForm, loadRegister, syncManualDate, load, startPunchCamera, capturePunchPhoto, submitPunch, submitBreak, submitCorrection, reviewCorrection, saveSchedule, submitHoliday, submitManagerEvent, submitManualPunchTime, updateRegisterTime, saveAttendanceBreak, printAttendanceReport, downloadRegister, activePunch, onBreak, clockedInToday, todayClosed, activeElapsedMinutes, monthRows, monthSummary, statCard, statusLabel, Loader2, Search, Download, Clock3, LogIn, LogOut, ClipboardList, Camera, attendancePhotoHref, removeAttendanceHoliday, attendanceDateLabel, attendanceTimeLabel, attendanceDateTimeLabel, indiaTodayInput, indiaDateTimeInput, breakTypeLabel };
 return <div className="space-y-5">
     <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-2xl font-extrabold text-navy">Attendance</h1><p className="mt-1 text-sm text-muted">Clock in and out securely, and review timestamped attendance records.</p></div><button onClick={load} disabled={loading} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy disabled:opacity-50">Refresh</button></div>
     {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
