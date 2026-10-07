@@ -1488,7 +1488,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   useEffect(() => {
         if (attendanceCalculationMode !== "hours" || !previewReady || !joinValid) return;
     setAttendancePreview((current) => {
-      if (!current) return current;
+      if (!current || current.fromSavedSlip) return current;
       const paidSundays = joinValid ? Math.min(4, sundaysFromJoin) : Number(current.paidSundayCount || 0);
       const absent = Math.max(0, activeDays - Number(current.workedDays || 0) - paidSundays);
       return { ...current, paidSundayCount: paidSundays, unpaidDays: absent };
