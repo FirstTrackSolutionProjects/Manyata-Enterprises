@@ -1486,7 +1486,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const previewReady = Boolean(attendancePreview);
   useEffect(() => {
     if (attendanceCalculationMode !== "hours") return;
-    setAttendancePreview((current) => current ? { ...current, paidSundayCount: sundaysFromJoin, unpaidDays: Math.max(0, activeDays - Number(current.workedDays || 0) - sundaysFromJoin) } : current);
+    
   }, [joiningDate, form.month, form.year, previewReady, attendanceCalculationMode]);
   const basic = salaryStructure === "custom" ? Number(customStructure.basicSalary || 0) : Math.round(gross * 50) / 100;
   const hra = salaryStructure === "custom" ? Number(customStructure.hra || 0) : Math.round(gross * 40) / 100;
