@@ -1526,7 +1526,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
     getSalaryAttendancePreview(employee.id, { month: form.month, year: form.year })
       .then((response) => {
         if (!current) return;
-        setAttendancePreview(response.data || null);
+        setAttendancePreview(response.data ? { ...response.data, unpaidDays: (response.data.calculationMode || "hours") === "hours" ? 0 : response.data.unpaidDays } : null);
         setAttendanceCalculationMode(response.data?.calculationMode || "hours");
         setForm((existing) => Number(existing.grossSalary || 0) > 0
           ? existing
