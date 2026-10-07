@@ -1471,7 +1471,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   });
   const [saving, setSaving] = useState(false);
   const [draftSlip, setDraftSlip] = useState(null);
-  const [joiningDate, setJoiningDate] = useState("");
+ const [joiningDate, setJoiningDate] = useState(() => String(employee.joining_date || "").trim());
   const [hasDownloadedDraft, setHasDownloadedDraft] = useState(false);
   const [error, setError] = useState("");
   const [attendancePreview, setAttendancePreview] = useState(null);
