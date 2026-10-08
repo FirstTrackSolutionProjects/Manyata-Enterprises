@@ -86,6 +86,7 @@ export const APPLICATION_UPDATE_STATUSES = [
   "other_vendor",
   "after_calling_some_times",
   "bank_loan_coming_soon",
+  "rejected",
   "other",
 ].map((value) => APPLICATION_STATUSES.find((status) => status.value === value));
 
