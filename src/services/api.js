@@ -260,6 +260,7 @@ export const downloadInstallationPdf = (id) => window.open(`${API_URL}/installat
 export const updateInstallation = (id, payload) => apiFetch(`/installations/${id}`, { method: "PUT", body: JSON.stringify(payload) });
 export const updateInstallationStatus = (id, status, note = "") => apiFetch(`/installations/${id}/status`, { method: "PATCH", body: JSON.stringify({ status, note }) });
 export const assignInstallationTechnicalWork = (id, employeeId, instructions) => apiFetch(`/installations/${id}/technical-assignment`, { method: "PATCH", body: JSON.stringify({ employeeId: employeeId || null, instructions }) });
+export const listInstallationElectricians = () => apiFetch("/installations/electricians");
 export const listTechnicalInstallationEmployees = (location = "") => apiFetch(`/installations/technical-employees${location ? `?location=${encodeURIComponent(location)}` : ""}`);
 export const deleteInstallation = (id) => apiFetch(`/installations/${id}`, { method: "DELETE" });
 

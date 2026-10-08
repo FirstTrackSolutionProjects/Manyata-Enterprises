@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Wrench,
@@ -14,7 +14,7 @@ import {
   Battery,
   Zap,
 } from "lucide-react";
-import { uploadFilesToS3 } from "../services/api";
+import { listInstallationElectricians, uploadFilesToS3 } from "../services/api";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
 import CameraFileInput from "../components/CameraFileInput";
 import GeoLocationCapture from "../components/GeoLocationCapture";
@@ -34,8 +34,7 @@ const SOLAR_PANEL_TYPES = ["TOPCON", "BIFACIAL"];
 
 const CONNECTION_TYPES = ["On-Grid", "Off-Grid", "Hybrid"];
 
-// Add more names here as they're provided
-const ELECTRICIANS = ["SRABAN KUMAR PATI"];
+const REQUESTED_ELECTRICIANS = ["Abhishek Sahu", "Kamlakant"];
 
 const initialState = {
   // Customer Information
@@ -70,11 +69,26 @@ const initialState = {
 
 export default function Installation() {
   const [selectedLocation, setSelectedLocation] = useState("");
+  const [electricians, setElectricians] = useState(REQUESTED_ELECTRICIANS);
   const [form, setForm] = useState(initialState);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
   const [siteGps, setSiteGps] = useState(null);
+
+  useEffect(() => {
+    let current = true;
+    listInstallationElectricians()
+      .then((response) => {
+        if (!current) return;
+        const names = [...(response.data?.items || []), ...REQUESTED_ELECTRICIANS];
+        setElectricians([...new Map(names.map((name) => [String(name).trim().toLowerCase(), String(name).trim()])).values()]);
+      })
+      .catch(() => {
+        if (current) setElectricians(REQUESTED_ELECTRICIANS);
+      });
+    return () => { current = false; };
+  }, []);
 
   /* -------------------------------------------------------
      HANDLERS
@@ -420,7 +434,7 @@ export default function Installation() {
                 name="electricianName"
                 value={form.electricianName}
                 onChange={handleChange}
-                options={ELECTRICIANS}
+                options={electricians}
                 placeholder="Choose"
                 required
               />
