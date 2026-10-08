@@ -122,6 +122,7 @@ export const getEmployeeSalaryAdvances = (employeeId) => apiFetch(`/salaries/emp
 export const createEmployeeSalaryAdvance = (employeeId, payload) =>
   apiFetch(`/salaries/employees/${employeeId}/advances`, { method: "POST", body: JSON.stringify(payload) });
 export const getMySalarySlips = () => apiFetch("/salaries/my");
+export const getMySalaryAdvances = () => apiFetch("/salaries/my/advances");
 export const downloadSalarySlip = async (id, employeeName, payMonth, payYear) => {
   const response = await fetch(`${API_URL}/salaries/${id}/pdf`, { credentials: "include" });
   if (!response.ok) {

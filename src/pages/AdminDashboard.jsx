@@ -65,6 +65,7 @@ import {
   getSalaryAttendancePreview,
   getEmployeeSalaryAdvances,
   createEmployeeSalaryAdvance,
+  getMySalaryAdvances,
   getMySalarySlips,
   downloadSalarySlip,
   listCommissionPayouts,
@@ -120,7 +121,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
       {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
-      {hasAccess && tab === "salary-slips" && user?.role === "employee" && <EmployeeSalarySlipsTab />}
+      {hasAccess && tab === "salary-slips" && user?.role === "employee" && <div className="space-y-5"><EmployeeAdvanceHistory /><EmployeeSalarySlipsTab /></div>}
       {hasAccess && tab === "salary-management" && (user?.role === "owner" || isHr) && <SalaryManagementTab />}
       {hasAccess && tab === "commission-payouts" && (user?.role === "owner" || isHr) && <CommissionPayoutsTab />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
@@ -175,6 +176,46 @@ function EmployeeProfileTab() {
     {profile.description && <section className="rounded-2xl border border-navy/10 bg-white p-5"><h3 className="font-bold text-navy">About</h3><p className="mt-2 whitespace-pre-wrap text-sm text-navy">{displayProfileValue(profile.description)}</p></section>}
     {editing && <JoinUsDetailsModal submission={submission} employeeProfile onClose={() => setEditing(false)} onSaveProfile={async (payload) => { const result = await updateMyEmployeeProfile(payload); await refresh(); return result; }} onSaved={() => setEditing(false)} />}
   </div>;
+}
+
+function EmployeeAdvanceHistory() {
+  const [history, setHistory] = useState({ advances: [], deductions: [] });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    getMySalaryAdvances()
+      .then((response) => setHistory({ advances: response.data?.advances || [], deductions: response.data?.deductions || [] }))
+      .catch((err) => setError(err.message || "Could not load advance history."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const money = (amount) => `Rs. ${Number(amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const totalTaken = history.advances.reduce((sum, advance) => sum + Number(advance.total_amount || 0), 0);
+  const totalRecovered = history.advances.reduce((sum, advance) => sum + Number(advance.recovered_amount || 0), 0);
+  const totalBalance = history.advances.reduce((sum, advance) => sum + Math.max(0, Number(advance.total_amount || 0) - Number(advance.recovered_amount || 0)), 0);
+
+  return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+    <div className="flex items-center gap-2 border-b border-navy/10 px-5 py-4"><Banknote size={18} className="text-amber"/><h2 className="font-bold text-navy">My Advance History</h2></div>
+    {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div>
+      : error ? <p className="p-5 text-sm text-red-600">{error}</p>
+      : <div className="p-5">
+        {history.advances.length > 0 && <div className="mb-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-muted">Total advance taken</p><p className="mt-1 font-bold text-navy">{money(totalTaken)}</p></div>
+          <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-muted">Deducted from salary</p><p className="mt-1 font-bold text-navy">{money(totalRecovered)}</p></div>
+          <div className="rounded-xl bg-slate-50 p-4"><p className="text-xs text-muted">Remaining balance</p><p className="mt-1 font-bold text-navy">{money(totalBalance)}</p></div>
+        </div>}
+        {history.advances.length === 0 && history.deductions.length === 0
+          ? <p className="text-sm text-muted">No advances or advance deductions have been recorded.</p>
+          : <>
+            {history.advances.length > 0 && <div className="divide-y divide-navy/5">{history.advances.map((advance) => <article key={advance.id} className="py-3 text-sm first:pt-0 last:pb-0">
+              <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-navy">Advance taken: {money(advance.total_amount)}</strong><span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-navy">{advance.status === "paid" ? "Paid" : advance.status === "cancelled" ? "Cancelled" : "Active"}</span></div>
+              <p className="mt-1 text-xs text-muted">Deducted from salary: {money(advance.recovered_amount)} · Remaining: {money(Math.max(0, Number(advance.total_amount || 0) - Number(advance.recovered_amount || 0)))} · Monthly installment: {money(advance.monthly_installment)}</p>
+              {advance.note && <p className="mt-1 text-xs text-muted">Note: {advance.note}</p>}
+            </article>)}</div>}
+            {history.deductions.length > 0 && <div className="mt-5 border-t border-navy/10 pt-4"><h3 className="mb-2 text-sm font-bold text-navy">Published salary deductions</h3><div className="divide-y divide-navy/5">{history.deductions.map((deduction) => <div key={`${deduction.pay_year}-${deduction.pay_month}`} className="flex flex-wrap justify-between gap-2 py-2 text-xs"><strong className="text-navy">{new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(deduction.pay_year, deduction.pay_month - 1, 1))}</strong><span className="text-muted">Advance: {money(deduction.advance_recovery)} · Any Other Advance: {money(deduction.other_advance)}</span></div>)}</div></div>}
+          </>}
+      </div>}
+  </section>;
 }
 
 function EmployeeSalarySlipsTab() {
