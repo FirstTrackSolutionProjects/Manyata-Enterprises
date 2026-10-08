@@ -1218,7 +1218,7 @@ function EmployeesTab() {
             <Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}
           </button>
           <button onClick={load} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
-          {isOwner && <button
+          {canEditEmployees && <button
             onClick={() => {
               setEditing(null);
               setShowModal(true);
