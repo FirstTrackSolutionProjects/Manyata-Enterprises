@@ -336,13 +336,21 @@ export default function AttendanceDashboard({ isManager }) {
     finally { setSavingTimeRecord(""); }
   };
   const saveAttendanceBreak = async (breakId, payload, employeeName) => {
+    const startAt = String(payload?.break_start_at || "");
+    const endAt = String(payload?.break_end_at || "");
+    if (!startAt || !endAt || startAt.slice(0, 10) !== endAt.slice(0, 10) || endAt <= startAt) {
+      setError("Break ka End time, Start time ke baad hona chahiye aur dono same date par hone chahiye.");
+      return false;
+    }
     setBusy(true); setError(""); setNotice("");
     try {
       await updateAttendanceBreak(breakId, payload);
       setNotice(`Break updated for ${employeeName}.`);
       await loadRegister();
+      return true;
     } catch (err) { setError(err.message || "Could not update the break."); }
     finally { setBusy(false); }
+    return false;
   };
   const printAttendanceReport = () => {
     const rows = isManager ? calendar.items.filter((item) => !search.trim() || `${item.employee_name} ${item.employee_user_id} ${item.employee_department} ${item.branch_name}`.toLowerCase().includes(search.trim().toLowerCase())) : (mine.calendar || []).map((item) => ({ ...item, employee_name: user?.name || "Employee", employee_user_id: user?.user_id || "", employee_department: user?.department || "", branch_name: "" }));
