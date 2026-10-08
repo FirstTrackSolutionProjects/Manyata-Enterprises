@@ -1494,8 +1494,9 @@ function EmployeeAttendanceModal({ employee, onClose }) {
 function SalarySlipModal({ employee, onClose, onGenerate }) {
   const now = new Date();
   const savedNumber = (key) => employee[key] == null ? "0" : String(Number(employee[key]));
+  const isSatyaSundarParida = String(employee.name || "").trim().toLowerCase() === "satya sundar parida";
   const savedGrossSalary = Number(employee.gross_salary || employee.joining_gross_salary || 0);
-  const defaultGrossSalary = savedGrossSalary > 0 ? savedGrossSalary : 10000;
+  const defaultGrossSalary = isSatyaSundarParida ? 10000 : savedGrossSalary > 0 ? savedGrossSalary : 10000;
   const defaultBasicSalary = Math.round(defaultGrossSalary * 0.5 * 100) / 100;
   const defaultHra = Math.round(defaultGrossSalary * 0.4 * 100) / 100;
   const defaultAllowance = Math.round((defaultGrossSalary - defaultBasicSalary - defaultHra) * 100) / 100;
@@ -1519,8 +1520,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   const [attendanceCalculationMode, setAttendanceCalculationMode] = useState("hours");
   const [attendancePreviewError, setAttendancePreviewError] = useState("");
   const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false); const [rateOverride, setRateOverride] = useState(""); const [hoursSalaryOverride, setHoursSalaryOverride] = useState(""); const [netOverride, setNetOverride] = useState(""); const [unpaidHoursOverride, setUnpaidHoursOverride] = useState("");
-  const isSatyaSeptember2026 = String(employee.name || "").trim().toLowerCase() === "satya sundar parida"
-    && Number(form.month) === 9 && Number(form.year) === 2026;
+  const isSatyaSeptember2026 = isSatyaSundarParida && Number(form.month) === 9 && Number(form.year) === 2026;
   const gross = Number(form.grossSalary || 0);
   const joinMatch = joiningDate.trim().match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
   const joinDay = joinMatch && Number(joinMatch[2]) === Number(form.month) && Number(joinMatch[3]) === Number(form.year) ? Math.min(30, Math.max(1, Number(joinMatch[1]))) : 1;
@@ -1576,6 +1576,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
         if (preview && isSatyaSeptember2026) {
           const paidSundays = Number(preview.paidSundayCount || 0);
           setAttendancePreview({ ...preview, workedDays: Math.max(0, 10 - paidSundays), unpaidDays: 1 });
+          setRateOverride("41.75");
           setNetOverride("2505");
         } else {
           setAttendancePreview(preview);
