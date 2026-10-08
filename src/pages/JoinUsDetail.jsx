@@ -4,7 +4,7 @@ import { ArrowLeft, BadgeCheck, Briefcase, Building2, CalendarDays, Check, Clock
 import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
 import { downloadJoinUsLOA, downloadSubmissionPdf, fileUrl, getJoinUsDetail, updateJoinUsStatus } from "../services/api";
 
-const STATUSES = [["rehired","Re-Hired"],["reviewed","Reviewed"],["shortlisted","Shortlisted"],["onboarded","Onboarded"],["terminated","Terminated"],["resigned","Resigned"],["on_leave","On Leave"],["salary_success","Salary Success"],["rejected","Rejected"]];
+const STATUSES = [["hold","Hold"],["approved","Approved"],["review","Review"],["document_verification","Document Verification"],["rehired","Re-Hired"],["reviewed","Reviewed"],["shortlisted","Shortlisted"],["onboarded","Onboarded"],["terminated","Terminated"],["resigned","Resigned"],["on_leave","On Leave"],["salary_success","Salary Success"],["rejected","Rejected"]];
 const dateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
 const titleCase = (value = "") => value.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
@@ -12,6 +12,10 @@ const titleCase = (value = "") => value.replace(/_/g, " ").replace(/\b\w/g, (c) 
 
 const STATUS_STYLES = {
   new: "bg-amber-50 text-amber-700 ring-amber-200",
+  hold: "bg-orange-50 text-orange-700 ring-orange-200",
+  approved: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+  review: "bg-blue-50 text-blue-700 ring-blue-200",
+  document_verification: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   reviewed: "bg-blue-50 text-blue-700 ring-blue-200",
   shortlisted: "bg-indigo-50 text-indigo-700 ring-indigo-200",
   onboarded: "bg-emerald-50 text-emerald-700 ring-emerald-200",
