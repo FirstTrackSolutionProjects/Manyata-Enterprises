@@ -394,6 +394,7 @@ export const getAttendanceCorrections = (mine = false, status = "pending") => ap
 export const decideAttendanceCorrection = (id, payload) => apiFetch(`/attendance/corrections/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 export const resendPartnerAgreement = (id) => apiFetch(`/admin/partners/${id}/agreement`, { method: "POST" });
 export const sendPartnerAgreement = resendPartnerAgreement;
+export const sendPartnerLOI = (id) => apiFetch(`/admin/partners/${id}/loi`, { method: "POST" });
 const downloadPartnerAgreementFile = async (id, extension) => {
   const response = await fetch(`${API_URL}/admin/partners/${id}/agreement.${extension}`, { credentials: "include" });
   if (!response.ok) {

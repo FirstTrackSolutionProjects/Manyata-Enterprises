@@ -12,6 +12,7 @@ import {
   Eye,
   Pencil,
   UserCheck,
+  Send,
   UserX,
   KeyRound,
   Trash2,
@@ -72,6 +73,7 @@ import {
   downloadSalarySlip,
   listCommissionPayouts,
   updateCommissionPayoutStatus,
+  sendPartnerLOI,
   updateMyEmployeeProfile,
   attendancePhotoHref,
   getAttendanceRegister
@@ -2746,6 +2748,12 @@ function SubmissionList({ type }) {
   const [showPartnerCreate, setShowPartnerCreate] = useState(false);
   const [showSubmissionCreate, setShowSubmissionCreate] = useState(false);
   const [showPartnerOnboard, setShowPartnerOnboard] = useState(false);
+  const [showPartnerLOI, setShowPartnerLOI] = useState(false);
+  const [loiPartners, setLoiPartners] = useState([]);
+  const [loiPartnerId, setLoiPartnerId] = useState("");
+  const [loiLoading, setLoiLoading] = useState(false);
+  const [loiSending, setLoiSending] = useState(false);
+  const [loiError, setLoiError] = useState("");
   const [onboardItems, setOnboardItems] = useState([]);
   const [onboardLoading, setOnboardLoading] = useState(false);
   const [onboardType, setOnboardType] = useState("super_vendor");
@@ -2832,6 +2840,18 @@ function SubmissionList({ type }) {
     return () => { active = false; };
   }, [showPartnerOnboard, isOwner, type]);
 
+  useEffect(() => {
+    if (!showPartnerLOI || !isOwner || type !== "partners") return;
+    let active = true;
+    setLoiLoading(true);
+    setLoiError("");
+    apiFetch("/admin/partners?limit=100")
+      .then((res) => { if (active) setLoiPartners(res.data.items || []); })
+      .catch((err) => { if (active) setLoiError(err.message || "Could not load partner list."); })
+      .finally(() => { if (active) setLoiLoading(false); });
+    return () => { active = false; };
+  }, [showPartnerLOI, isOwner, type]);
+
   const updateStatus = async (id, status) => {
     setUpdating(true);
     try {
@@ -2867,6 +2887,23 @@ function SubmissionList({ type }) {
     return normalizedType === onboardParentType && item.status === "approved";
   });
   const selectedOnboardPartner = onboardPartners.find((item) => String(item.id) === onboardPartnerId) || null;
+  const selectedLOIPartner = loiPartners.find((item) => String(item.id) === loiPartnerId) || null;
+
+  const handleSendPartnerLOI = async () => {
+    if (!selectedLOIPartner?.email || loiSending) return;
+    setLoiSending(true);
+    setLoiError("");
+    try {
+      const response = await sendPartnerLOI(selectedLOIPartner.id);
+      setShowPartnerLOI(false);
+      setLoiPartnerId("");
+      window.alert(response.message || `LOI PDF sent to ${selectedLOIPartner.email}.`);
+    } catch (err) {
+      setLoiError(err.message || "Could not send the LOI email.");
+    } finally {
+      setLoiSending(false);
+    }
+  };
 
   const handlePartnerOnboard = async () => {
     if (!selectedOnboardPartner || onboardSaving) return;
@@ -2961,6 +2998,7 @@ function SubmissionList({ type }) {
           }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
           {isPartners && canManageRecords && <button onClick={() => setShowPartnerCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> Add Partner</button>}
           {(isCareers || isJoinUs) && canManageRecords && <button onClick={() => setShowSubmissionCreate(true)} className="flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-hover"><Plus size={14} /> {isCareers ? "Add Career Application" : "Add Join-Us Submission"}</button>}
+          {isPartners && isOwner && <button onClick={() => { setShowPartnerLOI(true); setLoiError(""); setLoiPartnerId(""); }} className="flex items-center gap-1.5 rounded-full border border-navy/15 bg-white px-4 py-2 text-sm font-bold text-navy hover:border-amber"><Send size={15} /> Send LOI Mail</button>}
           {isPartners && isOwner && <button onClick={() => { setShowPartnerOnboard(true); setOnboardCredentials(null); setOnboardError(""); setOnboardPartnerId(""); }} className="flex items-center gap-1.5 rounded-full border border-amber px-4 py-2 text-sm font-bold text-navy hover:bg-amber-soft"><UserCheck size={15} /> Onboard Partner</button>}
       </div>
 
@@ -3095,6 +3133,7 @@ function SubmissionList({ type }) {
         {onboardCredentials && <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4"><p className="text-sm font-bold text-emerald-900">Credentials ready — share securely</p><p className="mt-2 text-sm text-emerald-900">Login ID: <strong>{onboardCredentials.loginId}</strong></p><p className="mt-1 text-sm text-emerald-900">Temporary password: <strong>{onboardCredentials.password}</strong></p><p className="mt-2 text-xs text-emerald-800">The partner must change the password at first sign-in.</p><button onClick={() => navigator.clipboard?.writeText(`Login ID: ${onboardCredentials.loginId}\nTemporary password: ${onboardCredentials.password}`)} className="mt-3 rounded-full border border-emerald-300 px-4 py-2 text-xs font-bold text-emerald-900">Copy Credentials</button></div>}
         <div className="mt-6 flex justify-end gap-3"><button onClick={() => setShowPartnerOnboard(false)} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-bold text-navy">Close</button><button onClick={handlePartnerOnboard} disabled={!selectedOnboardPartner || (Boolean(onboardParentType) && !onboardParentId) || onboardLoading || onboardSaving || Boolean(onboardCredentials)} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50">{onboardSaving ? "Processing..." : selectedOnboardPartner?.partner_login_id ? "Reset Password" : "Create Login"}</button></div>
       </div></div>}
+      {isPartners && isOwner && showPartnerLOI && <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-navy/60 p-4"><section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="partner-loi-title"><div className="flex items-start justify-between gap-4"><div><h3 id="partner-loi-title" className="text-lg font-extrabold text-navy">Send Partner LOI</h3><p className="mt-1 text-sm text-muted">Choose the partner. A personalized LOI PDF will be emailed to their registered address.</p></div><button type="button" onClick={() => setShowPartnerLOI(false)} className="rounded-full p-2 text-muted hover:bg-slate-100" aria-label="Close"><X size={18}/></button></div>{loiError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{loiError}</p>}{loiLoading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : <><label className="mt-5 block text-sm font-semibold text-navy">Partner<select value={loiPartnerId} onChange={(event) => setLoiPartnerId(event.target.value)} className="mt-1.5 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-3 text-sm"><option value="">Choose partner</option>{loiPartners.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name || `Partner ${partner.id}`} · #{partner.id}</option>)}</select></label>{selectedLOIPartner && <div className="mt-4 rounded-xl bg-slate-50 p-4 text-sm"><p><span className="font-semibold">Partner:</span> {selectedLOIPartner.contact_name || selectedLOIPartner.company_name}</p><p className="mt-1"><span className="font-semibold">Email:</span> {selectedLOIPartner.email || "No email address on record"}</p><p className="mt-2 text-xs text-muted">The attached PDF filename will include this partner's name.</p></div>}</> }<div className="mt-6 flex justify-end gap-3"><button type="button" onClick={() => setShowPartnerLOI(false)} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button type="button" onClick={handleSendPartnerLOI} disabled={!selectedLOIPartner?.email || loiLoading || loiSending} className="inline-flex items-center gap-2 rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50"><Send size={15}/>{loiSending ? "Sending..." : "Send LOI PDF"}</button></div></section></div>}
       {isPartners && selectedPartner && (
         <PartnerDetailsModal
           key={`${selectedPartner.partner.id}-${selectedPartner.editing ? "edit" : "view"}`}
