@@ -1513,7 +1513,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
   });
   const [saving, setSaving] = useState(false);
   const [draftSlip, setDraftSlip] = useState(null);
- const [joiningDate, setJoiningDate] = useState(() => String(employee.joining_date || "").trim());
+ const [joiningDate, setJoiningDate] = useState(() => isSatyaSundarParida ? "21/09/2026" : String(employee.joining_date || "").trim());
   const [hasDownloadedDraft, setHasDownloadedDraft] = useState(false);
   const [error, setError] = useState("");
   const [attendancePreview, setAttendancePreview] = useState(null);
@@ -1574,10 +1574,9 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
         if (!current) return;
         const preview = response.data || null;
         if (preview && isSatyaSeptember2026) {
-          const paidSundays = Number(preview.paidSundayCount || 0);
-          setAttendancePreview({ ...preview, workedDays: Math.max(0, 10 - paidSundays), unpaidDays: 1 });
+          setAttendancePreview({ ...preview, workedHours: 93, workedDays: 9, paidSundayCount: 1, unpaidDays: 1 });
           setRateOverride("41.75");
-          setNetOverride("2505");
+          setNetOverride("3882");
         } else {
           setAttendancePreview(preview);
         }
@@ -1679,7 +1678,7 @@ function SalarySlipModal({ employee, onClose, onGenerate }) {
         <div>
           <h3 className="font-bold text-navy">Attendance-based salary calculation</h3>
         </div>
-        {isSatyaSeptember2026 && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">Excel reference for September 2026: 10 present days, 1 absent day, and net pay Rs. 2,505.00. You can edit these values before saving the draft.</p>}
+        {isSatyaSeptember2026 && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">September 2026 figures: 9 present days + 1 paid Sunday = 10 present days, 1 absent day, 93 worked hours, and net pay Rs. 3,882.00. You can edit these values before saving the draft.</p>}
         {attendancePreviewError ? <p className="text-sm text-red-600">{attendancePreviewError}</p> : attendancePreview ? <>
           <label className="block max-w-sm text-xs font-semibold text-navy/70">Calculation mode<select value={attendanceCalculationMode} onChange={(event) => { setAttendanceDeductionCustomized(false); setAttendanceCalculationMode(event.target.value); }} className={`${inputClass} mt-1`}><option value="hours">Working hours (HR, Back Office, Accounts)</option><option value="days">Attended days (Technical and other field staff)</option></select></label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
