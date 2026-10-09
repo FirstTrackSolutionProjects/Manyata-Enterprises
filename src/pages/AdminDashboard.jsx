@@ -24,7 +24,8 @@ import {
   Download,
   Banknote,
   MapPin,
-  Camera
+  Camera,
+  Clock3
 } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
@@ -98,7 +99,7 @@ export default function AdminDashboard() {
   const isHr = isHrEmployee(user);
   const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
   const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || (isHr ? "employees" : "no-access"));
-  const requiredModule = tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
+  const requiredModule = tab === "application-forward-history" || tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
   const hasAccess = user?.role === "owner" || isHr
     || (tab === "employee-profile" && user?.role === "employee")
     || (tab === "emp-attendance" && isHr)
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout
-      activeSection={tab}
+      activeSection={tab === "application-forward-history" ? "applications" : tab}
       onSectionChange={handleSectionChange}
     >
       {!hasAccess || (tab === "overview" && user?.role !== "owner" && !isHr) ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">The owner has not granted you access to any dashboard sections yet.</div> : null}
@@ -124,6 +125,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "applications" && <ApplicationsTab />}
       {hasAccess && tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}
       {hasAccess && tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
+      {hasAccess && tab === "application-forward-history" && <ApplicationForwardHistory onBack={() => handleSectionChange(searchParams.get("historyReturn") || "applications")} />}
       {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <div className="space-y-5"><EmployeeAdvanceHistory /><EmployeeSalarySlipsTab /></div>}
@@ -662,6 +664,7 @@ const EMPTY_FILTERS = {
 
 function ApplicationsTab({ initialLocation = "" }) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const canEditApplications = hasActionPermission(user, "applications", "edit");
   const canDownloadApplications = hasActionPermission(user, "applications", "download");
@@ -860,6 +863,7 @@ function ApplicationsTab({ initialLocation = "" }) {
             await downloadCsvExport(`/applications/export.csv?${params}`, "applications.csv");
           } catch (error) { window.alert(error.message || "Could not download applications."); }
         }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
+        {canViewApplications && <button onClick={() => setSearchParams({ section: "application-forward-history", historyReturn: searchParams.get("section") || (initialLocation === "odisha" ? "applications-odisha" : initialLocation === "kolkata" ? "applications-kolkata" : "applications") })} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Clock3 size={15} /> History</button>}
       </div>
 
       {/* Filter panel */}
@@ -1093,7 +1097,6 @@ function ApplicationsTab({ initialLocation = "" }) {
           )}
         </>
       )}
-      {canViewApplications && <ApplicationForwardHistory />}
     </div>
   );
 }

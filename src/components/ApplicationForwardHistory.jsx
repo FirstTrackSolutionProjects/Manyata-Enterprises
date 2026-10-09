@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Clock3, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Clock3, Loader2, RefreshCw } from "lucide-react";
 import { getApplicationForwardingHistory } from "../services/api";
 import { applicationStatusLabel } from "../constants/applicationStatuses";
 
 const formatForwardedAt = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
 
-export default function ApplicationForwardHistory() {
+export default function ApplicationForwardHistory({ onBack }) {
   const [page, setPage] = useState(1);
   const [history, setHistory] = useState({ items: [], pages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -46,9 +46,12 @@ export default function ApplicationForwardHistory() {
           <h2 className="flex items-center gap-2 text-sm font-bold text-navy"><Clock3 size={17} className="text-amber" /> Application forwarding history</h2>
           <p className="mt-1 text-xs text-muted">Application, status at forwarding, sender, recipient, and exact date/time.</p>
         </div>
-        <button type="button" onClick={() => load(page)} disabled={loading} className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-3 py-2 text-xs font-semibold text-navy disabled:opacity-50">
-          <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {onBack && <button type="button" onClick={onBack} className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-3 py-2 text-xs font-semibold text-navy"><ArrowLeft size={13} /> Back to Applications</button>}
+          <button type="button" onClick={() => load(page)} disabled={loading} className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-3 py-2 text-xs font-semibold text-navy disabled:opacity-50">
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+        </div>
       </div>
 
       {error && <p role="alert" className="m-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
