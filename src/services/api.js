@@ -114,6 +114,8 @@ export const getSalaryEmployees = (params = {}) => {
   const query = new URLSearchParams(params).toString();
   return apiFetch(`/salaries/employees${query ? `?${query}` : ""}`);
 };
+export const getSalaryHistory = () => apiFetch("/salaries/history");
+export const markEmployeeSalaryPaid = (id) => apiFetch(`/salaries/${id}/paid`, { method: "PATCH" });
 export const getSalaryAttendancePreview = (employeeId, params = {}) => {
   const query = new URLSearchParams(params).toString();
   return apiFetch(`/salaries/employees/${employeeId}/attendance-preview${query ? `?${query}` : ""}`);
