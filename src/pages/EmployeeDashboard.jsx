@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
+import ApplicationForwardHistory from "../components/ApplicationForwardHistory";
 import { APPLICATION_STATUSES } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import { listApplications, downloadApplicationPdf, updateMyEmployeeProfile, uploadFilesToS3 } from "../services/api";
@@ -405,6 +406,7 @@ export default function EmployeeDashboard() {
           </>
         )}
       </div>
+      {canViewApplications && <div className="mt-6"><ApplicationForwardHistory /></div>}
     </DashboardLayout>
   );
 }

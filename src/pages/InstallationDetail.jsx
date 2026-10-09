@@ -54,7 +54,6 @@ const FIELD_INPUT = "mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-
 const HERO_BASE = "group inline-flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-5 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
 const HERO_NAVY = `${HERO_BASE} bg-navy text-white shadow-sm hover:bg-navy-light hover:shadow-lg`;
 const HERO_PRIMARY = `${HERO_BASE} bg-gradient-to-r from-amber to-amber-hover text-navy shadow-md shadow-amber/30 hover:shadow-lg hover:shadow-amber/40`;
-const HERO_OUTLINE = `${HERO_BASE} border border-navy/20 bg-white text-navy shadow-sm hover:border-amber hover:shadow-md`;
 const HERO_OUTLINE_PLAIN = "inline-flex items-center gap-2 rounded-full border border-navy/20 bg-white px-6 py-3 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:border-amber hover:shadow-md active:translate-y-0";
 const BUBBLE_ON_NAVY = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber text-navy transition group-hover:scale-110";
 const BUBBLE_ON_AMBER = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-navy text-amber transition group-hover:scale-110";

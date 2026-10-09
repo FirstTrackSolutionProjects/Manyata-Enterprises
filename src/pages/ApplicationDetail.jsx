@@ -45,7 +45,7 @@ import {
   getApplicationForwardOptions,
   forwardApplicationToEmployee,
 } from "../services/api";
-import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel, getApplicationUpdateStatusOptions } from "../constants/applicationStatuses";
+import { applicationStatusLabel, getApplicationUpdateStatusOptions } from "../constants/applicationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
@@ -506,7 +506,7 @@ export default function ApplicationDetail() {
             </div>
           </SideCard>}
 
-          <SideCard icon={Clock} title="Status Timeline" subtitle="Every status change, newest first." badge={<span className="shrink-0 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy">{history.length} {history.length === 1 ? "update" : "updates"}</span>}>
+          <SideCard icon={Clock} title="Status & Forwarding History" subtitle="Status changes and every Back Office handoff, newest first." badge={<span className="shrink-0 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy">{history.length} {history.length === 1 ? "update" : "updates"}</span>}>
             {history.length === 0 && (
               <p className="rounded-xl border border-dashed border-navy/15 px-4 py-6 text-center text-xs text-muted">No history yet.</p>
             )}
@@ -515,13 +515,20 @@ export default function ApplicationDetail() {
                 <div key={h.id} className="relative">
                   <span className={`absolute -left-[31px] top-1 h-3 w-3 rounded-full border-2 border-white ring-2 ${index === 0 ? "bg-amber ring-amber/40" : "bg-amber/40 ring-amber/15"}`} />
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${statusStyle(h.new_status)}`}>{applicationStatusLabel(h.new_status)}</span>
+                    {h.event_type === "forwarded"
+                      ? <span className="inline-flex rounded-full bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 ring-1 ring-inset ring-indigo-200">Forwarded to Back Office</span>
+                      : <span className={`inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold ring-1 ring-inset ${statusStyle(h.new_status)}`}>{applicationStatusLabel(h.new_status)}</span>}
                     {index === 0 && <span className="rounded-full bg-navy px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Latest</span>}
                   </div>
                   <p className="mt-1.5 text-xs font-semibold text-navy">{new Date(h.created_at).toLocaleString("en-IN")}</p>
                   {h.changed_by_name && (
-                    <p className="text-xs text-muted">by {h.changed_by_name}</p>
+                    <p className="text-xs text-muted">{h.event_type === "forwarded" ? "Forwarded by" : "by"} {h.changed_by_name}</p>
                   )}
+                  {h.event_type === "forwarded" && <div className="mt-2 rounded-lg bg-offwhite px-3 py-2 text-xs text-muted">
+                    <p><strong className="text-navy">Application:</strong> {h.application_no}{h.customer_name ? ` · ${h.customer_name}` : ""}</p>
+                    <p className="mt-1"><strong className="text-navy">Forwarded to:</strong> {h.forwarded_to_employee_name}</p>
+                    <p className="mt-1"><strong className="text-navy">Status then:</strong> {applicationStatusLabel(h.application_status)}</p>
+                  </div>}
                   {h.note && (
                     <p className="mt-2 rounded-lg bg-offwhite px-3 py-2 text-xs italic text-muted">{h.note}</p>
                   )}

@@ -29,6 +29,7 @@ import {
 import { Link, useSearchParams } from "react-router-dom";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
+import ApplicationForwardHistory from "../components/ApplicationForwardHistory";
 import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
 import SubmissionCreateModal from "../components/SubmissionCreateModal";
@@ -1092,6 +1093,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           )}
         </>
       )}
+      {canViewApplications && <ApplicationForwardHistory />}
     </div>
   );
 }

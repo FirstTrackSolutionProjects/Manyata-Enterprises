@@ -134,7 +134,7 @@ export const downloadSalarySlip = async (id, employeeName, payMonth, payYear) =>
   }
   const blob = await response.blob();
   const contentDispositionFilename = response.headers.get("content-disposition")?.match(/filename="?([^";]+)"?/i)?.[1];
-  const safeEmployeeName = String(employeeName || "").replace(/[\\/:*?"<>|\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim();
+  const safeEmployeeName = String(employeeName || "").replace(/[\\/:*?"<>|]/g, " ").split("").filter((character) => character.charCodeAt(0) >= 32).join("").replace(/\s+/g, " ").trim();
   const month = Number(payMonth);
   const year = Number(payYear);
   const period = month >= 1 && month <= 12 && year > 0
@@ -273,6 +273,11 @@ export const getApplicationStats = (params = {}) => {
 
 export const getApplicationTimeline = (id) =>
   apiFetch(`/applications/${id}/history`);
+
+export const getApplicationForwardingHistory = (params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return apiFetch(`/applications/forwarding-history${query ? `?${query}` : ""}`);
+};
 
 /**
  * Open the application PDF in a new tab (backend serves it).

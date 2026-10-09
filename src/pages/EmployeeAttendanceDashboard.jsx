@@ -40,8 +40,8 @@ const tdClass = "px-5 py-2.5";
 
 export default function EmployeeAttendanceDashboard({ context }) {
   const {
-    isEmployee, mine, from, to, month, setMonth, timerNow, busy, loading, setError,
-    calendar, corrections, breakType, setBreakType, useLocation, setUseLocation,
+    isEmployee, mine, month, setMonth, timerNow, busy, loading, setError,
+    breakType, setBreakType, useLocation, setUseLocation,
     cameraStream, punchPhoto, videoRef, correctionForm, setCorrectionForm,
     startPunchCamera, capturePunchPhoto, submitPunch, submitBreak, submitCorrection,
     printAttendanceReport, activePunch, onBreak, clockedInToday, todayClosed,
