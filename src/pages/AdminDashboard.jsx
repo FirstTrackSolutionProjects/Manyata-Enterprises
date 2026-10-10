@@ -119,7 +119,7 @@ export default function AdminDashboard() {
 
   return (
     <DashboardLayout
-      activeSection={tab === "application-forward-history" ? "applications" : tab}
+      activeSection={tab === "application-forward-history" ? "applications" : tab === "salary-history" ? "salary-management" : tab}
       onSectionChange={handleSectionChange}
     >
       {!hasAccess || (tab === "overview" && user?.role !== "owner" && !isHr) ? <div className="rounded-2xl border border-navy/10 bg-white p-8 text-center text-muted">The owner has not granted you access to any dashboard sections yet.</div> : null}
@@ -132,7 +132,8 @@ export default function AdminDashboard() {
       {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <div className="space-y-5"><EmployeeAdvanceHistory /><EmployeeSalarySlipsTab /></div>}
-      {hasAccess && tab === "salary-management" && (user?.role === "owner" || isHr) && <SalaryManagementTab />}
+      {hasAccess && tab === "salary-management" && (user?.role === "owner" || isHr) && <SalaryManagementTab onOpenHistory={() => handleSectionChange("salary-history")} />}
+      {hasAccess && tab === "salary-history" && (user?.role === "owner" || isHr) && <SalaryHistoryPage onBack={() => handleSectionChange("salary-management")} />}
       {hasAccess && tab === "commission-payouts" && (user?.role === "owner" || isHr) && <CommissionPayoutsTab />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
       {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner"} />}
@@ -317,7 +318,17 @@ function EmployeeSalarySlipsTab() {
   </section>;
 }
 
-function SalaryPaymentHistory({ refreshKey }) {
+function SalaryHistoryPage({ onBack }) {
+  return <div className="space-y-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-navy/10 bg-white px-5 py-4">
+      <div><h1 className="font-bold text-navy">Salary history</h1><p className="mt-1 text-xs text-muted">Review salary slips, payment status, and payment dates.</p></div>
+      <button type="button" onClick={onBack} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Back to Salary Management</button>
+    </div>
+    <SalaryPaymentHistory />
+  </div>;
+}
+
+function SalaryPaymentHistory() {
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -331,7 +342,7 @@ function SalaryPaymentHistory({ refreshKey }) {
       .catch((err) => { if (active) setError(err.message || "Could not load salary payment history."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [refreshKey]);
+  }, []);
 
   const markPaid = async (slip) => {
     const period = new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(Number(slip.pay_year), Number(slip.pay_month) - 1, 1));
@@ -371,11 +382,10 @@ const attendanceDateTimeLabel = (value) => value
   ? new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "medium", hourCycle: "h23" }).format(new Date(value))
   : "—";
 
-function SalaryManagementTab() {
+function SalaryManagementTab({ onOpenHistory }) {
   const employeePageSize = 8;
   const [employees, setEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [historyRefresh, setHistoryRefresh] = useState(0);
   const [search, setSearch] = useState("");
   const [employeePage, setEmployeePage] = useState(1);
   const [salaryPeriod, setSalaryPeriod] = useState(() => ({ month: String(new Date().getMonth() + 1), year: String(new Date().getFullYear()) }));
@@ -407,18 +417,16 @@ function SalaryManagementTab() {
   const totalEmployeePages = Math.max(1, Math.ceil(filtered.length / employeePageSize));
   const currentEmployeePage = Math.min(employeePage, totalEmployeePages);
   const visibleEmployees = filtered.slice((currentEmployeePage - 1) * employeePageSize, currentEmployeePage * employeePageSize);
-  const scrollToSalaryHistory = () => document.getElementById("salary-payment-history")?.scrollIntoView({ behavior: "smooth", block: "start" });
   return <>
   <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Prepare and publish salary slips for the selected month.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={scrollToSalaryHistory} className="rounded-full bg-navy px-4 py-2 text-xs font-bold text-white">Salary history</button><input type="month" value={`${salaryPeriod.year}-${salaryPeriod.month.padStart(2, "0")}`} onChange={(event) => { const [year, month] = event.target.value.split("-"); setSalaryPeriod({ year, month: String(Number(month)) }); setEmployeePage(1); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><input value={search} onChange={(event) => { setSearch(event.target.value); setEmployeePage(1); }} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Employee Salary Management</h2><p className="mt-1 text-xs text-muted">Prepare and publish salary slips for the selected month.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={onOpenHistory} className="rounded-full bg-navy px-4 py-2 text-xs font-bold text-white">Salary history</button><input type="month" value={`${salaryPeriod.year}-${salaryPeriod.month.padStart(2, "0")}`} onChange={(event) => { const [year, month] = event.target.value.split("-"); setSalaryPeriod({ year, month: String(Number(month)) }); setEmployeePage(1); }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><input value={search} onChange={(event) => { setSearch(event.target.value); setEmployeePage(1); }} placeholder="Search employees" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button></div></div>
     {loading ? <div className="flex justify-center p-8"><Loader2 className="animate-spin text-amber"/></div> : error ? <p className="p-5 text-sm text-red-600">{error}</p> : !filtered.length ? <p className="p-5 text-sm text-muted">No active employees match your search.</p> : <>
       <div className="divide-y divide-navy/5">{visibleEmployees.map((employee) => <div key={employee.id} className="flex flex-wrap items-center justify-between gap-3 p-4"><div><p className="font-semibold text-navy">{employee.name} <span className="font-mono text-xs text-muted">{employee.user_id}</span></p><p className="mt-1 text-xs text-muted">{employee.designation || "Employee"} | {employee.department || "No department"} | {employee.branch_name || "No branch"}</p><p className="mt-1 text-xs text-muted">Advance balance: <strong className="text-navy">Rs. {Number(employee.advance_outstanding || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></p></div><div className="flex gap-2"><button onClick={() => setSelectedEmployee(employee)} className="inline-flex items-center gap-1.5 rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Advance</button><button onClick={() => setSelectedEmployee({ ...employee, openSalarySlip: true })} className="inline-flex items-center gap-1.5 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy"><Banknote size={14}/>Generate salary</button></div></div>)}</div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-navy/10 px-5 py-4"><p className="text-xs text-muted">Showing {(currentEmployeePage - 1) * employeePageSize + 1} to {Math.min(currentEmployeePage * employeePageSize, filtered.length)} of {filtered.length} employees</p><div className="flex gap-2"><button type="button" disabled={currentEmployeePage <= 1} onClick={() => setEmployeePage((page) => Math.max(1, page - 1))} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy disabled:cursor-not-allowed disabled:opacity-40">Previous</button><span className="self-center text-xs text-muted">Page {currentEmployeePage} of {totalEmployeePages}</span><button type="button" disabled={currentEmployeePage >= totalEmployeePages} onClick={() => setEmployeePage((page) => Math.min(totalEmployeePages, page + 1))} className="rounded-full bg-navy px-4 py-2 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">Next</button></div></div>
     </>}
     {selectedEmployee && !selectedEmployee.openSalarySlip && <SalaryAdvanceModal key={`advance-${selectedEmployee.id}`} employee={selectedEmployee} onClose={() => setSelectedEmployee(null)} onSaved={() => { setSelectedEmployee(null); load(); }}/>}
-    {selectedEmployee?.openSalarySlip && <SalarySlipModal key={`slip-${selectedEmployee.id}`} employee={{ ...selectedEmployee, month: Number(salaryPeriod.month), year: Number(salaryPeriod.year) }} onClose={() => setSelectedEmployee(null)} onGenerate={async (payload) => { const response = await generateEmployeeSalarySlip(payload); setHistoryRefresh((current) => current + 1); return response; }} onPublished={() => setHistoryRefresh((current) => current + 1)}/>}
+    {selectedEmployee?.openSalarySlip && <SalarySlipModal key={`slip-${selectedEmployee.id}`} employee={{ ...selectedEmployee, month: Number(salaryPeriod.month), year: Number(salaryPeriod.year) }} onClose={() => setSelectedEmployee(null)} onGenerate={generateEmployeeSalarySlip}/>}
   </section>
-  <SalaryPaymentHistory refreshKey={historyRefresh}/>
   </>;
 }
 
