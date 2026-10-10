@@ -18,6 +18,7 @@ import {
   Banknote,
   CalendarDays,
   Clock3,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
@@ -37,6 +38,7 @@ const OWNER_NAV = [
   { id: "commission-payouts", label: "Commission Payouts", icon: Banknote },
   { id: "branches", label: "Branches", icon: Building2 },
   { id: "submissions", label: "Submissions", icon: Briefcase },
+  { id: "owner-trash", label: "Trash / Restore", icon: Trash2 },
 ];
 
 export default function DashboardLayout({
@@ -58,7 +60,7 @@ export default function DashboardLayout({
   const baseNavItems = user?.role === "owner"
     ? OWNER_NAV
     : isHr
-      ? OWNER_NAV.filter((item) => !["salary-management", "emp-attendance"].includes(item.id))
+      ? OWNER_NAV.filter((item) => !["salary-management", "emp-attendance", "owner-trash"].includes(item.id))
     : user?.role === "partner"
       ? [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },

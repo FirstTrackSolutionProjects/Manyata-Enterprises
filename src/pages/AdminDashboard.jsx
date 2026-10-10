@@ -78,7 +78,10 @@ import {
   sendPartnerLOL,
   updateMyEmployeeProfile,
   attendancePhotoHref,
-  getAttendanceRegister
+  getAttendanceRegister,
+  listOwnerTrash,
+  restoreOwnerTrash,
+  moveOwnerRecordToTrash
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { isHrEmployee } from "../utils/employeeRoles";
@@ -137,11 +140,76 @@ export default function AdminDashboard() {
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}
+      {hasAccess && tab === "owner-trash" && user?.role === "owner" && <OwnerTrashTab />}
     </DashboardLayout>
   );
 }
 
 /* ── Overview ─────────────────────────────────────── */
+
+function OwnerTrashButton({ type, id }) {
+  const [busy, setBusy] = useState(false);
+  const remove = async () => {
+    if (!window.confirm("Move this record to Trash? You can restore it later from Trash / Restore.")) return;
+    setBusy(true);
+    try {
+      await moveOwnerRecordToTrash(type, id);
+      window.location.reload();
+    } catch (err) {
+      alert(err.message || "Could not move this record to trash.");
+      setBusy(false);
+    }
+  };
+  return <button type="button" disabled={busy} onClick={remove} title="Move to Trash" aria-label="Move to Trash" className="ml-2 inline-flex items-center gap-1 rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700 hover:bg-red-100 disabled:opacity-50"><Trash2 size={13}/>{busy ? "Moving..." : "Delete"}</button>;
+}
+
+function OwnerTrashTab() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [busyKey, setBusyKey] = useState("");
+  const load = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await listOwnerTrash();
+      setItems(response.data?.items || []);
+    } catch (err) {
+      setError(err.message || "Could not load deleted records.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  useEffect(() => { load(); }, []);
+  const restore = async (item) => {
+    const key = `${item.entity_type}:${item.entity_id}`;
+    setBusyKey(key);
+    try {
+      await restoreOwnerTrash(item.entity_type, item.entity_id);
+      await load();
+    } catch (err) {
+      setError(err.message || "Could not restore this record.");
+    } finally {
+      setBusyKey("");
+    }
+  };
+  return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 p-5">
+      <div><h2 className="font-bold text-navy">Trash / Restore</h2><p className="mt-1 text-xs text-muted">Restore records removed from the owner dashboard.</p></div>
+      <button onClick={load} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Refresh</button>
+    </div>
+    {error && <p role="alert" className="m-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+    {loading ? <p className="p-6 text-sm text-muted">Loading trash...</p> : items.length === 0 ? <p className="p-6 text-sm text-muted">Trash is empty.</p> : <div className="divide-y divide-navy/5">
+      {items.map((item) => {
+        const key = `${item.entity_type}:${item.entity_id}`;
+        return <div key={key} className="flex flex-wrap items-center justify-between gap-3 p-4">
+          <div><p className="font-semibold text-navy">{item.record_name}</p><p className="mt-1 text-xs text-muted">{item.entity_label} · Deleted {new Date(item.deleted_at).toLocaleString("en-IN")}</p></div>
+          <button disabled={busyKey === key} onClick={() => restore(item)} className="inline-flex items-center gap-2 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy disabled:opacity-50"><RotateCcw size={14}/>{busyKey === key ? "Restoring..." : "Restore"}</button>
+        </div>;
+      })}
+    </div>}
+  </section>;
+}
 
 function EmployeeProfileTab() {
   const { user, refresh } = useAuth();
@@ -1060,6 +1128,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                         <Pencil size={14} /> Edit
                       </Link>}
                       {canDownloadApplications && <button onClick={() => downloadApplicationPdf(a.id)} className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-navy hover:underline"><Download size={14} /> Download</button>}
+                      {user?.role === "owner" && <OwnerTrashButton type="applications" id={a.id} />}
                     </td>
                   </tr>
                 ))}
@@ -1486,6 +1555,7 @@ function EmployeesTab() {
                         title="Reject employee account"
                       >Reject</button>}
                       </>}
+                      {isOwner && <OwnerTrashButton type="employees" id={u.id} />}
                     </div>
                   </td>}
                 </tr>
@@ -2319,6 +2389,7 @@ function BranchesTab() {
                 >
                   Edit
                 </button>
+                {user?.role === "owner" && <OwnerTrashButton type="branches" id={b.id} />}
               </div>}
             </div>
           ))}
@@ -2637,7 +2708,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3">{item.city || "—"}</td>
                   <td className="p-3 whitespace-nowrap">{item.technical_assignee_name ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.technical_assignee_name}</span> : <span className="text-xs text-muted">Not assigned</span>}</td>
                   <td className="p-3">{item.last_updated_by_name ? <StatusBadge status={item.status} /> : null}</td>
-                  {(canView || canEdit) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}</td>}
+                  {(canView || canEdit || user?.role === "owner") && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}{user?.role === "owner" && <OwnerTrashButton type="installations" id={item.id} />}</td>}
                 </tr>
               );
             })}
@@ -3070,16 +3141,17 @@ function SubmissionList({ type }) {
                 {formatDateTime(it.created_at)}
               </td>
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
+               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}{isOwner && <OwnerTrashButton type="join-us" id={it.id}/>}</div></td>}
               {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}</div></td>}
+               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}{isOwner && <OwnerTrashButton type="careers" id={it.id}/>}</div></td>}
               {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-              {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link></td>}
+              {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <OwnerTrashButton type="contacts" id={it.id}/>}</td>}
               {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isPartners && (
                 <td className="p-3 whitespace-nowrap">
                   <div className="flex flex-wrap gap-1.5">
                     <Link to={`/admin/partners/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13} /> View</Link>
+                    {isOwner && <OwnerTrashButton type="partners" id={it.id} />}
                      {canManageRecords && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
                     </>}
                     {canManageRecords && it.status !== "approved" && (

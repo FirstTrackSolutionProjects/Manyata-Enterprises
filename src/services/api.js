@@ -105,6 +105,14 @@ export const setUserStatus = (id, status) =>
 
 export const deleteEmployee = (id) =>
   apiFetch(`/auth/employees/${id}`, { method: "DELETE" });
+export const listOwnerTrash = () => apiFetch("/admin/trash");
+export const restoreOwnerTrash = (type, id) => apiFetch(`/admin/trash/${encodeURIComponent(type)}/${id}/restore`, { method: "POST" });
+export const moveOwnerRecordToTrash = (type, id) => {
+  const endpoints = { employees: `/auth/employees/${id}`, branches: `/branches/${id}`, applications: `/applications/${id}`, installations: `/installations/${id}`, partners: `/admin/partners/${id}`, careers: `/admin/careers/${id}`, "join-us": `/admin/join-us/${id}`, contacts: `/admin/contacts/${id}` };
+  const endpoint = endpoints[type];
+  if (!endpoint) throw new Error("This record type cannot be moved to trash.");
+  return apiFetch(endpoint, { method: "DELETE" });
+};
 
 export const generateEmployeeSalarySlip = (payload) =>
   apiFetch("/salaries", { method: "POST", body: JSON.stringify(payload) });
