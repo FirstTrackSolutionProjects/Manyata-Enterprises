@@ -27,7 +27,20 @@ const CUSTOMER_FIELDS = [["customer_name", "Customer Name"], ["phone", "Phone"],
 const INSTALLATION_FIELDS = [["installation_type", "Installation Type"], ["installation_date", "Installation Date"], ["electrician_name", "Electrician"], ["technician_name", "Technician"], ["solar_panel_type", "Solar Panel Type"], ["connection_type", "Connection Type"]];
 const PARTNER_FIELDS = [["super_vendor_name", "Super-vendor"], ["vendor_name", "Vendor"], ["sub_vendor_name", "Sub-vendor"], ["sales_executive_name", "Sales Executive"]];
 const ADDRESS_FIELDS = [["location", "Location"], ["state", "State"], ["address", "Address"], ["city", "City"], ["pincode", "PIN Code"]];
-const humanizeDocumentName = (name) => name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+
+// Spelling fixes for document labels (backend keys me typos hain; asli fix source me karna better hai)
+const DOCUMENT_LABEL_FIXES = [
+  [/\bPenal\b/g, "Panel"],
+  [/\bAdhar\b/g, "Aadhaar"],
+  [/\bSetof\b/g, "Set of"],
+  [/\bIntalation\b/g, "Installation"],
+  [/\bCemera\b/g, "Camera"],
+  [/\bGps\b/g, "GPS"],
+];
+const humanizeDocumentName = (name) => DOCUMENT_LABEL_FIXES.reduce(
+  (label, [pattern, replacement]) => label.replace(pattern, replacement),
+  name.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())
+);
 
 /* ── UI-only helpers (styles, icons) ───────────────── */
 
@@ -244,11 +257,15 @@ export default function InstallationDetail() {
         </Section>}
         <Section icon={FileText} title="Uploaded Documents" badge={documentEntries.length ? `${documentEntries.length} ${documentEntries.length === 1 ? "file" : "files"}` : ""}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {canDownload && documentEntries.map(([name, url]) => <div key={name} className="flex min-w-0 items-center gap-3 rounded-xl border border-navy/10 bg-white p-3 transition hover:border-amber hover:shadow-sm">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-amber-soft text-amber"><FileTextIcon /></span>
-              <span className="min-w-0 flex-1 break-words text-sm font-semibold text-navy">{humanizeDocumentName(name)}</span>
-              <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-full border border-navy/15 px-3 py-1.5 text-xs font-bold text-navy transition hover:border-amber hover:bg-amber-soft/40"><ExternalLink size={12} />View</a>
-              <a href={url} download className="inline-flex items-center gap-1 rounded-full bg-amber px-3 py-1.5 text-xs font-bold text-navy transition hover:bg-amber-hover"><Download size={12} />Download</a>
+            {canDownload && documentEntries.map(([name, url]) => <div key={name} className="flex min-w-0 flex-col gap-3 rounded-xl border border-navy/10 bg-white p-3.5 transition hover:border-amber hover:shadow-sm">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-amber-soft text-amber"><FileTextIcon /></span>
+                <span className="min-w-0 flex-1 break-words text-sm font-semibold leading-5 text-navy">{humanizeDocumentName(name)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-full border border-navy/15 px-3 py-2 text-xs font-bold text-navy transition hover:border-amber hover:bg-amber-soft/40"><ExternalLink size={13} />View</a>
+                <a href={url} download className="inline-flex items-center justify-center gap-1.5 rounded-full bg-amber px-3 py-2 text-xs font-bold text-navy transition hover:bg-amber-hover"><Download size={13} />Download</a>
+              </div>
             </div>)}
             {(!canDownload || !documentEntries.length) && <p className="rounded-xl border border-dashed border-navy/15 px-4 py-6 text-center text-sm text-muted sm:col-span-2">{canDownload ? "No documents uploaded." : "You do not have permission to view or download documents."}</p>}
           </div>
