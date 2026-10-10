@@ -2830,7 +2830,7 @@ function SubmissionList({ type }) {
   const [credentialsCopied, setCredentialsCopied] = useState(false);
   const [partnerTotal, setPartnerTotal] = useState(0);
   const [partnerPage, setPartnerPage] = useState(1);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [loadingPage, setLoadingPage] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -2870,10 +2870,13 @@ function SubmissionList({ type }) {
   const [sortOrder, setSortOrder] = useState("desc");
   const isPartners = type === "partners";
 
-  const load = async (requestedPage = 1, append = false, searchValue = search) => {
+  const load = async (requestedPage = 1, isPageChange = false, searchValue = search) => {
     const requestId = ++listRequestId.current;
-    if (append) setLoadingMore(true);
-    else setLoading(true);
+    if (isPageChange) setLoadingPage(true);
+    else {
+      setLoadingPage(false);
+      setLoading(true);
+    }
     try {
       const query = new URLSearchParams({ limit: isPartners ? "10" : "100" });
       if (isPartners) query.set("page", String(requestedPage));
@@ -2893,7 +2896,7 @@ function SubmissionList({ type }) {
       const res = await apiFetch(`/admin/${type}?${query.toString()}`);
       if (requestId !== listRequestId.current) return;
       const pageItems = res.data.items || [];
-      setItems((current) => append ? [...current, ...pageItems] : pageItems);
+      setItems(pageItems);
       if (isPartners) {
         setPartnerTotal(Number(res.data.total || 0));
         setPartnerPage(Number(res.data.page || requestedPage));
@@ -2904,7 +2907,7 @@ function SubmissionList({ type }) {
       console.error(err);
     } finally {
       if (requestId === listRequestId.current) {
-        if (append) setLoadingMore(false);
+        if (isPageChange) setLoadingPage(false);
         else {
           setLoading(false);
           setHasLoaded(true);
@@ -3208,8 +3211,8 @@ function SubmissionList({ type }) {
       </div>
       }
       {isPartners && items.length > 0 && <div className="flex flex-col items-center gap-2 py-2 sm:flex-row sm:justify-between">
-        <p className="text-xs text-muted">Showing {items.length} of {partnerTotal} partners</p>
-        {items.length < partnerTotal && <button onClick={() => load(partnerPage + 1, true)} disabled={loadingMore || loading} className="rounded-full border border-amber bg-white px-6 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft disabled:cursor-wait disabled:opacity-60">{loadingMore ? "Loading..." : "Load More"}</button>}
+        <p className="text-xs text-muted">Showing {(partnerPage - 1) * 10 + 1} to {Math.min(partnerPage * 10, partnerTotal)} of {partnerTotal} partners</p>
+        <div className="flex items-center gap-2"><button type="button" onClick={() => load(partnerPage - 1, true)} disabled={partnerPage <= 1 || loadingPage || loading} className="rounded-full border border-navy/15 bg-white px-5 py-2.5 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-40">Previous</button><span className="text-xs text-muted">Page {partnerPage} of {Math.max(1, Math.ceil(partnerTotal / 10))}</span><button type="button" onClick={() => load(partnerPage + 1, true)} disabled={partnerPage >= Math.ceil(partnerTotal / 10) || loadingPage || loading} className="rounded-full border border-amber bg-white px-6 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft disabled:cursor-not-allowed disabled:opacity-40">{loadingPage ? "Loading..." : "Next"}</button></div>
       </div>}
       {isPartners && canManageRecords && showPartnerCreate && <PartnerCreateModal onClose={() => setShowPartnerCreate(false)} onSaved={async () => { setShowPartnerCreate(false); await load(); }} />}
       {(isCareers || isJoinUs) && canManageRecords && showSubmissionCreate && <SubmissionCreateModal type={type} onClose={() => setShowSubmissionCreate(false)} onSaved={async () => { setShowSubmissionCreate(false); await load(); }} />}
