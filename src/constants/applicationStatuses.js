@@ -79,7 +79,7 @@ export const APPLICATION_UPDATE_STATUSES = [
   "customer_side_bank_forward_pending", "bank_reject", "customer_side_documents_issue", "customer_full_loan_amount_disbursed",
   "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "purchased_by_full_cash", "purchased_by_cash_1",
   "purchased_by_cash_2", "installed", "load_announcement", "net_metering_completed_by_electricals_dept", "je_verification_approved",
-  "consumer_subsidy_pending", "consumer_subsidy_disbursed", "office_side_issue",
+  "consumer_subsidy_pending", "consumer_subsidy_disbursed", "office_side_issue", "load_announcement_on_process",
   "electricity_bill_mismatch_ownership_transfer",
   "electricity_bill_mismatch_customer_side_on_process",
   "electricity_bill_ownership_transfer_customer_side_on_process",
