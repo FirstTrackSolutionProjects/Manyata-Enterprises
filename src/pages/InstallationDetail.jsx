@@ -6,6 +6,7 @@ import { assignInstallationTechnicalWork, downloadInstallationPdf, getInstallati
 import { INSTALLATION_STATUSES, installationStatusLabel } from "../constants/installationStatuses";
 import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
+import { isTejashHrEmployee } from "../utils/employeeRoles";
 
 const FIELDS = [
   ["customer_name", "Customer Name", "customerName"], ["phone", "Phone", "phone"], ["gender", "Gender", "gender"],
@@ -78,8 +79,7 @@ export default function InstallationDetail() {
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
   const isOwner = user?.role === "owner";
-  const isHrManager = user?.role === "employee" && /\bhr\b|human resources/i.test(`${user?.designation || ""} ${user?.department || ""}`) && canEdit;
-  const canAssignTechnicalWork = isOwner || isHrManager;
+  const canAssignTechnicalWork = isTejashHrEmployee(user) && canEdit;
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
   const grantedStatusUpdates = user?.actionPermissions?.installations?.statusUpdates;

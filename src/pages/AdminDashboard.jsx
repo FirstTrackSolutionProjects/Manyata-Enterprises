@@ -84,7 +84,7 @@ import {
   moveOwnerRecordToTrash
 } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
-import { isHrEmployee } from "../utils/employeeRoles";
+import { isHrEmployee, isTejashHrEmployee } from "../utils/employeeRoles";
 import { formatApplicationLocation } from "../utils/applicationLocation";
 import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
 import AttendanceDashboard from "./AttendanceDashboard";
@@ -2543,6 +2543,7 @@ function BranchModal({ branch, onClose, onSaved }) {
 
 function InstallationsTab({ location }) {
   const { user } = useAuth();
+  const canViewTechnicalAssignment = isTejashHrEmployee(user);
   const canView = hasActionPermission(user, "installations", "view");
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
@@ -2704,7 +2705,7 @@ function InstallationsTab({ location }) {
               <th className="p-3 whitespace-nowrap">Sales Executive</th>
               <th className="p-3 whitespace-nowrap">Updated By / At</th>
               <th className="p-3">City</th>
-              <th className="p-3 whitespace-nowrap">Technician Assigned</th>
+              {canViewTechnicalAssignment && <th className="p-3 whitespace-nowrap">Technician Assigned</th>}
               <th className="p-3">Status</th>
               {(canView || canEdit) && <th className="p-3">Actions</th>}
             </tr>
@@ -2722,7 +2723,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3 whitespace-nowrap">{item.sales_executive_name || "-"}</td>
                   <td className="p-3 text-xs text-muted whitespace-nowrap">{item.last_updated_by_name ? <><span className="block font-semibold text-navy">{item.last_updated_by_name}</span>{formatDateTime(item.last_updated_by_at)}</> : "Not edited"}</td>
                   <td className="p-3">{item.city || "—"}</td>
-                  <td className="p-3 whitespace-nowrap">{item.technical_assignee_name ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.technical_assignee_name}</span> : <span className="text-xs text-muted">Not assigned</span>}</td>
+                  {canViewTechnicalAssignment && <td className="p-3 whitespace-nowrap">{item.technical_assignee_name ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.technical_assignee_name}</span> : <span className="text-xs text-muted">Not assigned</span>}</td>}
                   <td className="p-3">{item.last_updated_by_name ? <StatusBadge status={item.status} /> : null}</td>
                   {(canView || canEdit || user?.role === "owner") && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}{user?.role === "owner" && <OwnerTrashButton type="installations" id={item.id} />}</td>}
                 </tr>

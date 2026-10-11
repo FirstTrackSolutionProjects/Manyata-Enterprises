@@ -51,6 +51,7 @@ import { hasActionPermission } from "../utils/permissions";
 import PartnerNetworkFields from "../components/PartnerNetworkFields";
 import CameraFileInput from "../components/CameraFileInput";
 import { formatApplicationLocation } from "../utils/applicationLocation";
+import { isTejashHrEmployee } from "../utils/employeeRoles";
 
 /* ── UI-only helpers (styles, icons) ───────────────── */
 
@@ -100,7 +101,7 @@ export default function ApplicationDetail() {
   const { user } = useAuth();
   const canEdit = hasActionPermission(user, "applications", "edit");
   const canDownload = hasActionPermission(user, "applications", "download");
-  const isOwner = user?.role === "owner";
+  const canManageTechnicalAssignment = isTejashHrEmployee(user);
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const availableStatusOptions = getApplicationUpdateStatusOptions(user);
   const { id } = useParams();
@@ -175,11 +176,11 @@ export default function ApplicationDetail() {
   }, [id, user?.role, app?.id]);
 
   useEffect(() => {
-    if (!isOwner) return;
+    if (!canManageTechnicalAssignment) return;
     listUsers({ role: "employee", status: "active" })
       .then((response) => setTechnicalEmployees((response.data.items || []).filter((employee) => /technical|technician|installation engineer/i.test(`${employee.designation || ""} ${employee.department || ""}`) && employee.permissions?.includes("applications") && employee.actionPermissions?.applications?.view && employee.actionPermissions?.applications?.edit)))
       .catch((err) => setError(err.message || "Could not load technical employees."));
-  }, [isOwner]);
+  }, [canManageTechnicalAssignment]);
 
   const saveTechnicalAssignment = async () => {
     setSavingAssignment(true);
@@ -421,7 +422,7 @@ export default function ApplicationDetail() {
         </div>
 
         <div className="space-y-6">
-          {(app.technical_assignee_name || app.technical_instructions) && <SideCard icon={Wrench} title="Technical assignment" subtitle="Work assigned for this installation.">
+          {(isTejashHrEmployee(user) || (isTechnicalEmployee && Number(app.technical_assignee_id) === Number(user?.id))) && (app.technical_assignee_name || app.technical_instructions) && <SideCard icon={Wrench} title="Technical assignment" subtitle="Work assigned for this installation.">
             {app.technical_assignee_name && <p className="flex items-center justify-between gap-3 rounded-xl bg-offwhite px-4 py-3 text-sm text-navy"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Assigned to</span><strong>{app.technical_assignee_name}</strong></p>}
             {app.technical_instructions && <p className="mt-3 whitespace-pre-wrap rounded-xl bg-offwhite px-4 py-3 text-sm text-muted">{app.technical_instructions}</p>}
           </SideCard>}
@@ -429,7 +430,7 @@ export default function ApplicationDetail() {
             <p className="flex items-center justify-between gap-3 rounded-xl bg-offwhite px-4 py-3 text-sm text-navy"><span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Forwarded to</span><strong>{app.forwarded_to_employee_name}</strong></p>
             {app.forwarded_by_employee_name && <p className="mt-3 text-xs text-muted">Forwarded by {app.forwarded_by_employee_name}{app.forwarded_at ? ` · ${new Date(app.forwarded_at).toLocaleString("en-IN")}` : ""}</p>}
           </SideCard>}
-          {isOwner && <SideCard icon={Wrench} title="Technical work assignment" subtitle="Assign the application to a technical employee with access to its state.">
+          {canManageTechnicalAssignment && <SideCard icon={Wrench} title="Technical work assignment" subtitle="Assign the application to a technical employee with access to its state.">
             <div className="space-y-4">
               <label className="block text-xs font-semibold text-muted">Technical employee
                 <select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className={`${FIELD_INPUT} font-semibold`}>
