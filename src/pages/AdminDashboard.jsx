@@ -35,7 +35,7 @@ import PartnerDetailsModal from "../components/PartnerDetailsModal";
 import PartnerCreateModal from "../components/PartnerCreateModal";
 import SubmissionCreateModal from "../components/SubmissionCreateModal";
 import LeaveRequests from "../components/LeaveRequests";
-import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel, getApplicationUpdateStatusOptions } from "../constants/applicationStatuses";
+import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel, getApplicationUpdateStatusOptions, normalizeApplicationStatusPermissionValues } from "../constants/applicationStatuses";
 import { INSTALLATION_STATUSES } from "../constants/installationStatuses";
 import { useAuth } from "../contexts/AuthContext";
 import {
@@ -853,15 +853,15 @@ function ApplicationsTab({ initialLocation = "" }) {
     ? isHrEmployee(user)
       ? APPLICATION_STATUSES.map((status) => status.value)
       : Array.isArray(user?.actionPermissions?.applications?.statusUpdates)
-        ? user.actionPermissions.applications.statusUpdates
+        ? normalizeApplicationStatusPermissionValues(user.actionPermissions.applications.statusUpdates)
         : []
     : null;
   const roleScopedCards = user?.role === "employee" && !isHrEmployee(user)
-    ? APPLICATION_STATUSES.filter((status) => assignedApplicationStatuses.includes(status.value)).map((status) => ({
+    ? APPLICATION_STATUSES.filter((status) => status.value !== "customer_side_bank_forward_pending" && assignedApplicationStatuses.includes(status.value)).map((status) => ({
       label: status.value === "pending"
         ? "New Customer Application"
         : status.value === "consumer_login_submitted_to_govt_portal"
-          ? "Submitted to Govt Portal"
+          ? "Submitted to Government Portal"
           : status.label,
       value: status.value === "consumer_login_submitted_to_govt_portal"
         ? Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)
@@ -876,9 +876,9 @@ function ApplicationsTab({ initialLocation = "" }) {
           [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0), "total-applications"],
           ["New Customer Application", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
-          ["Submitted to Govt Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
+          ["Submitted to Government Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
-          ["Customer Side - Bank Forward - Pending", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
+          ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
         ]).map((card) => {
@@ -1880,7 +1880,9 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     download: employee?.actionPermissions ? Boolean(employee.actionPermissions?.[module]?.download) : existingModules.includes(module),
     export: Boolean(employee?.actionPermissions?.[module]?.export),
     statusUpdates: Array.isArray(employee?.actionPermissions?.[module]?.statusUpdates)
-      ? employee.actionPermissions[module].statusUpdates
+      ? module === "applications"
+        ? normalizeApplicationStatusPermissionValues(employee.actionPermissions[module].statusUpdates)
+        : employee.actionPermissions[module].statusUpdates
       : (module === "applications" ? EMPLOYEE_APPLICATION_STATUS_OPTIONS.map((status) => status.value) : INSTALLATION_STATUSES.map((status) => status.value)),
   }]));
   initialActionPermissions.partners = { export: Boolean(employee?.actionPermissions?.partners?.export) };
