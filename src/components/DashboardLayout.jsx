@@ -23,7 +23,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
 import { hasActionPermission } from "../utils/permissions";
-import { isHrEmployee } from "../utils/employeeRoles";
+import { isHrEmployee, isTejashHrEmployee } from "../utils/employeeRoles";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
