@@ -60,7 +60,7 @@ export default function DashboardLayout({
   const baseNavItems = user?.role === "owner"
     ? OWNER_NAV
     : isHr
-      ? OWNER_NAV.filter((item) => !["salary-management", "emp-attendance", "owner-trash"].includes(item.id))
+      ? OWNER_NAV.filter((item) => !["salary-management", "emp-attendance"].includes(item.id) && (item.id !== "owner-trash" || isTejashHrEmployee(user)))
     : user?.role === "partner"
       ? [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },

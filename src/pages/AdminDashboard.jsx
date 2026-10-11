@@ -103,7 +103,7 @@ export default function AdminDashboard() {
   const initialEmployeeTab = ["applications", "installations", "employees", "partners", "branches", "submissions"].find((item) => permissions.includes(item));
   const tab = searchParams.get("section") || (user?.role === "owner" ? "overview" : initialEmployeeTab || (isHr ? "employees" : "no-access"));
   const requiredModule = tab === "application-forward-history" || tab.startsWith("applications") ? "applications" : tab.startsWith("installations") ? "installations" : tab;
-  const hasAccess = user?.role === "owner" || isHr
+  const hasAccess = user?.role === "owner" || (isHr && tab !== "owner-trash") || (tab === "owner-trash" && isTejashHrEmployee(user))
     || (tab === "employee-profile" && user?.role === "employee")
     || (tab === "emp-attendance" && isHr)
     || (tab === "employees" && isHr)
@@ -141,7 +141,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "partners" && <PartnersTab />}
       {hasAccess && tab === "branches" && <BranchesTab />}
       {hasAccess && tab === "submissions" && <OtherTab />}
-      {hasAccess && tab === "owner-trash" && user?.role === "owner" && <OwnerTrashTab />}
+      {hasAccess && tab === "owner-trash" && (user?.role === "owner" || isTejashHrEmployee(user)) && <OwnerTrashTab />}
     </DashboardLayout>
   );
 }
@@ -745,6 +745,7 @@ const EMPTY_FILTERS = {
 
 function ApplicationsTab({ initialLocation = "" }) {
   const { user } = useAuth();
+  const canDeleteRecords = user?.role === "owner" || isTejashHrEmployee(user);
   const [searchParams, setSearchParams] = useSearchParams();
   const canViewApplications = hasActionPermission(user, "applications", "view");
   const canEditApplications = hasActionPermission(user, "applications", "edit");
@@ -1141,7 +1142,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                         <Pencil size={14} /> Edit
                       </Link>}
                       {canDownloadApplications && <button onClick={() => downloadApplicationPdf(a.id)} className="ml-3 inline-flex items-center gap-1 text-xs font-semibold text-navy hover:underline"><Download size={14} /> Download</button>}
-                      {user?.role === "owner" && <OwnerTrashButton type="applications" id={a.id} />}
+                      {canDeleteRecords && <OwnerTrashButton type="applications" id={a.id} />}
                     </td>
                   </tr>
                 ))}
@@ -1568,7 +1569,7 @@ function EmployeesTab() {
                         title="Reject employee account"
                       >Reject</button>}
                       </>}
-                      {isOwner && <OwnerTrashButton type="employees" id={u.id} />}
+                      {(isOwner || isTejashHrEmployee(user)) && <OwnerTrashButton type="employees" id={u.id} />}
                     </div>
                   </td>}
                 </tr>
@@ -2285,6 +2286,7 @@ function Input({ label, value, onChange, type = "text", required, placeholder, r
 function BranchesTab() {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
+  const canDeleteRecords = isOwner || isTejashHrEmployee(user);
   const canManageBranches = isOwner || isHrEmployee(user);
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -2405,7 +2407,7 @@ function BranchesTab() {
                 >
                   Edit
                 </button>
-                {user?.role === "owner" && <OwnerTrashButton type="branches" id={b.id} />}
+                {canDeleteRecords && <OwnerTrashButton type="branches" id={b.id} />}
               </div>}
             </div>
           ))}
@@ -2544,6 +2546,7 @@ function BranchModal({ branch, onClose, onSaved }) {
 function InstallationsTab({ location }) {
   const { user } = useAuth();
   const canViewTechnicalAssignment = isTejashHrEmployee(user);
+  const canDeleteRecords = user?.role === "owner" || isTejashHrEmployee(user);
   const canView = hasActionPermission(user, "installations", "view");
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
@@ -2725,7 +2728,7 @@ function InstallationsTab({ location }) {
                   <td className="p-3">{item.city || "—"}</td>
                   {canViewTechnicalAssignment && <td className="p-3 whitespace-nowrap">{item.technical_assignee_name ? <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{item.technical_assignee_name}</span> : <span className="text-xs text-muted">Not assigned</span>}</td>}
                   <td className="p-3">{item.last_updated_by_name ? <StatusBadge status={item.status} /> : null}</td>
-                  {(canView || canEdit || user?.role === "owner") && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}{user?.role === "owner" && <OwnerTrashButton type="installations" id={item.id} />}</td>}
+                  {(canView || canEdit || canDeleteRecords) && <td className="p-3 whitespace-nowrap">{canView && <Link to={`${user?.role === "employee" ? "/employee" : "/admin"}/installations/${item.id}`} className="text-xs font-semibold text-amber">View</Link>}{canEdit && <button onClick={() => setSelected({ id: item.id, mode: "edit" })} className="ml-3 text-xs font-semibold text-blue-600">Edit</button>}{canDeleteRecords && <OwnerTrashButton type="installations" id={item.id} />}</td>}
                 </tr>
               );
             })}
@@ -2825,6 +2828,7 @@ function PartnersTab() {
 function SubmissionList({ type }) {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
+  const canDeleteRecords = isOwner || isTejashHrEmployee(user);
   const isHr = isHrEmployee(user);
   const canManageRecords = isOwner || isHr;
   const [items, setItems] = useState([]);
@@ -3161,17 +3165,17 @@ function SubmissionList({ type }) {
                 {formatDateTime(it.created_at)}
               </td>
               {isJoinUs && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}{isOwner && <OwnerTrashButton type="join-us" id={it.id}/>}</div></td>}
+               {isJoinUs && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/join-us/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/join-us/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}{canDeleteRecords && <OwnerTrashButton type="join-us" id={it.id}/>}</div></td>}
               {isCareers && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}{isOwner && <OwnerTrashButton type="careers" id={it.id}/>}</div></td>}
+               {isCareers && <td className="p-3 whitespace-nowrap"><div className="flex items-center gap-1.5"><Link to={`/admin/careers/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canManageRecords && <Link to={`/admin/careers/${it.id}?edit=1`} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100"><Pencil size={13}/>Edit</Link>}{canDeleteRecords && <OwnerTrashButton type="careers" id={it.id}/>}</div></td>}
               {isContacts && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
-              {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{isOwner && <OwnerTrashButton type="contacts" id={it.id}/>}</td>}
+              {isContacts && <td className="p-3 whitespace-nowrap"><Link to={`/admin/contacts/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13}/>View</Link>{canDeleteRecords && <OwnerTrashButton type="contacts" id={it.id}/>}</td>}
               {isPartners && <td className="p-3 text-xs text-muted whitespace-nowrap"><span className="block font-semibold text-navy">{it.updated_by_name || "—"}</span>{formatDateTime(it.updated_at)}</td>}
               {isPartners && (
                 <td className="p-3 whitespace-nowrap">
                   <div className="flex flex-wrap gap-1.5">
                     <Link to={`/admin/partners/${it.id}`} className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-1 text-xs font-semibold text-navy hover:bg-slate-200"><Eye size={13} /> View</Link>
-                    {isOwner && <OwnerTrashButton type="partners" id={it.id} />}
+                    {canDeleteRecords && <OwnerTrashButton type="partners" id={it.id} />}
                      {canManageRecords && <><button disabled={updating} onClick={() => setSelectedPartner({ partner: it, editing: true })} className="inline-flex items-center gap-1 rounded bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-100 disabled:opacity-50"><Pencil size={13} /> Edit</button>
                     </>}
                     {canManageRecords && it.status !== "approved" && (
