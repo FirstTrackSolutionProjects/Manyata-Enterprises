@@ -435,7 +435,7 @@ export default function ApplicationDetail() {
               <label className="block text-xs font-semibold text-muted">Technical employee
                 <select value={technicalAssignee} onChange={(event) => setTechnicalAssignee(event.target.value)} className={`${FIELD_INPUT} font-semibold`}>
                   <option value="">Unassigned</option>
-                  {technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.location || "Any location"}</option>)}
+                  {technicalEmployees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
                 </select>
               </label>
               <label className="block text-xs font-semibold text-muted">Work instructions
