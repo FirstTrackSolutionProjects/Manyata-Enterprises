@@ -462,6 +462,7 @@ function CommissionPayoutsTab() {
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState({ partnerType: "", location: "", fromDate: "", toDate: "", minAmount: "", maxAmount: "" });
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
@@ -469,12 +470,12 @@ function CommissionPayoutsTab() {
     setLoading(true);
     setError("");
     try {
-      const response = await listCommissionPayouts({ status, search: search.trim() });
+      const response = await listCommissionPayouts({ status, search: search.trim(), ...filters });
       setItems(response.data?.items || []);
     } catch (err) { setError(err.message || "Could not load commission payouts."); }
     finally { setLoading(false); }
   };
-  useEffect(() => { loadItems(); }, [status]);
+  useEffect(() => { loadItems(); }, []);
   const update = async (item, nextStatus, paymentReference = "", note = "") => {
     setSavingId(item.id);
     setError("");
@@ -485,7 +486,7 @@ function CommissionPayoutsTab() {
     finally { setSavingId(null); }
   };
   const approve = (item) => {
-    if (window.confirm("Please confirm that the installation is complete and the customer’s agreed payment has been received.")) update(item, "approved");
+    if (window.confirm("Please confirm that the installation is complete and the customer's agreed payment has been received.")) update(item, "approved");
   };
   const markPaid = (item) => {
     const paymentReference = window.prompt("After transferring this amount outside the app, enter the bank UTR / payment reference:");
@@ -493,21 +494,44 @@ function CommissionPayoutsTab() {
     update(item, "paid", paymentReference.trim());
   };
   const cancel = (item) => {
-    if (!window.confirm(`Cancel the ₹${Number(item.amount).toLocaleString("en-IN")} commission for ${item.recipient_name}?`)) return;
+    if (!window.confirm(`Cancel the Rs. ${Number(item.amount).toLocaleString("en-IN")} commission for ${item.recipient_name}?`)) return;
     const note = window.prompt("Reason for cancellation (optional):") || "";
     update(item, "cancelled", "", note);
   };
-  const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const money = (value) => `Rs. ${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const setFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
+  const inputClass = "min-w-0 rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy";
+  const partnerTypeLabel = (value) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" })[value] || value || "-";
+  const locationLabel = (item) => item.application_location || item.application_state || item.recipient_city || item.recipient_state || "-";
+  const clearFilters = () => {
+    setSearch(""); setStatus("");
+    setFilters({ partnerType: "", location: "", fromDate: "", toDate: "", minAmount: "", maxAmount: "" });
+    setLoading(true); setError("");
+    listCommissionPayouts({}).then((response) => setItems(response.data?.items || [])).catch((err) => setError(err.message || "Could not load commission payouts.")).finally(() => setLoading(false));
+  };
   return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-navy/10 px-5 py-4"><div><h2 className="font-bold text-navy">Vendor / Partner Commission Payouts</h2><p className="mt-1 text-xs text-muted">Installation-completed projects with an active commission offer.</p></div><div className="flex flex-wrap gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && loadItems()} placeholder="Search project or partner" className="rounded-lg border border-navy/15 px-3 py-2 text-sm"/><button onClick={loadItems} className="rounded-full border border-navy/15 px-4 py-2 text-xs font-bold text-navy">Search</button><select value={status} onChange={(event) => setStatus(event.target.value)} className="rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select></div></div>
+    <div className="border-b border-navy/10 px-5 py-4">
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-navy">Vendor / Partner Commission Payouts</h2><p className="mt-1 text-xs text-muted">Installation-completed projects with an active commission offer.</p></div>
+        <div className="flex flex-wrap gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && loadItems()} placeholder="Name, mobile, email, application no. or UTR" className={`${inputClass} w-full sm:w-80`}/><select value={status} onChange={(event) => setStatus(event.target.value)} className={inputClass}><option value="">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select></div>
+      </div>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <select value={filters.partnerType} onChange={(event) => setFilter("partnerType", event.target.value)} className={inputClass}><option value="">All partner types</option><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select>
+        <input value={filters.location} onChange={(event) => setFilter("location", event.target.value)} placeholder="Location / state" className={inputClass}/>
+        <label className="flex items-center gap-2 text-xs text-muted">From<input type="date" value={filters.fromDate} onChange={(event) => setFilter("fromDate", event.target.value)} className={`${inputClass} flex-1`}/></label>
+        <label className="flex items-center gap-2 text-xs text-muted">To<input type="date" value={filters.toDate} onChange={(event) => setFilter("toDate", event.target.value)} className={`${inputClass} flex-1`}/></label>
+        <input type="number" min="0" step="0.01" value={filters.minAmount} onChange={(event) => setFilter("minAmount", event.target.value)} placeholder="Minimum amount" className={inputClass}/>
+        <input type="number" min="0" step="0.01" value={filters.maxAmount} onChange={(event) => setFilter("maxAmount", event.target.value)} placeholder="Maximum amount" className={inputClass}/>
+        <button onClick={loadItems} className="rounded-full bg-navy px-5 py-2.5 text-sm font-bold text-white">Search / Apply filters</button>
+        <button onClick={clearFilters} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-semibold text-navy">Clear filters</button>
+      </div>
+    </div>
     <p className="border-b border-navy/10 bg-amber-50 px-5 py-3 text-xs text-navy">Review project completion and confirm the customer's agreed payment before approval. Make the transfer through your normal bank/payment method, then mark it paid with its reference.</p>
     {error && <p role="alert" className="m-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {loading ? <div className="flex justify-center p-10"><Loader2 className="animate-spin text-amber"/></div>
       : !items.length ? <p className="p-8 text-center text-sm text-muted">No commission records match this filter. A record is created only when an assigned partner has a configured rate and its project reaches installation completed.</p>
-      : <div className="overflow-x-auto"><table className="w-full min-w-[980px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs text-muted"><th className="p-3">Project / customer</th><th className="p-3">Payee</th><th className="p-3">Payer</th><th className="p-3">System</th><th className="p-3">Amount</th><th className="p-3">Status / payment history</th><th className="p-3">Actions</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5 last:border-0"><td className="p-3"><p className="font-mono text-xs">{item.application_no}</p><p className="mt-1 font-semibold text-navy">{item.customer_name}</p></td><td className="p-3 font-semibold">{item.recipient_name}</td><td className="p-3">{item.payer_name}</td><td className="p-3">{item.system_type === "on_grid" ? "On-Grid" : item.system_type === "hybrid" ? "Hybrid" : item.system_type}</td><td className="p-3 font-bold">{money(item.amount)}</td><td className="p-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "paid" ? "bg-emerald-50 text-emerald-700" : item.status === "cancelled" ? "bg-slate-100 text-slate-600" : "bg-amber-50"}`}>{item.status}</span>{item.payment_reference && <p className="mt-1 text-xs text-muted">Ref: {item.payment_reference}</p>}{item.paid_at && <p className="mt-1 text-xs text-muted">Paid: {formatDateTime(item.paid_at)}{item.paid_by_name ? ` · by ${item.paid_by_name}` : ""}</p>}</td><td className="p-3"><div className="flex flex-wrap gap-2">{item.status === "pending" && <button disabled={savingId === item.id} onClick={() => approve(item)} className="rounded-full bg-navy px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Approve</button>}{item.status === "approved" && <button disabled={savingId === item.id} onClick={() => markPaid(item)} className="rounded-full bg-amber px-3 py-2 text-xs font-bold text-navy disabled:opacity-50">Mark paid</button>}{["pending", "approved"].includes(item.status) && <button disabled={savingId === item.id} onClick={() => cancel(item)} className="rounded-full border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel</button>}</div></td></tr>)}</tbody></table></div>}
+      : <div className="overflow-x-auto"><table className="w-full min-w-[1500px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs text-muted"><th className="p-3">Project / customer</th><th className="p-3">Partner / payee</th><th className="p-3">Type</th><th className="p-3">Mobile / email</th><th className="p-3">Location</th><th className="p-3">Payer</th><th className="p-3">System</th><th className="p-3">Amount paid</th><th className="p-3">Date / time</th><th className="p-3">UTR / status</th><th className="p-3">Actions</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5 last:border-0"><td className="p-3"><p className="font-mono text-xs">{item.application_no}</p><p className="mt-1 font-semibold text-navy">{item.customer_name}</p></td><td className="p-3 font-semibold">{item.recipient_name}</td><td className="p-3">{partnerTypeLabel(item.recipient_partner_type)}</td><td className="p-3"><span className="block">{item.recipient_phone || "-"}</span><span className="text-xs text-muted">{item.recipient_email || "-"}</span></td><td className="p-3">{locationLabel(item)}{item.recipient_pincode ? <span className="block text-xs text-muted">PIN {item.recipient_pincode}</span> : null}</td><td className="p-3">{item.payer_name}</td><td className="p-3">{item.system_type === "on_grid" ? "On-Grid" : item.system_type === "hybrid" ? "Hybrid" : item.system_type}</td><td className="p-3 font-bold">{item.status === "paid" ? money(item.amount) : "-"}<span className="block text-xs font-normal text-muted">Commission: {money(item.amount)}</span></td><td className="p-3 whitespace-nowrap">{formatDateTime(item.paid_at || item.created_at)}</td><td className="p-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "paid" ? "bg-emerald-50 text-emerald-700" : item.status === "cancelled" ? "bg-slate-100 text-slate-600" : "bg-amber-50"}`}>{item.status}</span>{item.payment_reference && <p className="mt-1 text-xs text-muted">{item.payment_reference}</p>}{item.paid_at && item.paid_by_name && <p className="mt-1 text-xs text-muted">By {item.paid_by_name}</p>}</td><td className="p-3"><div className="flex flex-wrap gap-2">{item.status === "pending" && <button disabled={savingId === item.id} onClick={() => approve(item)} className="rounded-full bg-navy px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Approve</button>}{item.status === "approved" && <button disabled={savingId === item.id} onClick={() => markPaid(item)} className="rounded-full bg-amber px-3 py-2 text-xs font-bold text-navy disabled:opacity-50">Mark paid</button>}{["pending", "approved"].includes(item.status) && <button disabled={savingId === item.id} onClick={() => cancel(item)} className="rounded-full border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel</button>}</div></td></tr>)}</tbody></table></div>}
   </section>;
 }
-
 function OverviewTab() {
   const [stats, setStats] = useState(null);
   const [empStats, setEmpStats] = useState(null);
