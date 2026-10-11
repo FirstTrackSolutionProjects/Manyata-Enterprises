@@ -90,10 +90,22 @@ import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
 import AttendanceDashboard from "./AttendanceDashboard";
 
 const TECHNICAL_APPLICATION_STATUS_VALUES = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
+const EXTRA_ASSIGNABLE_APPLICATION_STATUSES = [
+  "electricity_bill_mismatch_customer_side_on_process",
+  "electricity_bill_ownership_transfer_customer_side_on_process",
+  "electricity_bill_ownership_transfer",
+  "electricity_bill_name_mismatch",
+  "customer_side_bank_forward",
+  "customer_side_bank_forward_pending",
+  "vendor_side_bank_forward_pending",
+];
 const EMPLOYEE_APPLICATION_STATUS_OPTIONS = [...new Map([
   ...APPLICATION_UPDATE_STATUSES,
   ...APPLICATION_STATUSES.filter((status) => TECHNICAL_APPLICATION_STATUS_VALUES.includes(status.value)),
-].map((status) => [status.value, status])).values()];
+  ...APPLICATION_STATUSES.filter((status) => EXTRA_ASSIGNABLE_APPLICATION_STATUSES.includes(status.value)),
+]
+  .filter(status => status)
+  .map((status) => [status.value, status])).values()];
 
 export default function AdminDashboard() {
   const { user } = useAuth();

@@ -19,8 +19,8 @@ export const INSTALLATION_STATUSES = [
   { value: "je_verification_approved", label: "JE Verification - Approved" },
   { value: "pending_for_loan_disbursement_phase_2", label: "Pending for Loan Disbursed - Phase 2" },
   { value: "loan_disbursed_phase_2", label: "Loan Disbursed - Phase 2" },
-  { value: "consumer_subsidy_pending", label: "Consumer - Subsidy Pending" },
-  { value: "consumer_subsidy_disbursed", label: "Consumer - Subsidy Disbursed" },
+  { value: "consumer_subsidy_pending", label: "Customer - Subsidy Pending" },
+  { value: "consumer_subsidy_disbursed", label: "Customer - Subsidy Disbursed" },
   { value: "other", label: "Other" },
   { value: "completed", label: "Fully Completed" },
 ];

@@ -67,6 +67,7 @@ const SECTION_ICONS = {
   "Personal Details": User,
   "Address": MapPin,
   "Electricity Connection": Zap,
+  "Electricity Connection (Consumer Number)": Zap,
   "Bank Details": Landmark,
   "Uploaded Documents": FileText,
   "Site Documentation": Camera,
@@ -251,8 +252,8 @@ export default function ApplicationDetail() {
     );
 
   const documentList = [
-    ["file_aadhaar_front", "Aadhaar Front"],
-    ["file_aadhaar_back", "Aadhaar Back"],
+    ["file_aadhaar_front", "Customer Aadhaar Front"],
+    ["file_aadhaar_back", "Customer Aadhaar Back"],
     ["file_pan_card", "PAN Front"],
     ["file_pan_back", "PAN Back"],
     ["file_photo", "Photo"],
@@ -358,7 +359,7 @@ export default function ApplicationDetail() {
           />
 
           <InfoSection
-            title="Electricity Connection"
+            title="Electricity Connection (Consumer Number)"
             items={[
               ["Consumer Number", app.consumer_number],
               ["Sub Division", app.sub_division],
@@ -639,8 +640,8 @@ function ApplicationEditForm({ app, technicalOnly = false, onClose, onSaved }) {
   <p className="mt-1 text-xs text-muted">Only choose a file for documents you want to replace — others stay unchanged.</p>
   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
     {[
-      ["aadhaarFront", "Aadhaar", app.file_aadhaar_front],
-      ["aadhaarBack", "Aadhaar Back", app.file_aadhaar_back],
+      ["aadhaarFront", "Customer Aadhaar", app.file_aadhaar_front],
+      ["aadhaarBack", "Customer Aadhaar Back", app.file_aadhaar_back],
       ["panCard", "PAN Front", app.file_pan_card],
       ["panBack", "PAN Back", app.file_pan_back],
       ["photo", "Photo", app.file_photo],
