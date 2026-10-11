@@ -512,17 +512,17 @@ export default function Installation() {
             </div>
           </FormCard>
 
-          {/* Consumer & Site Photos */}
-          <FormCard icon={FileText} title="Consumer & Site Documentation">
+          {/* Customer & Site Photos */}
+          <FormCard icon={FileText} title="Customer & Site Documentation">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FileUpload
-                label="Consumer Aadhaar Card Photo (Front Side)"
+                label="Customer Aadhaar Card Photo (Front Side)"
                 name="aadhaarPhoto"
                 required
               />
-              <FileUpload label="Consumer Aadhaar Card Photo (Back Side)" name="aadhaarBackPhoto" required />
+              <FileUpload label="Customer Aadhaar Card Photo (Back Side)" name="aadhaarBackPhoto" required />
               <FileUpload
-                label="Full Setup Installation GPS Camera Photo With Consumer"
+                label="Full Setup Installation GPS Camera Photo With Customer"
                 name="fullSetupPhoto"
                 required
               />

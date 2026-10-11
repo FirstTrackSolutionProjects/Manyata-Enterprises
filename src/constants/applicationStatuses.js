@@ -10,7 +10,9 @@ export const APPLICATION_STATUSES = [
   { value: "purchased_by_cash_1", label: "Purchased By Cash 1" },
   { value: "purchased_by_cash_2", label: "Purchased By Cash 2" },
   { value: "purchased_by_full_cash", label: "Purchased By Full Cash" },
-  { value: "customer_side_bank_forward", label: "Consumer Side - Bank Forward" },
+  { value: "customer_side_bank_forward", label: "Customer Side - Bank Forward" },
+  { value: "customer_side_bank_forward_pending", label: "Customer Side - Bank Forward - Pending" },
+  { value: "vendor_side_bank_forward_pending", label: "Vendor Side - Bank Forward - Pending" },
   { value: "customer_aadhaar_not_linked_with_mobile_number", label: "Customer Side - Aadhaar Card Not Linked with Mobile Number" },
   { value: "customer_kyc_pending_from_bank_side", label: "Customer - KYC Pending from the Bank Side" },
   { value: "customer_kyc_completed_from_bank_side", label: "Customer - KYC Completed from the Bank Side" },
@@ -26,7 +28,7 @@ export const APPLICATION_STATUSES = [
   { value: "customer_side_login_otp_pending_customer_not_responding_call", label: "Customer Side - Login - OTP Pending - Customer Not Responding Call" },
   { value: "vendor_side_login_otp_pending_customer_not_responding_call", label: "Vendor Side - Login - OTP Pending - Customer Not Responding Call" },
   { value: "ownership_transfer_completed_successfully", label: "Ownership Transfer – Completed Successfully" },
-  { value: "consumer_login_submitted_to_govt_portal", label: "Consumer Login - Submitted to Govt Portal" },
+  { value: "consumer_login_submitted_to_govt_portal", label: "Customer Login - Submitted to Govt Portal" },
   { value: "bank_reject", label: "Bank Rejected" },
   { value: "vendor_side_re_bank_forward", label: "Vendor Side – Re-Bank Forward" },
   { value: "pending_for_loan_phase_1", label: "Pending for Loan Disbursed - Phase 1" },
@@ -53,13 +55,14 @@ export const APPLICATION_STATUSES = [
   { value: "pending_for_loan_disbursement_phase_2", label: "Pending for Loan Disbursed - Phase 2" },
   { value: "loan_disbursed_phase_2", label: "Loan Disbursed – Phase 2" },
   { value: "customer_full_loan_amount_disbursed", label: "Customer - Full Loan Amount Disbursed" },
-  { value: "consumer_subsidy_pending", label: "Consumer - Subsidy Apply" },
-  { value: "consumer_subsidy_disbursed", label: "Consumer - Subsidy Disbursed" },
+  { value: "consumer_subsidy_pending", label: "Customer - Subsidy Apply" },
+  { value: "consumer_subsidy_disbursed", label: "Customer - Subsidy Disbursed" },
   { value: "other_vendor", label: "Other Vendor" },
   { value: "after_calling_some_times", label: "After Calling Some Times" },
   { value: "bank_loan_coming_soon", label: "Bank Loan Coming Soon" },
   { value: "other", label: "Other" },
   // Legacy values remain selectable so existing records can still be managed.
+  { value: "vendor_side_pending_for_bank_forward", label: "Vendor Side - Bank Forward - Pending (legacy)" },
   { value: "under_review", label: "Under Review" },
   { value: "submitted_to_govt", label: "Submitted to Govt" },
   { value: "approved", label: "Approved" },
@@ -70,16 +73,35 @@ export const APPLICATION_STATUSES = [
 ];
 
 export const APPLICATION_UPDATE_STATUSES = [
-  "pending", "verified", "electricity_bill_name_mismatch", "mobile_number_linked", "demand_note_payment", "ads_payment",
-  "electricity_bill_name_mismatch_completed_successfully", "pending_for_loan_phase_1", "pending_for_loan_disbursement_phase_2",
-  "technical_installation_pending", "stock_forwarded_to_customer_home", "electricity_bill_ownership_transfer_completed_successfully",
-  "consumer_login_submitted_to_govt_portal", "customer_side_login_otp_pending_customer_not_responding_call",
-  "vendor_side_quotation_agreement_pending", "vendor_side_login_otp_pending_customer_not_responding_call",
-  "customer_side_bank_forward", "customer_aadhaar_not_linked_with_mobile_number", "customer_cibil_score_low",
-  "bank_reject", "vendor_side_re_bank_forward", "customer_side_documents_issue", "customer_full_loan_amount_disbursed",
-  "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "purchased_by_full_cash", "purchased_by_cash_1",
-  "purchased_by_cash_2", "installed", "load_announcement", "net_metering_completed_by_electricals_dept", "je_verification_approved",
-  "consumer_subsidy_pending", "consumer_subsidy_disbursed", "office_side_issue",
+  "pending", "verified",
+  "electricity_bill_name_mismatch",
+  "electricity_bill_mismatch_customer_side_on_process",
+  "electricity_bill_ownership_transfer_customer_side_on_process",
+  "electricity_bill_ownership_transfer",
+  "mobile_number_linked", "demand_note_payment", "ads_payment",
+  "electricity_bill_name_mismatch_completed_successfully",
+  "electricity_bill_ownership_transfer_completed_successfully",
+  "pending_for_loan_phase_1", "pending_for_loan_disbursement_phase_2",
+  "technical_installation_pending", "stock_forwarded_to_customer_home",
+  "consumer_login_submitted_to_govt_portal",
+  "customer_side_login_otp_pending_customer_not_responding_call",
+  "vendor_side_quotation_agreement_pending",
+  "vendor_side_login_otp_pending_customer_not_responding_call",
+  "customer_side_bank_forward",
+  "customer_side_bank_forward_pending",
+  "vendor_side_bank_forward_pending",
+  "customer_aadhaar_not_linked_with_mobile_number",
+  "customer_cibil_score_low",
+  "bank_reject", "vendor_side_re_bank_forward",
+  "customer_side_documents_issue",
+  "customer_full_loan_amount_disbursed",
+  "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2",
+  "purchased_by_full_cash", "purchased_by_cash_1", "purchased_by_cash_2",
+  "installed", "load_announcement",
+  "net_metering_completed_by_electricals_dept",
+  "je_verification_approved",
+  "consumer_subsidy_pending", "consumer_subsidy_disbursed",
+  "office_side_issue",
   "electricity_bill_mismatch_ownership_transfer",
   "customer_kyc_pending_from_bank_side",
   "customer_kyc_completed_from_bank_side",
@@ -89,7 +111,8 @@ export const APPLICATION_UPDATE_STATUSES = [
   "bank_loan_coming_soon",
   "rejected",
   "other",
-].map((value) => APPLICATION_STATUSES.find((status) => status.value === value));
+].map((value) => APPLICATION_STATUSES.find((status) => status.value === value))
+ .filter(Boolean);
 
 export const getApplicationUpdateStatusOptions = (user) => {
   const isTechnicalEmployee = user?.role === "employee"
@@ -109,8 +132,5 @@ export const getApplicationUpdateStatusOptions = (user) => {
 };
 
 export const applicationStatusLabel = (value) =>
-  value === "vendor_side_pending_for_bank_forward"
-    ? "Customer Side - Bank Forward - Pending"
-    :
   APPLICATION_STATUSES.find((status) => status.value === value)?.label ||
   String(value || "").replace(/_/g, " ");
