@@ -75,6 +75,7 @@ import {
   downloadSalarySlip,
   listCommissionPayouts,
   updateCommissionPayoutStatus,
+  recordCommissionPayoutPayment,
   sendPartnerLOL,
   updateMyEmployeeProfile,
   attendancePhotoHref,
@@ -134,7 +135,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <div className="space-y-5"><EmployeeAdvanceHistory /><EmployeeSalarySlipsTab /></div>}
       {hasAccess && tab === "salary-management" && (user?.role === "owner" || isHr) && <SalaryManagementTab onOpenHistory={() => handleSectionChange("salary-history")} />}
       {hasAccess && tab === "salary-history" && (user?.role === "owner" || isHr) && <SalaryHistoryPage onBack={() => handleSectionChange("salary-management")} />}
-      {hasAccess && tab === "commission-payouts" && (user?.role === "owner" || isHr) && <CommissionPayoutsTab />}
+      {hasAccess && tab === "commission-payouts" && (user?.role === "owner" || isHr) && <CommissionPayoutsTab canRecordPayment={user?.role === "owner"} />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
       {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner"} />}
       {hasAccess && tab === "emp-attendance" && (user?.role === "owner" || isHr) && <AttendanceDashboard isManager />}
@@ -458,7 +459,7 @@ function SalaryAdvanceModal({ employee, onClose, onSaved }) {
     <div><h3 className="font-bold text-navy">Advance history</h3>{loading ? <p className="py-4 text-sm text-muted">Loading...</p> : !items.length ? <p className="py-4 text-sm text-muted">No advances recorded.</p> : <div className="mt-2 divide-y divide-navy/5">{items.map((item) => <article key={item.id} className="py-3 text-sm"><div className="flex justify-between gap-3"><strong>{item.status === "active" ? "Active" : item.status === "paid" ? "Paid" : "Cancelled"}</strong><strong>Rs. {Number(item.total_amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong></div><p className="mt-1 text-xs text-muted">Recovered Rs. {Number(item.recovered_amount).toFixed(2)} · Balance Rs. {(Number(item.total_amount) - Number(item.recovered_amount)).toFixed(2)} · Rs. {Number(item.monthly_installment).toFixed(2)} per month from {new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric" }).format(new Date(Number(item.first_recovery_year), Number(item.first_recovery_month) - 1, 1))}</p>{item.note && <p className="mt-1 text-xs text-muted">{item.note}</p>}</article>)}</div>}</div></section></div>;
 }
 
-function CommissionPayoutsTab() {
+function CommissionPayoutsTab({ canRecordPayment }) {
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("");
   const [search, setSearch] = useState("");
@@ -466,6 +467,9 @@ function CommissionPayoutsTab() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [paymentItem, setPaymentItem] = useState(null);
+  const [paymentForm, setPaymentForm] = useState({ amount: "", paymentMethod: "upi", upiIdOrNumber: "", paymentReference: "", paidAt: "", proof: null });
   const loadItems = async () => {
     setLoading(true);
     setError("");
@@ -489,9 +493,28 @@ function CommissionPayoutsTab() {
     if (window.confirm("Please confirm that the installation is complete and the customer's agreed payment has been received.")) update(item, "approved");
   };
   const markPaid = (item) => {
-    const paymentReference = window.prompt("After transferring this amount outside the app, enter the bank UTR / payment reference:");
-    if (!paymentReference?.trim()) return;
-    update(item, "paid", paymentReference.trim());
+    const date = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+    setPaymentItem(item);
+    setPaymentForm({ amount: Number(item.outstanding_amount ?? item.amount).toFixed(2), paymentMethod: "upi", upiIdOrNumber: "", paymentReference: "", paidAt: date.toISOString().slice(0, 16), proof: null });
+    setError(""); setNotice("");
+  };
+  const savePayment = async (event) => {
+    event.preventDefault();
+    if (!paymentItem || !paymentForm.proof) { setError("Select the payment screenshot or receipt first."); return; }
+    if (paymentForm.paymentMethod === "upi" && !paymentForm.upiIdOrNumber.trim()) { setError("Enter the recipient UPI ID or mobile number."); return; }
+    setSavingId(paymentItem.id); setError(""); setNotice("");
+    try {
+      const uploaded = await uploadFilesToS3("commission-payouts", { proof: paymentForm.proof });
+      const response = await recordCommissionPayoutPayment(paymentItem.id, {
+        amount: paymentForm.amount, paymentMethod: paymentForm.paymentMethod,
+        upiIdOrNumber: paymentForm.upiIdOrNumber, paymentReference: paymentForm.paymentReference,
+        paidAt: paymentForm.paidAt, paymentProofKey: uploaded.proof,
+      });
+      setPaymentItem(null);
+      setNotice(response.data?.emailSent ? "Payment saved. Proof is in the partner dashboard and was emailed." : `Payment saved to the partner dashboard. Email not sent: ${response.data?.emailError || "check the partner email / mail configuration"}`);
+      await loadItems();
+    } catch (err) { setError(err.message || "Could not record this payment."); }
+    finally { setSavingId(null); }
   };
   const cancel = (item) => {
     if (!window.confirm(`Cancel the Rs. ${Number(item.amount).toLocaleString("en-IN")} commission for ${item.recipient_name}?`)) return;
@@ -509,10 +532,21 @@ function CommissionPayoutsTab() {
     setLoading(true); setError("");
     listCommissionPayouts({}).then((response) => setItems(response.data?.items || [])).catch((err) => setError(err.message || "Could not load commission payouts.")).finally(() => setLoading(false));
   };
+  const downloadReport = () => {
+    const esc = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const rows = [["Partner", "Mobile", "Email", "State", "Partner type", "Application", "Customer", "Commission", "Paid", "Balance", "Payment date/time", "Method", "UPI / number", "UTR / reference", "Recorded by", "Proof URL", "Status"]];
+    items.forEach((item) => {
+      const payments = item.payments?.length ? item.payments : [null];
+      payments.forEach((payment) => rows.push([item.recipient_name, item.recipient_phone, item.recipient_email, item.recipient_state || item.application_state, partnerTypeLabel(item.recipient_partner_type), item.application_no, item.customer_name, item.amount, payment?.amount || 0, item.outstanding_amount, payment?.paid_at || item.paid_at || "", payment?.payment_method || "", payment?.upi_id_or_number || "", payment?.payment_reference || item.payment_reference || "", payment?.paid_by_name || item.paid_by_name || "", payment?.payment_proof_url || "", item.display_status || item.status]));
+    });
+    const blob = new Blob([rows.map((row) => row.map(esc).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob); const anchor = document.createElement("a");
+    anchor.href = url; anchor.download = `partner-commission-payments-${new Date().toISOString().slice(0, 10)}.csv`; anchor.click(); URL.revokeObjectURL(url);
+  };
   return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
     <div className="border-b border-navy/10 px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-navy">Vendor / Partner Commission Payouts</h2><p className="mt-1 text-xs text-muted">Installation-completed projects with an active commission offer.</p></div>
-        <div className="flex flex-wrap gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && loadItems()} placeholder="Name, mobile, email, application no. or UTR" className={`${inputClass} w-full sm:w-80`}/><select value={status} onChange={(event) => setStatus(event.target.value)} className={inputClass}><option value="">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select></div>
+        <div className="flex flex-wrap gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && loadItems()} placeholder="Name, mobile, email, application no., UPI or UTR" className={`${inputClass} w-full sm:w-80`}/><select value={status} onChange={(event) => setStatus(event.target.value)} className={inputClass}><option value="">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved / unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select><button onClick={downloadReport} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy">Download report</button></div>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
         <select value={filters.partnerType} onChange={(event) => setFilter("partnerType", event.target.value)} className={inputClass}><option value="">All partner types</option><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select>
@@ -525,11 +559,13 @@ function CommissionPayoutsTab() {
         <button onClick={clearFilters} className="rounded-full border border-navy/15 px-5 py-2.5 text-sm font-semibold text-navy">Clear filters</button>
       </div>
     </div>
-    <p className="border-b border-navy/10 bg-amber-50 px-5 py-3 text-xs text-navy">Review project completion and confirm the customer's agreed payment before approval. Make the transfer through your normal bank/payment method, then mark it paid with its reference.</p>
+    <p className="border-b border-navy/10 bg-amber-50 px-5 py-3 text-xs text-navy">After transferring through your UPI or bank app, record the amount, recipient details, date/time, transaction reference and screenshot here. Partial payments remain open until the full commission is paid.</p>
+    {notice && <p role="status" className="m-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
     {error && <p role="alert" className="m-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     {loading ? <div className="flex justify-center p-10"><Loader2 className="animate-spin text-amber"/></div>
       : !items.length ? <p className="p-8 text-center text-sm text-muted">No commission records match this filter. A record is created only when an assigned partner has a configured rate and its project reaches installation completed.</p>
-      : <div className="overflow-x-auto"><table className="w-full min-w-[1500px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs text-muted"><th className="p-3">Project / customer</th><th className="p-3">Partner / payee</th><th className="p-3">Type</th><th className="p-3">Mobile / email</th><th className="p-3">Location</th><th className="p-3">Payer</th><th className="p-3">System</th><th className="p-3">Amount paid</th><th className="p-3">Date / time</th><th className="p-3">UTR / status</th><th className="p-3">Actions</th></tr></thead><tbody>{items.map((item) => <tr key={item.id} className="border-b border-navy/5 last:border-0"><td className="p-3"><p className="font-mono text-xs">{item.application_no}</p><p className="mt-1 font-semibold text-navy">{item.customer_name}</p></td><td className="p-3 font-semibold">{item.recipient_name}</td><td className="p-3">{partnerTypeLabel(item.recipient_partner_type)}</td><td className="p-3"><span className="block">{item.recipient_phone || "-"}</span><span className="text-xs text-muted">{item.recipient_email || "-"}</span></td><td className="p-3">{locationLabel(item)}{item.recipient_pincode ? <span className="block text-xs text-muted">PIN {item.recipient_pincode}</span> : null}</td><td className="p-3">{item.payer_name}</td><td className="p-3">{item.system_type === "on_grid" ? "On-Grid" : item.system_type === "hybrid" ? "Hybrid" : item.system_type}</td><td className="p-3 font-bold">{item.status === "paid" ? money(item.amount) : "-"}<span className="block text-xs font-normal text-muted">Commission: {money(item.amount)}</span></td><td className="p-3 whitespace-nowrap">{formatDateTime(item.paid_at || item.created_at)}</td><td className="p-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${item.status === "paid" ? "bg-emerald-50 text-emerald-700" : item.status === "cancelled" ? "bg-slate-100 text-slate-600" : "bg-amber-50"}`}>{item.status}</span>{item.payment_reference && <p className="mt-1 text-xs text-muted">{item.payment_reference}</p>}{item.paid_at && item.paid_by_name && <p className="mt-1 text-xs text-muted">By {item.paid_by_name}</p>}</td><td className="p-3"><div className="flex flex-wrap gap-2">{item.status === "pending" && <button disabled={savingId === item.id} onClick={() => approve(item)} className="rounded-full bg-navy px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Approve</button>}{item.status === "approved" && <button disabled={savingId === item.id} onClick={() => markPaid(item)} className="rounded-full bg-amber px-3 py-2 text-xs font-bold text-navy disabled:opacity-50">Mark paid</button>}{["pending", "approved"].includes(item.status) && <button disabled={savingId === item.id} onClick={() => cancel(item)} className="rounded-full border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel</button>}</div></td></tr>)}</tbody></table></div>}
+      : <div className="overflow-x-auto"><table className="w-full min-w-[1550px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs text-muted"><th className="p-3">Project / customer</th><th className="p-3">Partner / payee</th><th className="p-3">Type</th><th className="p-3">Mobile / email</th><th className="p-3">Location</th><th className="p-3">Payer</th><th className="p-3">Commission / paid / balance</th><th className="p-3">Payment history</th><th className="p-3">Status</th><th className="p-3">Actions</th></tr></thead><tbody>{items.map((item) => { const displayStatus = item.display_status || item.status; return <tr key={item.id} className="border-b border-navy/5 last:border-0 align-top"><td className="p-3"><p className="font-mono text-xs">{item.application_no}</p><p className="mt-1 font-semibold text-navy">{item.customer_name}</p><p className="mt-1 text-xs text-muted">{item.system_type === "on_grid" ? "On-Grid" : item.system_type === "hybrid" ? "Hybrid" : item.system_type}</p></td><td className="p-3 font-semibold">{item.recipient_name}</td><td className="p-3">{partnerTypeLabel(item.recipient_partner_type)}</td><td className="p-3"><span className="block">{item.recipient_phone || "-"}</span><span className="text-xs text-muted">{item.recipient_email || "-"}</span></td><td className="p-3">{item.recipient_state || locationLabel(item)}{item.recipient_pincode ? <span className="block text-xs text-muted">PIN {item.recipient_pincode}</span> : null}</td><td className="p-3">{item.payer_name}</td><td className="p-3"><p>Payable: <strong>{money(item.amount)}</strong></p><p className="text-emerald-700">Paid: {money(item.paid_amount)}</p><p className="text-xs text-muted">Balance: {money(item.outstanding_amount)}</p></td><td className="p-3"><div className="space-y-3">{item.payments?.length ? item.payments.map((payment) => <div key={payment.id} className="min-w-48 border-b border-navy/5 pb-2 last:border-0"><p className="font-semibold">{money(payment.amount)} · {formatDateTime(payment.paid_at)}</p><p className="text-xs text-muted">{payment.payment_method?.replace("_", " ")} · {payment.upi_id_or_number || "UPI/number not entered"}</p><p className="text-xs text-muted">Ref: {payment.payment_reference} · By {payment.paid_by_name || "Owner"}</p>{payment.payment_proof_url && <a href={payment.payment_proof_url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-blue-700 underline">View proof</a>}</div>) : <span className="text-xs text-muted">No payment recorded</span>}</div></td><td className="p-3"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${displayStatus === "paid" ? "bg-emerald-50 text-emerald-700" : displayStatus === "cancelled" ? "bg-slate-100 text-slate-600" : "bg-amber-50 text-navy"}`}>{displayStatus.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase())}</span></td><td className="p-3"><div className="flex flex-wrap gap-2">{item.status === "pending" && <button disabled={savingId === item.id} onClick={() => approve(item)} className="rounded-full bg-navy px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Approve</button>}{canRecordPayment && item.status === "approved" && <button disabled={savingId === item.id} onClick={() => markPaid(item)} className="rounded-full bg-amber px-3 py-2 text-xs font-bold text-navy disabled:opacity-50">Record payment</button>}{["pending", "approved"].includes(item.status) && Number(item.paid_amount) === 0 && <button disabled={savingId === item.id} onClick={() => cancel(item)} className="rounded-full border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 disabled:opacity-50">Cancel</button>}</div></td></tr>; })}</tbody></table></div>}
+    {paymentItem && <div className="fixed inset-0 z-[90] grid place-items-center bg-black/50 p-4" onClick={() => !savingId && setPaymentItem(null)}><form onSubmit={savePayment} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-xl space-y-4 overflow-y-auto rounded-2xl bg-white p-5 shadow-xl"><div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-bold text-navy">Record partner payment</h3><p className="mt-1 text-sm text-muted">{paymentItem.recipient_name} · {paymentItem.recipient_phone || "No mobile"}</p><p className="text-xs text-muted">Payable {money(paymentItem.amount)} · Balance {money(paymentItem.outstanding_amount ?? paymentItem.amount)}</p></div><button type="button" disabled={Boolean(savingId)} onClick={() => setPaymentItem(null)} className="rounded-lg px-2 py-1 text-muted">Close</button></div><div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold text-muted">Payment amount (Rs.)<input required type="number" min="0.01" max={paymentItem.outstanding_amount ?? paymentItem.amount} step="0.01" value={paymentForm.amount} onChange={(event) => setPaymentForm({ ...paymentForm, amount: event.target.value })} className={`${inputClass} mt-1 w-full`}/></label><label className="text-xs font-semibold text-muted">Payment method<select value={paymentForm.paymentMethod} onChange={(event) => setPaymentForm({ ...paymentForm, paymentMethod: event.target.value })} className={`${inputClass} mt-1 w-full`}><option value="upi">UPI</option><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="other">Other</option></select></label><label className="text-xs font-semibold text-muted">UPI ID / number<input maxLength="160" value={paymentForm.upiIdOrNumber} onChange={(event) => setPaymentForm({ ...paymentForm, upiIdOrNumber: event.target.value })} placeholder="Recipient UPI ID or mobile number" className={`${inputClass} mt-1 w-full`}/></label><label className="text-xs font-semibold text-muted">Transaction reference / UTR<input required maxLength="160" value={paymentForm.paymentReference} onChange={(event) => setPaymentForm({ ...paymentForm, paymentReference: event.target.value })} className={`${inputClass} mt-1 w-full`}/></label><label className="text-xs font-semibold text-muted">Payment date and time<input required type="datetime-local" value={paymentForm.paidAt} onChange={(event) => setPaymentForm({ ...paymentForm, paidAt: event.target.value })} className={`${inputClass} mt-1 w-full`}/></label><label className="text-xs font-semibold text-muted sm:col-span-2">Screenshot / payment receipt<input required type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={(event) => setPaymentForm({ ...paymentForm, proof: event.target.files?.[0] || null })} className="mt-1 block w-full rounded-lg border border-navy/15 p-2 text-sm"/><span className="mt-1 block font-normal">JPG, PNG, WebP, or PDF</span></label></div>{error && <p role="alert" className="text-sm text-red-600">{error}</p>}<div className="flex justify-end gap-2"><button type="button" disabled={Boolean(savingId)} onClick={() => setPaymentItem(null)} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={Boolean(savingId)} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{savingId === paymentItem.id ? "Saving payment..." : "Save payment & email proof"}</button></div></form></div>}
   </section>;
 }
 function OverviewTab() {

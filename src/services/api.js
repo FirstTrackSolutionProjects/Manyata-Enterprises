@@ -375,6 +375,8 @@ export const listCommissionPayouts = (params = {}) => {
 };
 export const updateCommissionPayoutStatus = (id, payload) =>
   apiFetch(`/commission-payouts/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) });
+export const recordCommissionPayoutPayment = (id, payload) =>
+  apiFetch(`/commission-payouts/${id}/payments`, { method: "POST", body: JSON.stringify(payload) });
 export const getMyLeaveRequests = () => apiFetch("/leave-requests/my");
 export const createMyLeaveRequest = (payload) => apiFetch("/leave-requests", { method: "POST", body: JSON.stringify(payload) });
 export const updateMyLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${id}`, { method: "PUT", body: JSON.stringify(payload) });
@@ -519,7 +521,7 @@ export const putObjectToS3 = async (putURL, file, filetype) => {
  * High-level helper: given a map of { inputName: File }, upload each to S3
  * and return a map of { inputName: fileKey } ready to embed in JSON payload.
  *
- * @param {"applications"|"careers"|"join-us"|"partners"} folder
+ * @param {"applications"|"careers"|"join-us"|"partners"|"commission-payouts"} folder
  * @param {Record<string, File|null|undefined>} fileMap
  * @returns {Promise<Record<string, string>>}  { inputName: fileKey }
  */
