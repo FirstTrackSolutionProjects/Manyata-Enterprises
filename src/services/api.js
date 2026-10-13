@@ -377,6 +377,10 @@ export const updateCommissionPayoutStatus = (id, payload) =>
   apiFetch(`/commission-payouts/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) });
 export const recordCommissionPayoutPayment = (id, payload) =>
   apiFetch(`/commission-payouts/${id}/payments`, { method: "POST", body: JSON.stringify(payload) });
+export const addCommissionPayoutFollowup = (id, payload) =>
+  apiFetch(`/commission-payouts/${id}/followups`, { method: "POST", body: JSON.stringify(payload) });
+export const completeCommissionPayoutFollowup = (id, followupId) =>
+  apiFetch(`/commission-payouts/${id}/followups/${followupId}/complete`, { method: "PATCH", body: JSON.stringify({}) });
 export const getMyLeaveRequests = () => apiFetch("/leave-requests/my");
 export const createMyLeaveRequest = (payload) => apiFetch("/leave-requests", { method: "POST", body: JSON.stringify(payload) });
 export const updateMyLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${id}`, { method: "PUT", body: JSON.stringify(payload) });
