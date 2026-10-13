@@ -462,8 +462,7 @@ function SalaryAdvanceModal({ employee, onClose, onSaved }) {
 function CommissionPayoutsTab({ canRecordPayment }) {
   const [items, setItems] = useState([]);
   const [status, setStatus] = useState("");
-  const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState({ partnerType: "", location: "", fromDate: "", toDate: "", minAmount: "", maxAmount: "" });
+  const [filters, setFilters] = useState({ name: "", mobile: "", email: "", applicationNo: "", upiId: "", paymentRef: "", partnerType: "", location: "", fromDate: "", toDate: "", minAmount: "", maxAmount: "" });
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
@@ -474,7 +473,7 @@ function CommissionPayoutsTab({ canRecordPayment }) {
     setLoading(true);
     setError("");
     try {
-      const response = await listCommissionPayouts({ status, search: search.trim(), ...filters });
+      const response = await listCommissionPayouts({ status, ...filters });
       setItems(response.data?.items || []);
     } catch (err) { setError(err.message || "Could not load commission payouts."); }
     finally { setLoading(false); }
@@ -527,10 +526,11 @@ function CommissionPayoutsTab({ canRecordPayment }) {
   const partnerTypeLabel = (value) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" })[value] || value || "-";
   const locationLabel = (item) => item.application_location || item.application_state || item.recipient_city || item.recipient_state || "-";
   const clearFilters = () => {
-    setSearch(""); setStatus("");
-    setFilters({ partnerType: "", location: "", fromDate: "", toDate: "", minAmount: "", maxAmount: "" });
+    setStatus("");
+    const emptyFilters = { name: "", mobile: "", email: "", applicationNo: "", upiId: "", paymentRef: "", partnerType: "", location: "", fromDate: "", toDate: "", minAmount: "", maxAmount: "" };
+    setFilters(emptyFilters);
     setLoading(true); setError("");
-    listCommissionPayouts({}).then((response) => setItems(response.data?.items || [])).catch((err) => setError(err.message || "Could not load commission payouts.")).finally(() => setLoading(false));
+    listCommissionPayouts({ status: "" }).then((response) => setItems(response.data?.items || [])).catch((err) => setError(err.message || "Could not load commission payouts.")).finally(() => setLoading(false));
   };
   const downloadReport = () => {
     const esc = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
@@ -546,9 +546,15 @@ function CommissionPayoutsTab({ canRecordPayment }) {
   return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
     <div className="border-b border-navy/10 px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-navy">Vendor / Partner Commission Payouts</h2><p className="mt-1 text-xs text-muted">Installation-completed projects with an active commission offer.</p></div>
-        <div className="flex flex-wrap gap-2"><input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => event.key === "Enter" && loadItems()} placeholder="Name, mobile, email, application no., UPI or UTR" className={`${inputClass} w-full sm:w-80`}/><select value={status} onChange={(event) => setStatus(event.target.value)} className={inputClass}><option value="">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved / unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select><button onClick={downloadReport} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy">Download report</button></div>
+        <div className="flex flex-wrap gap-2"><select value={status} onChange={(event) => setStatus(event.target.value)} className={inputClass}><option value="">All statuses</option><option value="pending">Pending review</option><option value="approved">Approved / unpaid</option><option value="partially_paid">Partially paid</option><option value="paid">Paid</option><option value="cancelled">Cancelled</option></select><button onClick={downloadReport} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy">Download report</button></div>
       </div>
       <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <input value={filters.name} onChange={(event) => setFilter("name", event.target.value)} placeholder="Partner / customer name" className={inputClass}/>
+        <input value={filters.mobile} onChange={(event) => setFilter("mobile", event.target.value)} placeholder="Mobile number" className={inputClass}/>
+        <input value={filters.email} onChange={(event) => setFilter("email", event.target.value)} placeholder="Email address" className={inputClass}/>
+        <input value={filters.applicationNo} onChange={(event) => setFilter("applicationNo", event.target.value)} placeholder="Application number" className={inputClass}/>
+        <input value={filters.upiId} onChange={(event) => setFilter("upiId", event.target.value)} placeholder="UPI ID / number" className={inputClass}/>
+        <input value={filters.paymentRef} onChange={(event) => setFilter("paymentRef", event.target.value)} placeholder="UTR / transaction reference" className={inputClass}/>
         <select value={filters.partnerType} onChange={(event) => setFilter("partnerType", event.target.value)} className={inputClass}><option value="">All partner types</option><option value="super_vendor">Super-vendor</option><option value="vendor">Vendor</option><option value="sub_vendor">Sub-vendor</option><option value="dealer">Dealer</option></select>
         <input value={filters.location} onChange={(event) => setFilter("location", event.target.value)} placeholder="Location / state" className={inputClass}/>
         <label className="flex items-center gap-2 text-xs text-muted">From<input type="date" value={filters.fromDate} onChange={(event) => setFilter("fromDate", event.target.value)} className={`${inputClass} flex-1`}/></label>
