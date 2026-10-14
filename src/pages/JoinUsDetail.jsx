@@ -131,9 +131,9 @@ export default function JoinUsDetail() {
     setError("");
     try {
       const response = await sendJoinUsLOAEmail(id);
-      setLoaMailNotice(response.message || `LOA sent to HR at ${response.data?.recipient || "the configured HR email"}.`);
+      setLoaMailNotice(response.message || `LOA sent to the employee at ${response.data?.recipient || submission.email || "the employee email"}${response.data?.copied_to_hr ? `, with HR copied at ${response.data.copied_to_hr}` : ""}.`);
     } catch (err) {
-      setError(err.message || "Could not email the LOA to HR.");
+      setError(err.message || "Could not email the LOA to the employee.");
     } finally {
       setSendingLOA(false);
     }
@@ -180,7 +180,7 @@ export default function JoinUsDetail() {
             <button onClick={() => setEditing(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}><Pencil size={15} /></span>Edit Details</button>
             <button onClick={() => downloadSubmissionPdf("join-us", submission.id)} className={HERO_PRIMARY}><span className={BUBBLE_ON_AMBER}><Download size={15} /></span>Download Details PDF</button>
             <button onClick={handleDownloadLOA} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}><FileText size={15} /></span>Download LOA</button>
-            <button onClick={handleSendLOAEmail} disabled={sendingLOA} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{sendingLOA ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}</span>{sendingLOA ? "Sending to HR…" : "Send LOA to HR"}</button>
+            <button onClick={handleSendLOAEmail} disabled={sendingLOA || !submission.email} title={!submission.email ? "Add the employee's email in Edit Details first." : "Email the LOA to the employee and copy HR."} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{sendingLOA ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}</span>{sendingLOA ? "Sending to Employee…" : "Send LOA to Employee"}</button>
           </div>
           {loaMailNotice && <p role="status" className="mt-3 w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{loaMailNotice}</p>}
         </div>
