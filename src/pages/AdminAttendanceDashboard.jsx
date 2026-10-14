@@ -185,11 +185,13 @@ export default function AdminAttendanceDashboard({ context }) {
     loadRegister().catch((err) => setError(err.message || "Could not load attendance register."));
   };
 
-  const editRowTime = (item, key) => (event) =>
+  const editRowTime = (item, key) => (event) => {
+    setError("");
     setRowTimeEdits((current) => ({
       ...current,
       [item.id]: { ...current[item.id], [key]: event.target.value },
     }));
+  };
 
   const updateManual = (key) => (event) =>
     setManualEvent((current) => ({ ...current, [key]: event.target.value }));

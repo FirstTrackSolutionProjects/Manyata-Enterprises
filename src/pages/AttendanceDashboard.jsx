@@ -328,7 +328,10 @@ export default function AttendanceDashboard({ isManager }) {
       setNotice(`${eventType === "clock_in" ? "Clock-in" : "Clock-out"} time updated for ${item.employee_name}.`);
       setRowTimeEdits((current) => {
         const next = { ...current };
-        delete next[item.id];
+        const remaining = { ...(next[item.id] || {}) };
+        delete remaining[eventType];
+        if (Object.keys(remaining).length) next[item.id] = remaining;
+        else delete next[item.id];
         return next;
       });
       await loadRegister();
