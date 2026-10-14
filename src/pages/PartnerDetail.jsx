@@ -362,6 +362,10 @@ export default function PartnerDetail() {
             ["Hybrid", partner.referral_commission?.commission_rates?.hybrid === undefined ? "Not set" : `₹${Number(partner.referral_commission.commission_rates.hybrid).toLocaleString("en-IN")} per completed installation`],
             ["Paid by", partner.referral_commission?.payer_partner_id ? partner.referrer_company_name || partner.referrer_contact_name || "Direct referrer" : "Owner"],
           ]} />}
+          {isOwner && partner.referral_partners?.some((child) => Number(child.depth) === 1) && <InfoSection title="Referral Offers & Estimated Partner Margin">
+            <p className="mb-4 text-sm text-muted">See each direct referral's offer and this partner's estimated amount left per completed installation. Actual payable, paid, and balance amounts are in Commission Payouts.</p>
+            <div className="grid gap-3">{partner.referral_partners.filter((child) => Number(child.depth) === 1).map((child) => <OwnerReferralOfferRow key={child.id} parent={partner} child={child} />)}</div>
+          </InfoSection>}
           <InfoSection title="Registration Details" items={[
             ["GST Number", partner.gst_number], ["PAN Number", partner.pan_number], ["MSME Number", partner.msme_number],
           ]} />
@@ -454,6 +458,27 @@ function SideCard({ icon: Icon, title, subtitle, badge, children }) {
     </div>
     <div className="p-5">{children}</div>
   </section>;
+}
+
+function OwnerReferralOfferRow({ parent, child }) {
+  const incoming = parent.referral_commission?.commission_rates || {};
+  const offered = child.referral_commission_rates || {};
+  const childType = ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[child.partner_type] || titleCase(child.partner_type);
+  const amount = (value) => value === undefined || value === null || value === ""
+    ? "Not set"
+    : `₹${Number(value).toLocaleString("en-IN")}`;
+  const margin = (system) => {
+    if (incoming[system] === undefined || incoming[system] === null || offered[system] === undefined || offered[system] === null) return "Not set";
+    const value = Number(incoming[system]) - Number(offered[system]);
+    return Number.isFinite(value) ? `${value < 0 ? "−" : ""}₹${Math.abs(value).toLocaleString("en-IN")}` : "Not set";
+  };
+  return <article className="rounded-xl border border-navy/10 bg-offwhite p-4">
+    <div className="flex flex-wrap items-center justify-between gap-2"><h4 className="font-bold text-navy">{child.company_name || child.contact_name}</h4><span className="rounded-full bg-amber-soft px-2.5 py-1 text-xs font-semibold text-navy">{childType}</span></div>
+    <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <div className="rounded-lg bg-white p-3"><p className="text-xs font-semibold text-muted">Offer from this partner</p><p className="mt-1 text-sm text-navy">On-Grid: <strong>{amount(offered.on_grid)}</strong></p><p className="text-sm text-navy">Hybrid: <strong>{amount(offered.hybrid)}</strong></p></div>
+      <div className="rounded-lg bg-white p-3"><p className="text-xs font-semibold text-muted">Estimated amount left for this partner</p><p className="mt-1 text-sm text-navy">On-Grid: <strong>{margin("on_grid")}</strong></p><p className="text-sm text-navy">Hybrid: <strong>{margin("hybrid")}</strong></p></div>
+    </div>
+  </article>;
 }
 
 function OwnerReferralCommissionCard({ partner, onSaved }) {
