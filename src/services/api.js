@@ -464,6 +464,7 @@ export const downloadJoinUsLOA = async (id) => {
   link.remove();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 };
+export const sendJoinUsLOAEmail = (id) => apiFetch(`/admin/join-us/${id}/loa/email`, { method: "POST" });
 export const updateJoinUsStatus = (id, status, note = "") => apiFetch(`/admin/join-us/${id}/status`, {
   method: "PATCH",
   body: JSON.stringify({ status, note }),

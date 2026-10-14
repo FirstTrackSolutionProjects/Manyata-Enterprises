@@ -142,10 +142,17 @@ export default function PartnerDashboard() {
 
 function PartnerCommissionSection() {
   const [items, setItems] = useState([]);
+  const [incomingCommission, setIncomingCommission] = useState(null);
+  const [offerLoading, setOfferLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   useEffect(() => {
     let active = true;
+    getMyPartnerHierarchy().then((response) => {
+      if (active) setIncomingCommission(response.data?.partner?.incoming_commission || null);
+    }).catch(() => {
+      if (active) setIncomingCommission(null);
+    }).finally(() => { if (active) setOfferLoading(false); });
     getMyCommissionPayouts().then((response) => {
       if (active) setItems(response.data?.items || []);
     }).catch((err) => {
@@ -158,6 +165,16 @@ function PartnerCommissionSection() {
     : items.filter((item) => item.status === status).reduce((sum, item) => sum + Number(status === "approved" ? item.outstanding_amount : item.amount || 0), 0);
   const money = (value) => `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   return <section className="space-y-5">
+    <div className="rounded-2xl border border-amber/30 bg-amber-50 p-5">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div><h2 className="font-bold text-navy">Agreed commission rates</h2><p className="mt-1 text-sm text-muted">Your referrer’s offer for each completed installation.</p></div>
+        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-muted">Per completed installation</span>
+      </div>
+      {offerLoading ? <div className="mt-4 flex items-center gap-2 text-sm text-muted"><Loader2 size={16} className="animate-spin text-amber"/>Loading rates…</div>
+        : <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {[['On-Grid', incomingCommission?.commission_rates?.on_grid], ['Hybrid', incomingCommission?.commission_rates?.hybrid]].map(([label, amount]) => <div key={label} className="rounded-xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 text-xl font-extrabold text-navy">{amount === undefined || amount === null ? "Not set" : `₹${Number(amount).toLocaleString("en-IN")}`}</p></div>)}
+        </div>}
+    </div>
     <div className="grid gap-3 sm:grid-cols-3">
       {[["Pending review", "pending"], ["Approved", "approved"], ["Paid", "paid"]].map(([label, status]) => <div key={status} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 text-xl font-extrabold text-navy">{money(totalFor(status))}</p></div>)}
     </div>

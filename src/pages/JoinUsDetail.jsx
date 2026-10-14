@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowLeft, BadgeCheck, Briefcase, Building2, CalendarDays, Check, Clock, Copy, Download, ExternalLink, FileText, GraduationCap, Hash, Landmark, Loader2, Mail, MapPin, Pencil, Phone, ShieldCheck, User, Wallet } from "lucide-react";
 import JoinUsDetailsModal from "../components/JoinUsDetailsModal";
-import { downloadJoinUsLOA, downloadSubmissionPdf, fileUrl, getJoinUsDetail, updateJoinUsStatus } from "../services/api";
+import { downloadJoinUsLOA, downloadSubmissionPdf, fileUrl, getJoinUsDetail, sendJoinUsLOAEmail, updateJoinUsStatus } from "../services/api";
 
 const STATUSES = [["hold","Hold"],["approved","Approved"],["review","Review"],["document_verification","Document Verification"],["rehired","Re-Hired"],["reviewed","Reviewed"],["shortlisted","Shortlisted"],["onboarded","Onboarded"],["terminated","Terminated"],["resigned","Resigned"],["on_leave","On Leave"],["salary_success","Salary Success"],["rejected","Rejected"]];
 const dateTime = (value) => value ? new Date(value).toLocaleString("en-IN") : "—";
@@ -76,6 +76,8 @@ export default function JoinUsDetail() {
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
   const [loaNotice, setLoaNotice] = useState("");
+  const [sendingLOA, setSendingLOA] = useState(false);
+  const [loaMailNotice, setLoaMailNotice] = useState("");
 
   const load = async () => {
     try {
@@ -123,6 +125,20 @@ export default function JoinUsDetail() {
     }
   };
 
+  const handleSendLOAEmail = async () => {
+    setSendingLOA(true);
+    setLoaMailNotice("");
+    setError("");
+    try {
+      const response = await sendJoinUsLOAEmail(id);
+      setLoaMailNotice(response.message || `LOA sent to HR at ${response.data?.recipient || "the configured HR email"}.`);
+    } catch (err) {
+      setError(err.message || "Could not email the LOA to HR.");
+    } finally {
+      setSendingLOA(false);
+    }
+  };
+
   if (loading) return <div className="flex min-h-[40vh] items-center justify-center"><Loader2 className="animate-spin text-amber" /></div>;
   if (!submission) return <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-6 text-sm text-red-700">{error || "Join Us submission not found."}</div>;
 
@@ -164,7 +180,9 @@ export default function JoinUsDetail() {
             <button onClick={() => setEditing(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}><Pencil size={15} /></span>Edit Details</button>
             <button onClick={() => downloadSubmissionPdf("join-us", submission.id)} className={HERO_PRIMARY}><span className={BUBBLE_ON_AMBER}><Download size={15} /></span>Download Details PDF</button>
             <button onClick={handleDownloadLOA} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}><FileText size={15} /></span>Download LOA</button>
+            <button onClick={handleSendLOAEmail} disabled={sendingLOA} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{sendingLOA ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}</span>{sendingLOA ? "Sending to HR…" : "Send LOA to HR"}</button>
           </div>
+          {loaMailNotice && <p role="status" className="mt-3 w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{loaMailNotice}</p>}
         </div>
 
         <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">

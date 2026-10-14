@@ -20,7 +20,10 @@ const LOA_FIELDS = [
 const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"], ["educationCertificate", "Education Certificate / Marksheet", "Education Certificate / Marksheet"], ["experienceDocument", "Experience Certificate / Work Proof", "Experience Certificate / Work Proof"]];
 
 export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNotice = "", employeeProfile = false, onSaveProfile }) {
-  const [form, setForm] = useState(() => Object.fromEntries(FIELDS.map(([key]) => [key, submission[key] ?? submission.profileDetails?.[key] ?? submission[key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)] ?? submission.profileDetails?.[key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`)] ?? ""]).concat([["sameAsAbove", Boolean(submission.sameAsAbove ?? submission.profileDetails?.sameAsAbove ?? submission.same_as_above ?? submission.profileDetails?.same_as_above)]])));
+  const [form, setForm] = useState(() => Object.fromEntries([...FIELDS, ...(!employeeProfile ? LOA_FIELDS : [])].map(([key]) => {
+    const snakeKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+    return [key, submission[key] ?? submission.profileDetails?.[key] ?? submission[snakeKey] ?? submission.profileDetails?.[snakeKey] ?? ""];
+  }).concat([["sameAsAbove", Boolean(submission.sameAsAbove ?? submission.profileDetails?.sameAsAbove ?? submission.same_as_above ?? submission.profileDetails?.same_as_above)]])));
   const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(loaNotice);
@@ -46,17 +49,17 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
     catch (err) { setError(err.message || "Could not update Join Us details."); }
     finally { setSaving(false); }
   };
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-5 max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-2 max-h-[calc(100vh-1rem)] max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
     <div className="flex justify-between gap-3"><div><h3 className="text-xl font-extrabold text-navy">{employeeProfile ? "Edit Join Us Profile" : "Edit Join Us Submission"}</h3>{!employeeProfile && <p className="mt-1 text-xs text-muted">Submission #{submission.id} · Created {new Date(submission.created_at).toLocaleString("en-IN")}</p>}</div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>
     {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
     <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">{FIELDS.map(([key,label,type]) => <label key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" ? "sm:col-span-2" : ""}`}>{label}{type === "textarea" ? <textarea rows={3} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/> : <input type={type || "text"} value={form[key]} disabled={employeeProfile && key === "email"} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm disabled:bg-slate-100"/>}</label>)}
       <label className="flex items-center gap-2 text-xs font-semibold text-navy/70"><input type="checkbox" checked={form.sameAsAbove} onChange={e=>setForm({...form,sameAsAbove:e.target.checked})}/>Permanent address same as current</label>
     </div>
     {!employeeProfile && <><h4 className="mt-5 border-t border-navy/10 pt-4 text-sm font-bold text-navy">Appointment / LOA Details</h4>
-    <p className="mt-1 text-xs text-muted">Complete the fields marked required to create the appointment letter.</p>
-    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">{LOA_FIELDS.map(([key,label,required])=><label key={key} className="text-xs font-semibold text-navy/70">{label}{required&&<span className="ml-1 text-red-600">*</span>}<input required={required} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/></label>)}</div>
+    <p className="mt-1 text-xs text-muted">Fields marked * are needed to generate the appointment letter. You can save other edits without filling them.</p>
+    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">{LOA_FIELDS.map(([key,label,required])=><label key={key} className="text-xs font-semibold text-navy/70">{label}{required&&<span className="ml-1 text-red-600">*</span>}<input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/></label>)}</div>
     </>}
     <h4 className="mt-5 border-t border-navy/10 pt-4 text-sm font-bold text-navy">Documents (choose a file to replace)</h4><div className="mt-3 grid gap-3 sm:grid-cols-2">{DOCUMENTS.map(([key,label,urlKey])=><div key={key} className="rounded-lg border border-navy/10 p-3">{!employeeProfile && submission.documentUrls?.[urlKey] && <a href={fileUrl(submission.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="mb-2 inline-block text-xs font-semibold text-amber">View current {label}</a>}<CameraFileInput label={label} name={key} onFile={file=>setFiles(current=>({...current,[key]:file}))}/></div>)}</div>
-    <div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button></div>
+    <div className="sticky bottom-0 mt-6 flex justify-end gap-3 border-t border-navy/10 bg-white py-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button></div>
   </form></div>;
 }
