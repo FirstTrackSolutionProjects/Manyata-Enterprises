@@ -1754,9 +1754,8 @@ function EmployeeAttendanceModal({ employee, onClose }) {
 function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
   const now = new Date();
   const savedNumber = (key) => employee[key] == null ? "0" : String(Number(employee[key]));
-  const isSatyaSundarParida = String(employee.name || "").trim().toLowerCase() === "satya sundar parida";
   const savedGrossSalary = Number(employee.gross_salary || employee.joining_gross_salary || 0);
-  const defaultGrossSalary = isSatyaSundarParida ? 10000 : savedGrossSalary > 0 ? savedGrossSalary : 10000;
+  const defaultGrossSalary = savedGrossSalary > 0 ? savedGrossSalary : 10000;
   const defaultBasicSalary = Math.round(defaultGrossSalary * 0.5 * 100) / 100;
   const defaultHra = Math.round(defaultGrossSalary * 0.4 * 100) / 100;
   const defaultAllowance = Math.round((defaultGrossSalary - defaultBasicSalary - defaultHra) * 100) / 100;
@@ -1765,22 +1764,30 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
     incentive: "0", bonus: "0", employerEpf: savedNumber("employer_epf"), employerEsi: savedNumber("employer_esi"), termLifeInsurance: savedNumber("term_life_insurance"),
     healthInsurance: savedNumber("health_insurance"), employeeEpf: savedNumber("employee_epf"), employeeEsi: savedNumber("employee_esi"), professionalTax: savedNumber("professional_tax"), advanceSalary: "0", scheduledAdvanceRecovery: String(Number(employee.monthly_advance_installment || 0)),
   }));
+  const autoForm = useRef(null);
+  if (!autoForm.current) autoForm.current = { ...form };
+  const initialSalaryStructure = employee.salary_structure || "standard";
   const [salaryStructure, setSalaryStructure] = useState(employee.salary_structure || "standard");
+  const [entryMode, setEntryMode] = useState("auto");
   const [customStructure, setCustomStructure] = useState({
     basicSalary: savedGrossSalary > 0 ? savedNumber("basic_salary") : String(defaultBasicSalary),
     hra: savedGrossSalary > 0 ? savedNumber("hra") : String(defaultHra),
     allowance: savedGrossSalary > 0 ? savedNumber("allowance") : String(defaultAllowance),
   });
+  const autoCustomStructure = useRef(null);
+  if (!autoCustomStructure.current) autoCustomStructure.current = { ...customStructure };
   const [saving, setSaving] = useState(false);
   const [draftSlip, setDraftSlip] = useState(null);
- const [joiningDate, setJoiningDate] = useState(() => isSatyaSundarParida ? "21/09/2026" : String(employee.joining_date || "").trim());
+ const [joiningDate, setJoiningDate] = useState(() => String(employee.joining_date || "").trim());
   const [hasDownloadedDraft, setHasDownloadedDraft] = useState(false);
   const [error, setError] = useState("");
   const [attendancePreview, setAttendancePreview] = useState(null);
+  const autoAttendancePreview = useRef(null);
+  const autoGrossSalary = useRef(defaultGrossSalary);
+  const autoAttendanceCalculationMode = useRef("hours");
   const [attendanceCalculationMode, setAttendanceCalculationMode] = useState("hours");
   const [attendancePreviewError, setAttendancePreviewError] = useState("");
-  const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false); const [rateOverride, setRateOverride] = useState(""); const [hoursSalaryOverride, setHoursSalaryOverride] = useState(""); const [netOverride, setNetOverride] = useState(""); const [unpaidHoursOverride, setUnpaidHoursOverride] = useState("");
-  const isSatyaSeptember2026 = isSatyaSundarParida && Number(form.month) === 9 && Number(form.year) === 2026;
+ const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false); const [rateOverride, setRateOverride] = useState(""); const [hoursSalaryOverride, setHoursSalaryOverride] = useState(""); const [netOverride, setNetOverride] = useState(""); const [unpaidHoursOverride, setUnpaidHoursOverride] = useState("");
   const gross = Number(form.grossSalary || 0);
   const joinMatch = joiningDate.trim().match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
   const joinDay = joinMatch && Number(joinMatch[2]) === Number(form.month) && Number(joinMatch[3]) === Number(form.year) ? Math.min(30, Math.max(1, Number(joinMatch[1]))) : 1;
@@ -1821,7 +1828,20 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
   const totalEarnings = calculatedGross + incentive + bonus;
     const netSalaryAuto = Math.max(0, totalEarnings - deductions); const netSalary = netOverride !== "" ? Number(netOverride) : netSalaryAuto; const attendanceDeductionFinal = attendanceDeduction;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
-  const updatePeriod = (key, value) => { setRateOverride(""); setHoursSalaryOverride(""); setNetOverride(""); setUnpaidHoursOverride("");
+  const returnToAutoCalculation = () => {
+    setEntryMode("auto");
+    setForm((current) => ({ ...autoForm.current, month: current.month, year: current.year, grossSalary: String(autoGrossSalary.current || defaultGrossSalary) }));
+    setSalaryStructure(initialSalaryStructure);
+    setCustomStructure({ ...autoCustomStructure.current });
+    setAttendancePreview(autoAttendancePreview.current ? { ...autoAttendancePreview.current } : autoAttendancePreview.current);
+    setAttendanceCalculationMode(autoAttendanceCalculationMode.current);
+    setRateOverride("");
+    setHoursSalaryOverride("");
+    setUnpaidHoursOverride("");
+    setAttendanceDeductionCustomized(false);
+    setNetOverride("");
+  };
+  const updatePeriod = (key, value) => { setEntryMode("auto"); setRateOverride(""); setHoursSalaryOverride(""); setNetOverride(""); setUnpaidHoursOverride("");
     setAttendanceDeductionCustomized(false);
     update(key, value);
   };
@@ -1833,21 +1853,22 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
       .then((response) => {
         if (!current) return;
         const preview = response.data || null;
-        if (preview && isSatyaSeptember2026) {
-          setAttendancePreview({ ...preview, workedHours: 93, workedDays: 9, paidSundayCount: 1, unpaidDays: 1 });
-          setRateOverride("41.75");
-          setNetOverride("3882");
-        } else {
-          setAttendancePreview(preview);
-        }
-        setAttendanceCalculationMode(response.data?.calculationMode || "hours");
+        autoAttendancePreview.current = preview ? { ...preview } : null;
+        if (Number(preview?.grossSalary) > 0) autoGrossSalary.current = Number(preview.grossSalary);
+        setAttendancePreview(preview);
+        const previewMode = response.data?.calculationMode || "hours";
+        autoAttendanceCalculationMode.current = previewMode;
+        setAttendanceCalculationMode(previewMode);
         setForm((existing) => Number(existing.grossSalary || 0) > 0
           ? existing
           : { ...existing, grossSalary: response.data?.grossSalary ? String(response.data.grossSalary) : "" });
+        if (Number(preview?.grossSalary) > 0 && !Number(autoForm.current.grossSalary || 0)) {
+          autoForm.current = { ...autoForm.current, grossSalary: String(preview.grossSalary) };
+        }
       })
       .catch((err) => { if (current) setAttendancePreviewError(err.message || "Attendance calculation could not be loaded."); });
     return () => { current = false; };
-  }, [employee.id, employee.name, form.month, form.year, isSatyaSeptember2026]);
+  }, [employee.id, form.month, form.year]);
   useEffect(() => {
     let current = true;
     getEmployeeSalaryAdvances(employee.id).then((response) => {
@@ -1860,6 +1881,7 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
         return sum + Math.min(Number(advance.monthly_installment), outstanding);
       }, 0);
       setForm((existing) => ({ ...existing, scheduledAdvanceRecovery: recovery.toFixed(2) }));
+      autoForm.current = { ...autoForm.current, scheduledAdvanceRecovery: recovery.toFixed(2) };
     }).catch((err) => { if (current) setError(err.message || "Could not load the scheduled advance recovery."); });
     return () => { current = false; };
   }, [employee.id, form.month, form.year]);
@@ -1924,9 +1946,10 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
     }
   };
   const inputClass = "w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm focus:border-amber focus:outline-none";
-  const amountInput = (key, label) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" value={form[key]} onChange={(event) => update(key, event.target.value)} className={`${inputClass} mt-1`} /></label>;
-  const salaryComponentInput = (key, label, standardValue) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" value={salaryStructure === "standard" ? standardValue.toFixed(2) : customStructure[key]} onChange={(event) => { const value = event.target.value; if (salaryStructure === "standard") { setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2), [key]: value }); setSalaryStructure("custom"); } else setCustomStructure((current) => ({ ...current, [key]: value })); }} className={`${inputClass} mt-1`} /></label>;
-    const attendanceMetricInput = (key, label, step = "0.01") => <label key={key} className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">{label}<input type="number" min="0" step={step} value={attendancePreview?.[key] ?? ""} onChange={(event) => setAttendancePreview((current) => { if (!current) return current; return { ...current, [key]: event.target.value === "" ? "" : Number(event.target.value) }; })} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>;
+  const isCustomCalculation = entryMode === "custom";
+  const amountInput = (key, label) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={form[key]} onChange={(event) => update(key, event.target.value)} className={`${inputClass} mt-1 disabled:bg-slate-100`} /></label>;
+  const salaryComponentInput = (key, label, standardValue) => <label key={key} className="text-xs font-semibold text-navy/70">{label} (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={salaryStructure === "standard" ? standardValue.toFixed(2) : customStructure[key]} onChange={(event) => { const value = event.target.value; if (salaryStructure === "standard") { setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2), [key]: value }); setSalaryStructure("custom"); } else setCustomStructure((current) => ({ ...current, [key]: value })); }} className={`${inputClass} mt-1 disabled:bg-slate-100`} /></label>;
+    const attendanceMetricInput = (key, label, step = "0.01") => <label key={key} className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">{label}<input type="number" min="0" step={step} disabled={!isCustomCalculation} value={attendancePreview?.[key] ?? ""} onChange={(event) => setAttendancePreview((current) => { if (!current) return current; return { ...current, [key]: event.target.value === "" ? "" : Number(event.target.value) }; })} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>;
   const readOnlyAmount = (label, value) => <div key={label} className="rounded-lg bg-slate-50 px-3 py-2"><p className="text-[11px] text-muted">{label}</p><p className="mt-1 text-sm font-bold text-navy">Rs. {value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p></div>;
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
     <form onSubmit={submit} onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-3xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
@@ -1936,25 +1959,28 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
         <label className="text-xs font-semibold text-navy/70">Year<input required type="number" min="2000" max="2100" value={form.year} onChange={(event) => updatePeriod("year", event.target.value)} className={`${inputClass} mt-1`} /></label>
       </div>
       <label className="block text-xs font-semibold text-navy/70">Date of joining (DOJ) · salary slip me dikhega<input type="text" value={joiningDate} onChange={(event) => setJoiningDate(event.target.value)} placeholder="15/09/2026" className={`${inputClass} mt-1 max-w-sm`} /></label>
+      <section className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-navy/10 bg-slate-50 p-4">
+        <div><h3 className="font-bold text-navy">Calculation mode</h3><p className="mt-1 text-xs text-muted">Auto uses attendance and salary formulas. Custom unlocks the fields for owner/HR editing.</p></div>
+        <div className="flex flex-wrap gap-2"><button type="button" onClick={returnToAutoCalculation} className={`rounded-full px-4 py-2 text-xs font-bold ${!isCustomCalculation ? "bg-navy text-white" : "border border-navy/15 bg-white text-navy"}`}>Auto calculation</button><button type="button" onClick={() => setEntryMode("custom")} className={`rounded-full px-4 py-2 text-xs font-bold ${isCustomCalculation ? "bg-amber text-navy" : "border border-navy/15 bg-white text-navy"}`}>Custom calculation</button></div>
+      </section>
       <section className="space-y-3 rounded-xl border border-navy/10 bg-offwhite p-4">
         <div>
           <h3 className="font-bold text-navy">Attendance-based salary calculation</h3>
         </div>
-        {isSatyaSeptember2026 && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">September 2026 figures: 9 present days + 1 paid Sunday = 10 present days, 1 absent day, 93 worked hours, and net pay Rs. 3,882.00. You can edit these values before saving the draft.</p>}
         {attendancePreviewError ? <p className="text-sm text-red-600">{attendancePreviewError}</p> : attendancePreview ? <>
-          <label className="block max-w-sm text-xs font-semibold text-navy/70">Calculation mode<select value={attendanceCalculationMode} onChange={(event) => { setAttendanceDeductionCustomized(false); setAttendanceCalculationMode(event.target.value); }} className={`${inputClass} mt-1`}><option value="hours">Working hours (HR, Back Office, Accounts)</option><option value="days">Attended days (Technical and other field staff)</option></select></label>
+          <label className="block max-w-sm text-xs font-semibold text-navy/70">Attendance pay basis<select value={attendanceCalculationMode} onChange={(event) => { setAttendanceDeductionCustomized(false); setAttendanceCalculationMode(event.target.value); }} className={`${inputClass} mt-1`}><option value="hours">Working hours (HR, Back Office, Accounts)</option><option value="days">Attended days (Technical and other field staff)</option></select></label>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {attendanceCalculationMode === "hours" ? <>
               {attendanceMetricInput("standardHours", "Month standard hours")}
               {attendanceMetricInput("workedHours", "Worked Present hours")}
               
-             <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Unpaid hours<input type="number" min="0" step="0.01" value={unpaidHoursOverride !== "" ? unpaidHoursOverride : unpaidHoursAuto.toFixed(2)} onChange={(event) => setUnpaidHoursOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
+             <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Unpaid hours<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={unpaidHoursOverride !== "" ? unpaidHoursOverride : unpaidHoursAuto.toFixed(2)} onChange={(event) => setUnpaidHoursOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
               {attendanceMetricInput("workedDays", "Present days", "0.5")}
               {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
               {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Total present (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)}</p></div>
-              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (Rs.)<input type="number" min="0" step="0.01" value={rateOverride !== "" ? rateOverride : hourlyRateAuto.toFixed(2)} onChange={(event) => setRateOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
-              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours (Rs.)<input type="number" min="0" step="0.01" value={hoursSalaryOverride !== "" ? hoursSalaryOverride : hoursSalaryAuto} onChange={(event) => setHoursSalaryOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy`} /></label>
+              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={rateOverride !== "" ? rateOverride : hourlyRateAuto.toFixed(2)} onChange={(event) => setRateOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
+              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={hoursSalaryOverride !== "" ? hoursSalaryOverride : hoursSalaryAuto} onChange={(event) => setHoursSalaryOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
             </> : <>
               {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
               {attendanceMetricInput("workedDays", "Attended days", "0.5")}
@@ -1965,10 +1991,10 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
           </div>
         </> : <p className="text-sm text-muted">Loading this month’s attendance calculation…</p>}
       </section>
-      <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or edit Basic, HRA, and Allowance. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1`} /></label>{salaryComponentInput("basicSalary", "Basic salary · 50%", basic)}{salaryComponentInput("hra", "HRA · 40%", hra)}{salaryComponentInput("allowance", "Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{salaryComponentInput("basicSalary", "Basic salary", basic)}{salaryComponentInput("hra", "HRA", hra)}{salaryComponentInput("allowance", "Allowance", allowance)}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
+      <section className="space-y-3"><div><h3 className="font-bold text-navy">Gross salary and earnings</h3><p className="mt-1 text-xs text-muted">Use the standard 50% / 40% / 10% split or edit Basic, HRA, and Allowance. Incentive and bonus are added separately.</p></div><label className="block max-w-sm text-xs font-semibold text-navy/70">Salary structure<select disabled={!isCustomCalculation} value={salaryStructure} onChange={(event) => { const next = event.target.value; if (next === "custom" && salaryStructure !== "custom") setCustomStructure({ basicSalary: basic.toFixed(2), hra: hra.toFixed(2), allowance: allowance.toFixed(2) }); if (next === "standard" && salaryStructure === "custom") update("grossSalary", calculatedGross ? calculatedGross.toFixed(2) : ""); setSalaryStructure(next); }} className={`${inputClass} mt-1 disabled:bg-slate-100`}><option value="standard">Default split · 50% / 40% / 10%</option><option value="custom">Custom amounts</option></select></label><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{salaryStructure === "standard" ? <><label className="text-xs font-semibold text-navy/70">Gross salary (Rs.)<input required type="number" min="0.01" step="0.01" disabled={!isCustomCalculation} value={form.grossSalary} onChange={(event) => update("grossSalary", event.target.value)} className={`${inputClass} mt-1 disabled:bg-slate-100`} /></label>{salaryComponentInput("basicSalary", "Basic salary · 50%", basic)}{salaryComponentInput("hra", "HRA · 40%", hra)}{salaryComponentInput("allowance", "Allowance · 10%", allowance)}</> : <>{readOnlyAmount("Gross salary · total", calculatedGross)}{salaryComponentInput("basicSalary", "Basic salary", basic)}{salaryComponentInput("hra", "HRA", hra)}{salaryComponentInput("allowance", "Allowance", allowance)}</>}{amountInput("incentive", "Performance / target incentive")}{amountInput("bonus", "Festival / occasion / annual bonus")}</div></section>
       <section className="space-y-3"><div><h3 className="font-bold text-navy">Company-side contributions</h3></div><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employerEpf", "Employer EPF")}{amountInput("employerEsi", "Employer ESI")}{amountInput("termLifeInsurance", "Term life insurance")}{amountInput("healthInsurance", "Health insurance")}</div></section>
-      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}<label className="text-xs font-semibold text-navy/70">Scheduled advance recovery (Rs.)<input type="number" min="0" step="0.01" value={form.scheduledAdvanceRecovery} onChange={(event) => update("scheduledAdvanceRecovery", event.target.value)} className={`${inputClass} mt-1`} /></label>{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. The scheduled recovery can be adjusted for this salary slip.</p>}</section>
-      <div className="rounded-xl bg-amber-soft p-4"><p className="text-xs font-semibold text-navy/70">Net Salary Payable (Rs.) - Editable final amount · You can edit</p><input type="number" min="0" step="0.01" value={netOverride !== "" ? netOverride : netSalaryAuto.toFixed(2)} onChange={(event) => setNetOverride(event.target.value)} className={`${inputClass} mt-1 bg-white text-xl font-extrabold text-navy`} />{netOverride !== "" && <button type="button" onClick={() => setNetOverride("")} className="mt-2 text-xs font-semibold text-navy underline">Auto calculation par wapas jao</button>}</div>
+      <section className="space-y-3"><h3 className="font-bold text-navy">Employee deductions</h3><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{amountInput("employeeEpf", "EPF")}{amountInput("employeeEsi", "ESI")}{amountInput("professionalTax", "Professional tax")}<label className="text-xs font-semibold text-navy/70">Scheduled advance recovery (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={form.scheduledAdvanceRecovery} onChange={(event) => update("scheduledAdvanceRecovery", event.target.value)} className={`${inputClass} mt-1 disabled:bg-slate-100`} /></label>{amountInput("advanceSalary", "Other advance recovery")}</div>{Number(employee.advance_outstanding || 0) > 0 && <p className="text-xs text-muted">Outstanding advance balance: Rs. {Number(employee.advance_outstanding).toLocaleString("en-IN", { minimumFractionDigits: 2 })}. The scheduled recovery can be adjusted for this salary slip.</p>}</section>
+      <div className="rounded-xl bg-amber-soft p-4"><p className="text-xs font-semibold text-navy/70">Net Salary Payable (Rs.) · Final amount</p><input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={netOverride !== "" ? netOverride : netSalaryAuto.toFixed(2)} onChange={(event) => setNetOverride(event.target.value)} className={`${inputClass} mt-1 bg-white text-xl font-extrabold text-navy disabled:bg-slate-100`} />{isCustomCalculation && netOverride !== "" && <button type="button" onClick={() => setNetOverride("")} className="mt-2 text-xs font-semibold text-navy underline">Auto calculation par wapas jao</button>}</div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {draftSlip && <p className="rounded-lg bg-amber-soft p-3 text-sm text-navy">Draft saved for review. Download PDF saves the latest form values and downloads the preview. Publish becomes available after the download.</p>}
       <div className="flex flex-wrap justify-end gap-2"><button type="button" onClick={onClose} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold">Cancel</button><button disabled={saving || !attendancePreview || !(salaryStructure === "custom" ? calculatedGross > 0 : gross > 0) || netSalary < 0} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy disabled:opacity-50">{saving ? "Saving..." : draftSlip ? "Save Draft" : "Generate Draft"}</button>{draftSlip && <><button type="button" onClick={downloadDraft} disabled={saving} className="inline-flex items-center gap-2 rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy disabled:opacity-50"><Download size={15}/>Download PDF</button><button type="button" onClick={publishDraft} disabled={saving || !hasDownloadedDraft} className="rounded-full bg-navy px-5 py-2 text-sm font-bold text-white disabled:opacity-50">Publish</button></>}</div>
