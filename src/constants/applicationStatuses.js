@@ -11,6 +11,7 @@ export const APPLICATION_STATUSES = [
   { value: "purchased_by_cash_2", label: "Purchased By Cash 2" },
   { value: "purchased_by_full_cash", label: "Purchased By Full Cash" },
   { value: "customer_side_bank_forward", label: "Customer Side - Bank Forward" },
+  { value: "vendor_side_re_bank_forward", label: "Vendor Side - Re Bank Forward" },
   { value: "customer_side_bank_forward_pending", label: "Customer Side - Bank Forward Pending" },
   { value: "customer_aadhaar_not_linked_with_mobile_number", label: "Customer Side - Aadhaar Card Not Linked with Mobile Number" },
   { value: "customer_kyc_pending_from_bank_side", label: "Customer - KYC Pending from the Bank Side" },
@@ -75,7 +76,7 @@ export const APPLICATION_UPDATE_STATUSES = [
   "technical_installation_pending", "stock_forwarded_to_customer_home", "electricity_bill_ownership_transfer_completed_successfully",
   "consumer_login_submitted_to_govt_portal", "customer_side_login_otp_pending_customer_not_responding_call",
   "vendor_side_quotation_agreement_pending", "vendor_side_login_otp_pending_customer_not_responding_call",
-  "customer_side_bank_forward", "customer_aadhaar_not_linked_with_mobile_number", "customer_cibil_score_low",
+  "customer_side_bank_forward", "vendor_side_re_bank_forward", "customer_aadhaar_not_linked_with_mobile_number", "customer_cibil_score_low",
   "customer_side_bank_forward_pending", "bank_reject", "customer_side_documents_issue", "customer_full_loan_amount_disbursed",
   "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "purchased_by_full_cash", "purchased_by_cash_1",
   "purchased_by_cash_2", "installed", "load_announcement", "net_metering_completed_by_electricals_dept", "je_verification_approved",
@@ -95,7 +96,6 @@ export const APPLICATION_UPDATE_STATUSES = [
 
 export const normalizeApplicationStatusValue = (value) => ({
   vendor_side_bank_forward: "customer_side_bank_forward",
-  vendor_side_re_bank_forward: "customer_side_bank_forward",
   vendor_side_pending_for_bank_forward: "customer_side_bank_forward_pending",
 })[value] || value;
 
@@ -122,7 +122,7 @@ export const getApplicationUpdateStatusOptions = (user) => {
 export const applicationStatusLabel = (value) =>
   value === "vendor_side_pending_for_bank_forward"
     ? "Customer Side - Bank Forward Pending"
-    : value === "vendor_side_re_bank_forward" || value === "vendor_side_bank_forward"
+    : value === "vendor_side_bank_forward"
       ? "Customer Side - Bank Forward"
       :
   APPLICATION_STATUSES.find((status) => status.value === value)?.label ||
