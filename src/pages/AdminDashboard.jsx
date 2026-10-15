@@ -2924,6 +2924,8 @@ function InstallationModal({ id, initialMode, canEdit, canDownload, onClose, onS
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  const [saveError, setSaveError] = useState("");
+  const [status, setStatus] = useState("");
   const [mode, setMode] = useState(initialMode);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -2937,21 +2939,80 @@ function InstallationModal({ id, initialMode, canEdit, canDownload, onClose, onS
         const x = res.data.installation;
         if (!x) throw new Error("Installation record was not found.");
         setItem(x);
-        setForm({ location: x.location, customerName: x.customer_name, phone: x.phone, email: x.email, gender: x.gender, companyName: x.company_name, contactPerson: x.contact_person, installationType: x.installation_type, installationDate: x.installation_date, electricianName: x.electrician_name, technicianName: x.technician_name, solarPanelType: x.solar_panel_type, connectionType: x.connection_type, superVendorName: x.super_vendor_name || "", vendorName: x.vendor_name || "", subVendorName: x.sub_vendor_name || "", salesExecutiveName: x.sales_executive_name || "", state: x.state, address: x.address, city: x.city, pincode: x.pincode, notes: x.notes });
+        setStatus(x.status || "");
+        setForm({ location: x.location || "", customerName: x.customer_name || "", phone: x.phone || "", email: x.email || "", gender: x.gender || "", companyName: x.company_name || "", contactPerson: x.contact_person || "", installationType: x.installation_type || "", installationDate: x.installation_date || "", electricianName: x.electrician_name || "", technicianName: x.technician_name || "", solarPanelType: x.solar_panel_type || "", connectionType: x.connection_type || "", superVendorName: x.super_vendor_name || "", vendorName: x.vendor_name || "", subVendorName: x.sub_vendor_name || "", salesExecutiveName: x.sales_executive_name || "", state: x.state || "", address: x.address || "", city: x.city || "", pincode: x.pincode || "", notes: x.notes || "" });
       })
       .catch((err) => { if (active) setLoadError(err.message || "Could not load installation details."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id, reloadKey]);
 
-  if (loading) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60"><Loader2 className="animate-spin text-amber" /></div>;
-  if (loadError) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60 p-4"><div role="alert" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"><h3 className="text-lg font-bold text-navy">Could not open installation</h3><p className="mt-2 text-sm text-red-700">{loadError}</p><div className="mt-5 flex justify-end gap-3"><button onClick={onClose} className="rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy">Close</button><button onClick={() => setReloadKey((key) => key + 1)} className="rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy">Try again</button></div></div></div>;
+  if (loading) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60 backdrop-blur-sm"><Loader2 className="animate-spin text-amber" /></div>;
+  if (loadError) return <div className="fixed inset-0 z-50 grid place-items-center bg-navy/60 p-4 backdrop-blur-sm"><div role="alert" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"><h3 className="text-lg font-bold text-navy">Could not open installation</h3><p className="mt-2 text-sm text-red-700">{loadError}</p><div className="mt-5 flex justify-end gap-3"><button onClick={onClose} className="rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy">Close</button><button onClick={() => setReloadKey((key) => key + 1)} className="rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy">Try again</button></div></div></div>;
   if (!form || !item) return null;
+
   const editing = canEdit && mode === "edit";
-  const fields = [["customerName","Customer Name"],["phone","Phone"],["email","Email"],["companyName","Company"],["contactPerson","Contact Person"],["location","Location"],["installationType","Installation Type"],["installationDate","Installation Date","date"],["electricianName","Electrician"],["technicianName","Technician"],["solarPanelType","Solar Panel Type"],["connectionType","Connection Type"],["salesExecutiveName","Sales Executive"],["state","State"],["address","Address"],["city","City"],["pincode","PIN Code"],["notes","Notes"]];
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><div className="mx-auto my-5 max-w-3xl rounded-2xl bg-white p-6"><div className="flex justify-between"><h3 className="text-xl font-extrabold text-navy">Installation Details</h3><div className="flex gap-3">{canEdit && <button onClick={() => setMode(editing ? "view" : "edit")} className="text-sm font-bold text-blue-600">{editing ? "View mode" : "Edit"}</button>}<button onClick={onClose}>Close</button></div></div><div className="mt-4 grid gap-3 sm:grid-cols-2">{fields.map(([key,label,type]) => <div key={key} className="text-xs font-semibold text-navy/70">{label}{editing ? <input type={type || "text"} value={form[key] || ""} onChange={(e) => setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /> : <p className="mt-1 min-h-10 rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">{form[key] || "—"}</p>}</div>)}</div>{item.site_latitude != null && item.site_longitude != null && <div className="mt-4 rounded-xl border border-navy/10 bg-slate-50 p-4"><p className="text-sm font-bold text-navy">Site GPS location</p><p className="mt-1 text-xs text-muted">Accuracy: {item.site_accuracy_m ?? "Not recorded"} m</p><a className="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${item.site_latitude},${item.site_longitude}`} target="_blank" rel="noreferrer">Open site on map</a></div>}<div className="mt-4"><p className="text-sm font-bold text-navy">Documents</p><div className="mt-2 flex flex-wrap gap-2">{Object.entries(item.documents || {}).map(([name,url]) => url && canDownload ? <a key={name} href={url} target="_blank" rel="noreferrer" className="rounded bg-amber-soft px-3 py-2 text-xs font-semibold text-navy">Download {name}</a> : <span key={name} className="rounded bg-slate-100 px-3 py-2 text-xs text-muted">{name}{canDownload ? "" : " · no download access"}</span>)}{!Object.keys(item.documents || {}).length && <span className="text-xs text-muted">No saved documents.</span>}</div>{editing && <><p className="mt-3 text-xs text-muted">Choose a file only to replace that document.</p><div className="mt-2 grid grid-cols-2 gap-2">{["aadhaarPhoto","fullSetupPhoto","panelSerialPhoto1","panelSerialPhoto2","panelSerialPhoto3","panelSerialPhoto4","panelSerialPhoto5","panelSerialPhoto6","inverterSerialPhoto","earthingPhoto1","earthingPhoto2","earthingPhoto3","laCableConnectorPhoto","earthingArresterSpikePhoto","inverterAcdbDcdbPhoto","batteryPhoto1","batteryPhoto2","otherDocument"].map((name) => <label key={name} className="text-[10px] text-muted">{name}<input type="file" className="mt-1 block w-full text-xs" onChange={(e) => e.target.files?.[0] && setFiles({...files,[name]:e.target.files[0]})} /></label>)}</div></>}</div>{editing && <div className="mt-5 flex items-center gap-3"><select value={item.status} onChange={async (e) => { try { await updateInstallationStatus(id, e.target.value); const res = await getInstallation(id); setItem(res.data.installation); } catch (err) { alert(err.message || "Could not update installation status."); } }} className="rounded-lg border border-navy/15 px-3 py-2 text-sm">{INSTALLATION_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select><button disabled={saving} onClick={async () => { setSaving(true); try { const uploaded = Object.keys(files).length ? await uploadFilesToS3("installations", files) : {}; await updateInstallation(id, {...form, files: uploaded}); onSaved(); } catch (err) { alert(err.message || "Could not save installation."); } finally { setSaving(false); } }} className="rounded-full bg-amber px-5 py-2 text-sm font-bold text-navy">{saving ? "Saving..." : "Save Changes"}</button></div>}</div></div>;
+  const sections = [
+    { title: "Customer Details", icon: Users, fields: [["customerName", "Customer Name"], ["phone", "Phone"], ["email", "Email", "email"], ["gender", "Gender"], ["companyName", "Company"], ["contactPerson", "Contact Person"]] },
+    { title: "Partner & Sales Network", icon: Handshake, fields: [["superVendorName", "Super-vendor"], ["vendorName", "Vendor"], ["subVendorName", "Sub-vendor"], ["salesExecutiveName", "Sales Executive"]] },
+    { title: "Installation Details", icon: Wrench, fields: [["installationType", "Installation Type"], ["installationDate", "Installation Date", "date"], ["electricianName", "Electrician"], ["technicianName", "Technician"], ["solarPanelType", "Solar Panel Type"], ["connectionType", "Connection Type"]] },
+    { title: "Site Address", icon: MapPin, fields: [["location", "Location"], ["state", "State"], ["address", "Address"], ["city", "City"], ["pincode", "PIN Code"]] },
+  ];
+  const inputClass = "mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-4 py-2.5 text-sm font-semibold text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30";
+  const updateForm = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const renderField = ([key, label, type]) => <label key={key} className="text-xs font-semibold text-navy/70">{label}{editing
+    ? <input name={key} type={type || "text"} value={type === "date" ? String(form[key] || "").slice(0, 10) : form[key] || ""} onChange={updateForm} className={inputClass} />
+    : <p className="mt-1.5 min-h-11 break-words rounded-xl bg-offwhite px-4 py-3 text-sm font-semibold text-navy">{form[key] || "—"}</p>}</label>;
+  const save = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setSaveError("");
+    try {
+      const uploaded = Object.keys(files).length ? await uploadFilesToS3("installations", files) : {};
+      await updateInstallation(id, { ...form, files: uploaded });
+      if (status !== item.status) await updateInstallationStatus(id, status);
+      onSaved();
+    } catch (err) {
+      setSaveError(err.message || "Could not save installation.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget && !saving) onClose(); }}>
+    <form onSubmit={save} className="mx-auto my-2 flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
+      <div className="relative shrink-0 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light px-6 py-5">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-amber/20" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber text-navy shadow-sm">{editing ? <Pencil size={20} /> : <FileText size={20} />}</span><div className="min-w-0"><h3 className="text-xl font-extrabold text-white">{editing ? "Edit Installation" : "Installation Details"}</h3><p className="mt-0.5 text-xs text-white/70">{editing ? "All details can be updated. Upload a document only to replace its existing file." : `${form.customerName || "Installation"} · Installation #${item.id}`}</p></div></div>
+          <div className="relative flex shrink-0 items-center gap-2">{canEdit && !editing && <button type="button" onClick={() => setMode("edit")} className="rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white ring-1 ring-white/25 hover:bg-white/20">Edit Details</button>}<button type="button" disabled={saving} onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20 disabled:opacity-50"><X size={18} /></button></div>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-5 overflow-y-auto bg-offwhite/60 p-5 sm:p-6">
+        {saveError && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">{saveError}</p>}
+        {sections.map((section) => <InstallationEditSection key={section.title} icon={section.icon} title={section.title}><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{section.fields.map(renderField)}</div></InstallationEditSection>)}
+        <InstallationEditSection icon={FileText} title="Customer Remarks"><label className="block text-xs font-semibold text-navy/70">Notes{editing ? <textarea name="notes" value={form.notes || ""} onChange={updateForm} rows={4} className={`${inputClass} font-normal`} /> : <p className="mt-1.5 min-h-16 whitespace-pre-wrap rounded-xl bg-offwhite px-4 py-3 text-sm text-navy">{form.notes || "—"}</p>}</label></InstallationEditSection>
+        {editing && <InstallationEditSection icon={CheckCircle2} title="Installation Status"><label className="block text-xs font-semibold text-navy/70">Status<select value={status} onChange={(event) => setStatus(event.target.value)} className={inputClass}>{INSTALLATION_STATUSES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label></InstallationEditSection>}
+        <InstallationEditSection icon={Camera} title="Replace Documents (optional)" subtitle="Only select files you want to replace. Other uploaded documents stay unchanged.">
+          <div className="mb-3 flex flex-wrap gap-2">{Object.entries(item.documents || {}).map(([name, url]) => url && canDownload ? <a key={name} href={url} target="_blank" rel="noreferrer" className="rounded-lg border border-navy/10 bg-offwhite px-3 py-2 text-xs font-semibold text-navy hover:border-amber">View {name}</a> : <span key={name} className="rounded-lg bg-offwhite px-3 py-2 text-xs text-muted">{name}{canDownload ? "" : " · no download access"}</span>)}{!Object.keys(item.documents || {}).length && <span className="text-xs text-muted">No saved documents.</span>}</div>
+          {editing && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{["aadhaarPhoto", "fullSetupPhoto", "panelSerialPhoto1", "panelSerialPhoto2", "panelSerialPhoto3", "panelSerialPhoto4", "panelSerialPhoto5", "panelSerialPhoto6", "inverterSerialPhoto", "earthingPhoto1", "earthingPhoto2", "earthingPhoto3", "laCableConnectorPhoto", "earthingArresterSpikePhoto", "inverterAcdbDcdbPhoto", "batteryPhoto1", "batteryPhoto2", "otherDocument"].map((name) => <label key={name} className="min-w-0 rounded-xl border border-navy/10 bg-white px-4 py-3 text-xs font-semibold text-navy"><span className="block">{name.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase())}</span><input type="file" accept="image/*,.pdf" className="mt-2 block w-full text-xs file:mr-3 file:rounded-full file:border-0 file:bg-amber-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-navy" onChange={(event) => setFiles((current) => ({ ...current, [name]: event.target.files?.[0] }))} />{files[name] && <span className="mt-1 block truncate font-medium text-emerald-700">Selected: {files[name].name}</span>}</label>)}</div>}
+        </InstallationEditSection>
+        {item.site_latitude != null && item.site_longitude != null && <InstallationEditSection icon={MapPin} title="Site GPS Location"><p className="text-sm text-navy">Accuracy: {item.site_accuracy_m ?? "Not recorded"} m</p><a className="mt-2 inline-block text-sm font-semibold text-blue-700 underline" href={`https://maps.google.com/?q=${item.site_latitude},${item.site_longitude}`} target="_blank" rel="noreferrer">Open site on map</a></InstallationEditSection>}
+      </div>
+
+      <div className="flex shrink-0 justify-end gap-3 border-t border-navy/10 bg-white px-6 py-4">{editing ? <><button type="button" disabled={saving} onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:-translate-y-0.5 hover:border-amber hover:shadow-sm disabled:opacity-60">Cancel</button><button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-hover hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60">{saving && <Loader2 size={16} className="animate-spin" />}{saving ? "Saving..." : "Save All Changes"}</button></> : <button type="button" onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy hover:border-amber">Close</button>}</div>
+    </form>
+  </div>;
 }
 
+function InstallationEditSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-2xl border border-navy/10 bg-white">
+    <div className="flex items-center gap-3 border-b border-navy/10 px-5 py-3.5"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-soft text-amber"><Icon size={18} /></span><div className="min-w-0"><h4 className="text-sm font-bold text-navy">{title}</h4>{subtitle && <p className="text-xs text-muted">{subtitle}</p>}</div></div>
+    <div className="p-5">{children}</div>
+  </section>;
+}
 function OtherTab() {
   const [tab, setTab] = useState("careers");
   return (
