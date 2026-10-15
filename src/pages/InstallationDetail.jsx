@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, BadgeCheck, Briefcase, Building2, CalendarDays, Check, Clock, Copy, Download, ExternalLink, FileText, Hash, Loader2, Mail, MapPin, MessageSquare, Pencil, Phone, Save, User, Wrench, Zap } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Briefcase, Building2, CalendarDays, Camera, Check, Clock, Copy, Download, ExternalLink, FileText, Hash, Loader2, Mail, MapPin, MessageSquare, Pencil, Phone, User, Wrench, X, Zap } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assignInstallationTechnicalWork, downloadInstallationPdf, getInstallation, listTechnicalInstallationEmployees, updateInstallation, updateInstallationStatus, uploadFilesToS3 } from "../services/api";
 import { INSTALLATION_STATUSES, installationStatusLabel } from "../constants/installationStatuses";
@@ -68,7 +68,6 @@ const FIELD_INPUT = "mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-
 const HERO_BASE = "group inline-flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-5 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
 const HERO_NAVY = `${HERO_BASE} bg-navy text-white shadow-sm hover:bg-navy-light hover:shadow-lg`;
 const HERO_PRIMARY = `${HERO_BASE} bg-gradient-to-r from-amber to-amber-hover text-navy shadow-md shadow-amber/30 hover:shadow-lg hover:shadow-amber/40`;
-const HERO_OUTLINE_PLAIN = "inline-flex items-center gap-2 rounded-full border border-navy/20 bg-white px-6 py-3 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:border-amber hover:shadow-md active:translate-y-0";
 const BUBBLE_ON_NAVY = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-amber text-navy transition group-hover:scale-110";
 const BUBBLE_ON_AMBER = "grid h-8 w-8 shrink-0 place-items-center rounded-full bg-navy text-amber transition group-hover:scale-110";
 
@@ -78,7 +77,6 @@ export default function InstallationDetail() {
   const { user } = useAuth();
   const canEdit = hasActionPermission(user, "installations", "edit");
   const canDownload = hasActionPermission(user, "installations", "download");
-  const isOwner = user?.role === "owner";
   const canAssignTechnicalWork = isTejashHrEmployee(user) && canEdit;
   const isTechnicalEmployee = user?.role === "employee" && /technical|technician|installation engineer/i.test(`${user?.designation || ""} ${user?.department || ""}`);
   const technicalStatusValues = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
@@ -133,7 +131,8 @@ export default function InstallationDetail() {
       .catch((err) => setError(err.message || "Could not load technical employees."));
   }, [canAssignTechnicalWork, item?.location]);
 
-  const save = async () => {
+  const save = async (event) => {
+    event?.preventDefault();
     setSaving(true);
     setError("");
     setNotice("");
@@ -186,9 +185,15 @@ export default function InstallationDetail() {
   if (error && !item) return <div className="space-y-4 rounded-2xl border border-red-200 bg-red-50 p-6"><p className="text-sm text-red-700">{error}</p><div className="flex gap-3"><button onClick={() => navigate(installationsPath)} className="rounded-full border border-navy/20 px-4 py-2 text-sm font-semibold text-navy">Back to Installations</button><button onClick={load} className="rounded-full bg-amber px-4 py-2 text-sm font-bold text-navy">Try again</button></div></div>;
   if (!item || !form) return null;
 
-  const documentEntries = Object.entries(item.documents || {}).filter(([, url]) => Boolean(url));
-  const canEditDetails = editing && !isTechnicalEmployee;
+  const closeEdit = () => {
+    if (saving) return;
+    setEditing(false);
+    setFiles({});
+    setError("");
+    setForm(Object.fromEntries(FIELDS.map(([key, , formKey]) => [formKey, item[key] || ""])));
+  };
 
+  const documentEntries = Object.entries(item.documents || {}).filter(([, url]) => Boolean(url));
   return <div className="space-y-6">
     <div className="overflow-hidden rounded-2xl border border-navy/10 bg-white shadow-sm">
       <div className="relative h-36 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light sm:h-40">
@@ -220,12 +225,7 @@ export default function InstallationDetail() {
 
           {(canDownload || canEdit) && <div className="flex w-full flex-wrap gap-2 border-t border-navy/10 pt-5">
             {canDownload && <button onClick={() => downloadInstallationPdf(id)} className={HERO_PRIMARY}><span className={BUBBLE_ON_AMBER}><Download size={15} /></span>Download PDF</button>}
-            {canEdit && (editing
-              ? <>
-                <button onClick={() => { setEditing(false); setFiles({}); setForm(Object.fromEntries(FIELDS.map(([key, , formKey]) => [formKey, item[key] || ""]))); }} className={HERO_OUTLINE_PLAIN}>Cancel</button>
-                <button onClick={save} disabled={saving} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}>{saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}</span>{saving ? "Saving..." : isTechnicalEmployee ? "Upload Photos" : "Save Changes"}</button>
-              </>
-              : <button onClick={() => setEditing(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}><Pencil size={15} /></span>{isTechnicalEmployee ? "Upload Progress Photos" : "Edit Details"}</button>)}
+            {canEdit && <button onClick={() => { setError(""); setFiles({}); setEditing(true); }} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}>{isTechnicalEmployee ? <Camera size={15} /> : <Pencil size={15} />}</span>{isTechnicalEmployee ? "Upload Progress Photos" : "Edit Details"}</button>}
           </div>}
         </div>
 
@@ -243,15 +243,14 @@ export default function InstallationDetail() {
 
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
       <div className="space-y-6">
-        <DetailSection title="Customer Details" icon={User} fields={CUSTOMER_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
-        {canEditDetails && <PartnerNetworkFields location={form?.location} form={form || {}} onChange={(event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }))} />}
-        <DetailSection title="Partner & Sales Details" icon={Briefcase} fields={PARTNER_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
-        <DetailSection title="Installation Details" icon={Zap} fields={INSTALLATION_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
+        <DetailSection title="Customer Details" icon={User} fields={CUSTOMER_FIELDS} item={item} editing={false} form={form} setForm={setForm} />
+        <DetailSection title="Partner & Sales Details" icon={Briefcase} fields={PARTNER_FIELDS} item={item} editing={false} form={form} setForm={setForm} />
+        <DetailSection title="Installation Details" icon={Zap} fields={INSTALLATION_FIELDS} item={item} editing={false} form={form} setForm={setForm} />
         {item.site_latitude != null && item.site_longitude != null && <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-navy/10 bg-white px-5 py-4">
           <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-soft text-amber"><MapPin size={18} /></span><div><h3 className="text-base font-bold text-navy">Site GPS location</h3><p className="text-xs text-muted">Accuracy: ±{item.site_accuracy_m ?? "—"} m</p></div></div>
           <a className="inline-flex items-center gap-1.5 rounded-full border border-navy/20 px-4 py-2 text-xs font-bold text-navy transition hover:border-amber" href={`https://maps.google.com/?q=${item.site_latitude},${item.site_longitude}`} target="_blank" rel="noreferrer"><ExternalLink size={13} />Open site on map</a>
         </section>}
-        <DetailSection title="Site Address" icon={MapPin} fields={ADDRESS_FIELDS} item={item} editing={canEditDetails} form={form} setForm={setForm} />
+        <DetailSection title="Site Address" icon={MapPin} fields={ADDRESS_FIELDS} item={item} editing={false} form={form} setForm={setForm} />
         {item.technical_instructions && <Section icon={Wrench} title="Owner work instructions">
           <p className="whitespace-pre-wrap rounded-xl bg-offwhite px-4 py-3 text-sm font-medium text-navy">{item.technical_instructions}</p>
         </Section>}
@@ -269,11 +268,6 @@ export default function InstallationDetail() {
             </div>)}
             {(!canDownload || !documentEntries.length) && <p className="rounded-xl border border-dashed border-navy/15 px-4 py-6 text-center text-sm text-muted sm:col-span-2">{canDownload ? "No documents uploaded." : "You do not have permission to view or download documents."}</p>}
           </div>
-          {editing && <div className="mt-5 border-t border-navy/10 pt-5">
-            <p className="text-sm font-bold text-navy">Replace documents</p>
-            <p className="mt-1 text-xs text-muted">Choose a file only for the document you want to replace.</p>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">{EDIT_FILES.map((name) => <label key={name} className="rounded-xl bg-offwhite px-4 py-3 text-xs font-semibold text-muted">{name.replace(/([A-Z])/g, " $1")}<input type="file" accept="image/*,.pdf" className="mt-2 block w-full text-xs file:mr-3 file:rounded-full file:border-0 file:bg-amber-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-navy" onChange={(event) => setFiles((current) => ({ ...current, [name]: event.target.files?.[0] }))} />{files[name] && <span className="mt-1 block truncate font-medium text-emerald-700">Selected replacement: {files[name].name}</span>}</label>)}</div>
-          </div>}
         </Section>
         {item.notes && <Section icon={MessageSquare} title="Customer Remarks">
           <p className="whitespace-pre-wrap rounded-xl bg-offwhite px-4 py-3 text-sm font-medium italic text-navy">{item.notes}</p>
@@ -334,7 +328,63 @@ export default function InstallationDetail() {
         </SideCard>
       </div>
     </div>
+    {editing && <InstallationEditForm item={item} form={form} setForm={setForm} files={files} setFiles={setFiles} error={error} saving={saving} technicalOnly={isTechnicalEmployee} onClose={closeEdit} onSubmit={save} />}
   </div>;
+}
+
+function InstallationEditForm({ item, form, setForm, files, setFiles, error, saving, technicalOnly, onClose, onSubmit }) {
+  const change = (event) => setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  const renderField = ([key, label]) => {
+    const [, , formKey, type] = FIELDS.find(([fieldKey]) => fieldKey === key) || [];
+    const value = String(form[formKey] || "");
+    return <label key={key} className="text-xs font-semibold text-navy/70">
+      {label}
+      <input name={formKey} type={type || "text"} value={type === "date" ? value.slice(0, 10) : value} onChange={change} className={FIELD_INPUT} />
+    </label>;
+  };
+  const documentLabel = (name) => humanizeDocumentName(name);
+
+  return <div className="fixed inset-0 z-[80] overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <form onSubmit={onSubmit} role="dialog" aria-modal="true" aria-labelledby="installation-edit-title" className="mx-auto my-2 flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative shrink-0 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light px-6 py-5">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-amber/20" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber text-navy shadow-sm">{technicalOnly ? <Camera size={20} /> : <Pencil size={20} />}</span>
+            <div className="min-w-0"><h3 id="installation-edit-title" className="text-xl font-extrabold text-white">{technicalOnly ? "Upload Installation Progress" : "Edit Installation"}</h3><p className="mt-0.5 text-xs text-white/70">{technicalOnly ? "Upload installation photos and documents. Details stay unchanged." : `Update installation details for ${item.customer_name || "this customer"}.`}</p></div>
+          </div>
+          <button type="button" disabled={saving} onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20 disabled:opacity-60"><X size={18} /></button>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-5 overflow-y-auto bg-offwhite/60 p-5 sm:p-6">
+        {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">{error}</p>}
+        {!technicalOnly && <>
+          <EditSection icon={User} title="Customer Details"><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{CUSTOMER_FIELDS.map(renderField)}</div></EditSection>
+          <EditSection icon={Briefcase} title="Partner & Sales Network" subtitle="Super-vendor, vendor, sub-vendor and sales executive"><PartnerNetworkFields location={form.location} form={form} onChange={change} /></EditSection>
+          <EditSection icon={Zap} title="Installation Details"><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{INSTALLATION_FIELDS.map(renderField)}</div></EditSection>
+          <EditSection icon={MapPin} title="Site Address"><div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{ADDRESS_FIELDS.map(renderField)}</div></EditSection>
+          <EditSection icon={MessageSquare} title="Customer Remarks"><label className="block text-xs font-semibold text-navy/70">Notes<textarea name="notes" value={form.notes || ""} onChange={change} rows={4} className={`${FIELD_INPUT} font-normal`} /></label></EditSection>
+        </>}
+        <EditSection icon={FileText} title="Replace Documents (optional)" subtitle="Choose a file only for the documents you want to replace; all other files remain unchanged.">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{EDIT_FILES.map((name) => <label key={name} className="min-w-0 rounded-xl border border-navy/10 bg-white px-4 py-3 text-xs font-semibold text-navy"><span className="block">{documentLabel(name)}</span><input type="file" accept="image/*,.pdf" className="mt-2 block w-full text-xs file:mr-3 file:rounded-full file:border-0 file:bg-amber-soft file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-navy" onChange={(event) => setFiles((current) => ({ ...current, [name]: event.target.files?.[0] }))} />{files[name] && <span className="mt-1 block truncate font-medium text-emerald-700">Selected: {files[name].name}</span>}</label>)}</div>
+        </EditSection>
+      </div>
+
+      <div className="flex shrink-0 justify-end gap-3 border-t border-navy/10 bg-white px-6 py-4">
+        <button type="button" disabled={saving} onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:-translate-y-0.5 hover:border-amber hover:shadow-sm disabled:opacity-60">Cancel</button>
+        <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-hover hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60">{saving && <Loader2 size={16} className="animate-spin" />}{saving ? "Saving..." : technicalOnly ? "Upload Progress" : "Save All Changes"}</button>
+      </div>
+    </form>
+  </div>;
+}
+
+function EditSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-2xl border border-navy/10 bg-white">
+    <div className="flex items-center gap-3 border-b border-navy/10 px-5 py-3.5"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-soft text-amber"><Icon size={18} /></span><div className="min-w-0"><h4 className="text-sm font-bold text-navy">{title}</h4>{subtitle && <p className="text-xs text-muted">{subtitle}</p>}</div></div>
+    <div className="p-5">{children}</div>
+  </section>;
 }
 
 function HeroStat({ icon: Icon, label, children }) {
