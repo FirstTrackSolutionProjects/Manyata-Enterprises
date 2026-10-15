@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Briefcase, Building2, FileText, GraduationCap, Landmark, Loader2, MapPin, Paperclip, Pencil, ShieldCheck, User, X } from "lucide-react";
 import { fileUrl, updateJoinUs, uploadFilesToS3 } from "../services/api";
 import CameraFileInput from "./CameraFileInput";
 
@@ -18,6 +19,30 @@ const LOA_FIELDS = [
   ["probationPeriod", "Probation Period"], ["noticePeriod", "Notice Period"],
 ];
 const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"], ["educationCertificate", "Education Certificate / Marksheet", "Education Certificate / Marksheet"], ["experienceDocument", "Experience Certificate / Work Proof", "Experience Certificate / Work Proof"]];
+
+/* ── UI-only: how the fields are grouped on screen ─── */
+
+const GROUPS = [
+  { title: "Personal Details", icon: User, keys: ["firstName", "lastName", "email", "phone", "dob", "gender", "fatherName", "motherName", "bloodGroup", "guardianName", "guardianMobile", "maritalStatus"] },
+  { title: "Current Address", icon: MapPin, keys: ["streetAddress", "city", "district", "state", "location", "postalCode", "country"] },
+  { title: "Permanent Address", icon: Building2, keys: ["permanentAddress", "permanentCity", "permanentState", "permanentPostalCode"], sameAsAboveToggle: true },
+  { title: "Identity Details", icon: ShieldCheck, keys: ["aadhaarNumber", "panNumber"] },
+  { title: "Education & Experience", icon: GraduationCap, keys: ["qualification", "institutionName", "yearOfPassing", "experience", "companyName", "designation"] },
+  { title: "Bank Details", icon: Landmark, keys: ["bankName", "accountNumber", "ifscCode"] },
+  { title: "About", icon: FileText, keys: ["description"] },
+];
+const FULL_WIDTH_KEYS = new Set(["streetAddress", "permanentAddress"]);
+const INPUT = "mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-4 py-2.5 text-sm font-semibold text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30 disabled:bg-slate-100 disabled:text-muted";
+
+function FormSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-2xl border border-navy/10 bg-white">
+    <div className="flex items-center gap-3 border-b border-navy/10 px-5 py-3.5">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-soft text-amber"><Icon size={18} /></span>
+      <div className="min-w-0"><h4 className="text-sm font-bold text-navy">{title}</h4>{subtitle && <p className="text-xs text-muted">{subtitle}</p>}</div>
+    </div>
+    <div className="p-5">{children}</div>
+  </section>;
+}
 
 export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNotice = "", employeeProfile = false, onSaveProfile }) {
   const [form, setForm] = useState(() => Object.fromEntries([...FIELDS, ...(!employeeProfile ? LOA_FIELDS : [])].map(([key]) => {
@@ -49,17 +74,58 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
     catch (err) { setError(err.message || "Could not update Join Us details."); }
     finally { setSaving(false); }
   };
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-2 max-h-[calc(100vh-1rem)] max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-    <div className="flex justify-between gap-3"><div><h3 className="text-xl font-extrabold text-navy">{employeeProfile ? "Edit Join Us Profile" : "Edit Join Us Submission"}</h3>{!employeeProfile && <p className="mt-1 text-xs text-muted">Submission #{submission.id} · Created {new Date(submission.created_at).toLocaleString("en-IN")}</p>}</div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>
-    {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">{FIELDS.map(([key,label,type]) => <label key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" ? "sm:col-span-2" : ""}`}>{label}{type === "textarea" ? <textarea rows={3} value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/> : <input type={type || "text"} value={form[key]} disabled={employeeProfile && key === "email"} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm disabled:bg-slate-100"/>}</label>)}
-      <label className="flex items-center gap-2 text-xs font-semibold text-navy/70"><input type="checkbox" checked={form.sameAsAbove} onChange={e=>setForm({...form,sameAsAbove:e.target.checked})}/>Permanent address same as current</label>
-    </div>
-    {!employeeProfile && <><h4 className="mt-5 border-t border-navy/10 pt-4 text-sm font-bold text-navy">Appointment / LOA Details</h4>
-    <p className="mt-1 text-xs text-muted">Fields marked * are needed to generate the appointment letter. You can save other edits without filling them.</p>
-    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">{LOA_FIELDS.map(([key,label,required])=><label key={key} className="text-xs font-semibold text-navy/70">{label}{required&&<span className="ml-1 text-red-600">*</span>}<input value={form[key]} onChange={e=>setForm({...form,[key]:e.target.value})} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"/></label>)}</div>
-    </>}
-    <h4 className="mt-5 border-t border-navy/10 pt-4 text-sm font-bold text-navy">Documents (choose a file to replace)</h4><div className="mt-3 grid gap-3 sm:grid-cols-2">{DOCUMENTS.map(([key,label,urlKey])=><div key={key} className="rounded-lg border border-navy/10 p-3">{!employeeProfile && submission.documentUrls?.[urlKey] && <a href={fileUrl(submission.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="mb-2 inline-block text-xs font-semibold text-amber">View current {label}</a>}<CameraFileInput label={label} name={key} onFile={file=>setFiles(current=>({...current,[key]:file}))}/></div>)}</div>
-    <div className="sticky bottom-0 mt-6 flex justify-end gap-3 border-t border-navy/10 bg-white py-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button></div>
-  </form></div>;
+
+  const renderField = (key) => {
+    const [, label, type] = FIELDS.find(([fieldKey]) => fieldKey === key) || [];
+    if (!label) return null;
+    return <label key={key} className={`text-xs font-semibold text-navy/70 ${type === "textarea" || FULL_WIDTH_KEYS.has(key) ? "sm:col-span-2" : ""}`}>{label}
+      {type === "textarea"
+        ? <textarea rows={4} value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className={`${INPUT} font-normal`} />
+        : <input type={type || "text"} value={form[key]} disabled={employeeProfile && key === "email"} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className={INPUT} />}
+    </label>;
+  };
+
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm">
+    <form onSubmit={save} className="mx-auto my-2 flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative shrink-0 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light px-6 py-5">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-amber/20" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber text-navy shadow-sm"><Pencil size={20} /></span>
+            <div className="min-w-0">
+              <h3 className="text-xl font-extrabold text-white">{employeeProfile ? "Edit Join Us Profile" : "Edit Join Us Submission"}</h3>
+              {!employeeProfile && <p className="mt-0.5 text-xs text-white/70">Submission #{submission.id} · Created {new Date(submission.created_at).toLocaleString("en-IN")}</p>}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20"><X size={18} /></button>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-5 overflow-y-auto bg-offwhite/60 p-5 sm:p-6">
+        {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">{error}</p>}
+
+        {GROUPS.map((group) => <FormSection key={group.title} icon={group.icon} title={group.title}>
+          {group.sameAsAboveToggle && <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl border border-navy/10 bg-offwhite px-4 py-3 text-sm font-semibold text-navy transition hover:border-amber/60"><input type="checkbox" checked={form.sameAsAbove} onChange={(e) => setForm({ ...form, sameAsAbove: e.target.checked })} className="h-5 w-5 shrink-0 cursor-pointer accent-amber" />Permanent address same as current</label>}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{group.keys.map(renderField)}</div>
+        </FormSection>)}
+
+        {!employeeProfile && <FormSection icon={Briefcase} title="Appointment / LOA Details" subtitle="Fields marked * are needed to generate the appointment letter. You can save other edits without filling them.">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{LOA_FIELDS.map(([key, label, required]) => <label key={key} className="text-xs font-semibold text-navy/70">{label}{required && <span className="ml-1 text-red-600">*</span>}<input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className={INPUT} /></label>)}</div>
+        </FormSection>}
+
+        <FormSection icon={Paperclip} title="Documents" subtitle="Choose a file to replace">
+          <div className="grid gap-3 sm:grid-cols-2">{DOCUMENTS.map(([key, label, urlKey]) => <div key={key} className="rounded-xl border border-navy/10 bg-offwhite p-3">
+            {!employeeProfile && submission.documentUrls?.[urlKey] && <a href={fileUrl(submission.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy transition hover:bg-amber/30">View current {label}</a>}
+            <CameraFileInput label={label} name={key} onFile={(file) => setFiles((current) => ({ ...current, [key]: file }))} />
+          </div>)}</div>
+        </FormSection>
+      </div>
+
+      <div className="flex shrink-0 justify-end gap-3 border-t border-navy/10 bg-white px-6 py-4">
+        <button type="button" onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:-translate-y-0.5 hover:border-amber hover:shadow-sm active:translate-y-0">Cancel</button>
+        <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-hover hover:shadow-md active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none">{saving && <Loader2 size={16} className="animate-spin" />}{saving ? "Saving..." : "Save Changes"}</button>
+      </div>
+    </form>
+  </div>;
 }
