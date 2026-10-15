@@ -21,6 +21,7 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  Paperclip,
   Pencil,
   Phone,
   Send,
@@ -29,6 +30,7 @@ import {
   Search,
   User,
   Wrench,
+  X,
   Zap,
 } from "lucide-react";
 import {
@@ -91,6 +93,7 @@ const formatDT = (value) => value ? new Date(value).toLocaleString("en-IN") : "�
 const BTN_PRIMARY = "inline-flex w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-3 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-hover hover:shadow-md active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none";
 const BTN_NAVY = "inline-flex w-full items-center justify-center gap-2 rounded-full bg-navy px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-navy-light hover:shadow-md active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
 const FIELD_INPUT = "mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-4 py-3 text-sm font-normal text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30";
+const EDIT_INPUT = "mt-1.5 w-full rounded-xl border border-navy/15 bg-white px-4 py-2.5 text-sm font-semibold text-navy transition focus:border-amber focus:outline-none focus:ring-2 focus:ring-amber/30";
 const HERO_BASE = "group inline-flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-5 text-sm font-bold transition hover:-translate-y-0.5 active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60";
 const HERO_NAVY = `${HERO_BASE} bg-navy text-white shadow-sm hover:bg-navy-light hover:shadow-lg`;
 const HERO_PRIMARY = `${HERO_BASE} bg-gradient-to-r from-amber to-amber-hover text-navy shadow-md shadow-amber/30 hover:shadow-lg hover:shadow-amber/40`;
@@ -608,6 +611,16 @@ export default function ApplicationDetail() {
   );
 }
 
+function EditSection({ icon: Icon, title, subtitle, children }) {
+  return <section className="rounded-2xl border border-navy/10 bg-white">
+    <div className="flex items-center gap-3 border-b border-navy/10 px-5 py-3.5">
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-soft text-amber"><Icon size={18} /></span>
+      <div className="min-w-0"><h4 className="text-sm font-bold text-navy">{title}</h4>{subtitle && <p className="text-xs text-muted">{subtitle}</p>}</div>
+    </div>
+    <div className="p-5">{children}</div>
+  </section>;
+}
+
 function ApplicationEditForm({ app, technicalOnly = false, onClose, onSaved }) {
   const [form, setForm] = useState(() => ({
     location: String(app.location || "").includes(",") ? "both" : app.location, systemType: app.system_type, systemSize: app.system_size,
@@ -635,31 +648,91 @@ function ApplicationEditForm({ app, technicalOnly = false, onClose, onSaved }) {
     ["state", "State"], ["district", "District"], ["block", "Block"], ["gramPanchayat", "Gram Panchayat"], ["buildingPlot", "Building / Plot"], ["villageName", "Village"], ["city", "City"], ["postOffice", "Post Office"], ["pinCode", "PIN Code"], ["landmark", "Landmark"], ["municipality", "Municipality"], ["wardNumber", "Ward Number"], ["streetLocality", "Street / Locality"],
     ["consumerNumber", "Consumer Number"], ["subDivision", "Sub Division"], ["tariff", "Tariff"], ["bankName", "Bank Name"], ["accountNumber", "Account Number"], ["ifscCode", "IFSC Code"],
   ];
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4"><form onSubmit={save} className="mx-auto my-6 max-w-4xl rounded-2xl bg-white p-6 shadow-xl"><div className="flex items-center justify-between gap-4"><div><h3 className="text-xl font-extrabold text-navy">{technicalOnly ? "Upload Installation Progress" : "Edit Application"}</h3><p className="text-xs text-muted">{technicalOnly ? "Upload progress photos/documents. Application details stay unchanged." : "All details can be updated. Upload a document only to replace its existing file."}</p></div><button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button></div>{error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}<div className={technicalOnly ? "hidden" : "mt-5"}><PartnerNetworkFields location={form.location} form={form} onChange={change} /></div><div className={technicalOnly ? "hidden" : "mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2"}>{fields.map(([name, label, type]) => <label key={name} className="text-xs font-semibold text-navy/70">{label}<input name={name} type={type || "text"} value={form[name]} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label>)}</div><div className={technicalOnly ? "hidden" : "mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2"}><label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="odisha">Odisha</option><option value="kolkata">West Bengal</option><option value="both">Both regions</option></select></label><label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label><label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm"><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label></div><label className={technicalOnly ? "hidden" : "mt-4 block text-xs font-semibold text-navy/70"}>Remarks<textarea name="remarks" value={form.remarks} onChange={change} rows={3} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm" /></label><div className="mt-5">
-  <p className="text-sm font-bold text-navy">Replace Documents (optional)</p>
-  <p className="mt-1 text-xs text-muted">Only choose a file for documents you want to replace — others stay unchanged.</p>
-  <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-    {[
-      ["aadhaarFront", "Aadhaar", app.file_aadhaar_front],
-      ["aadhaarBack", "Aadhaar Back", app.file_aadhaar_back],
-      ["panCard", "PAN Front", app.file_pan_card],
-      ["panBack", "PAN Back", app.file_pan_back],
-      ["photo", "Photo", app.file_photo],
-      ["signature", "Signature", app.file_signature],
-      ["electricityBill", "Electricity Bill", app.file_electricity_bill],
-      ["chequePassbook", "Cheque / Passbook", app.file_cheque_passbook],
-      ["sitePhoto", "Site Photo", app.file_site_photo],
-    ].filter(([name]) => !technicalOnly || name === "sitePhoto").map(([name, label, existing]) => (
-      <DocReplaceField
-        key={name}
-        name={name}
-        label={label}
-        existingUrl={existing ? fileUrl(existing) : null}
-        onSelect={(f) => setFiles((p) => ({ ...p, [name]: f }))}
-      />
-    ))}
-  </div>
-</div><div className="mt-6 flex justify-end gap-3"><button type="button" onClick={onClose} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">Cancel</button><button disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : technicalOnly ? "Upload Progress" : "Save All Changes"}</button></div></form></div>;
+  const fieldMap = Object.fromEntries(fields.map(([name, label, type]) => [name, [label, type]]));
+  const renderInput = (name) => {
+    const [label, type] = fieldMap[name];
+    return <label key={name} className="text-xs font-semibold text-navy/70">{label}<input name={name} type={type || "text"} value={form[name]} onChange={change} className={EDIT_INPUT} /></label>;
+  };
+  const GROUPS = [
+    { title: "Personal Details", icon: User, names: ["fullName", "phoneNumber", "gender", "dob", "email"] },
+    { title: "Address", icon: MapPin, names: ["state", "district", "block", "gramPanchayat", "buildingPlot", "villageName", "city", "postOffice", "pinCode", "landmark", "municipality", "wardNumber", "streetLocality"] },
+    { title: "Electricity Connection", icon: Zap, names: ["consumerNumber", "subDivision", "tariff"] },
+    { title: "Bank Details", icon: Landmark, names: ["bankName", "accountNumber", "ifscCode"] },
+  ];
+  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm">
+    <form onSubmit={save} className="mx-auto my-2 flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="relative shrink-0 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light px-6 py-5">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-amber/20" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" />
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber text-navy shadow-sm">{technicalOnly ? <Camera size={20} /> : <Pencil size={20} />}</span>
+            <div className="min-w-0">
+              <h3 className="text-xl font-extrabold text-white">{technicalOnly ? "Upload Installation Progress" : "Edit Application"}</h3>
+              <p className="mt-0.5 text-xs text-white/70">{technicalOnly ? "Upload progress photos/documents. Application details stay unchanged." : "All details can be updated. Upload a document only to replace its existing file."}</p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20"><X size={18} /></button>
+        </div>
+      </div>
+
+      <div className="flex-1 space-y-5 overflow-y-auto bg-offwhite/60 p-5 sm:p-6">
+        {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">{error}</p>}
+
+        <div className={technicalOnly ? "hidden" : "space-y-5"}>
+          <EditSection icon={Briefcase} title="Partner & Sales Network" subtitle="Super-vendor, vendor, sub-vendor and sales executive">
+            <PartnerNetworkFields location={form.location} form={form} onChange={change} />
+          </EditSection>
+
+          <EditSection icon={FileText} title="Application Details">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className={EDIT_INPUT}><option value="odisha">Odisha</option><option value="kolkata">West Bengal</option><option value="both">Both regions</option></select></label>
+              <label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className={EDIT_INPUT}><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label>
+              <label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className={EDIT_INPUT}><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label>
+              {renderInput("incomeSource")}
+            </div>
+          </EditSection>
+
+          {GROUPS.map((group) => <EditSection key={group.title} icon={group.icon} title={group.title}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{group.names.map(renderInput)}</div>
+          </EditSection>)}
+
+          <EditSection icon={MessageSquare} title="Customer Remarks">
+            <label className="block text-xs font-semibold text-navy/70">Remarks<textarea name="remarks" value={form.remarks} onChange={change} rows={4} className={`${EDIT_INPUT} font-normal`} /></label>
+          </EditSection>
+        </div>
+
+        <EditSection icon={Paperclip} title="Replace Documents (optional)" subtitle="Only choose a file for documents you want to replace — others stay unchanged.">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[
+              ["aadhaarFront", "Aadhaar", app.file_aadhaar_front],
+              ["aadhaarBack", "Aadhaar Back", app.file_aadhaar_back],
+              ["panCard", "PAN Front", app.file_pan_card],
+              ["panBack", "PAN Back", app.file_pan_back],
+              ["photo", "Photo", app.file_photo],
+              ["signature", "Signature", app.file_signature],
+              ["electricityBill", "Electricity Bill", app.file_electricity_bill],
+              ["chequePassbook", "Cheque / Passbook", app.file_cheque_passbook],
+              ["sitePhoto", "Site Photo", app.file_site_photo],
+            ].filter(([name]) => !technicalOnly || name === "sitePhoto").map(([name, label, existing]) => (
+              <DocReplaceField
+                key={name}
+                name={name}
+                label={label}
+                existingUrl={existing ? fileUrl(existing) : null}
+                onSelect={(f) => setFiles((p) => ({ ...p, [name]: f }))}
+              />
+            ))}
+          </div>
+        </EditSection>
+      </div>
+
+      <div className="flex shrink-0 justify-end gap-3 border-t border-navy/10 bg-white px-6 py-4">
+        <button type="button" onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:-translate-y-0.5 hover:border-amber hover:shadow-sm active:translate-y-0">Cancel</button>
+        <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-hover hover:shadow-md active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none">{saving && <Loader2 size={16} className="animate-spin" />}{saving ? "Saving..." : technicalOnly ? "Upload Progress" : "Save All Changes"}</button>
+      </div>
+    </form>
+  </div>;
 }
 
 function HeroStat({ icon: Icon, label, children }) {
@@ -817,10 +890,10 @@ function GpsValue({ label, value }) {
 
 function DocReplaceField({ name, label, existingUrl, onSelect }) {
   return (
-    <div>
-      <div className="mb-1 flex items-center justify-between text-xs font-semibold text-navy/70">
+    <div className="rounded-xl border border-navy/10 bg-offwhite p-3">
+      <div className="mb-2 flex items-center justify-between gap-2 text-xs font-semibold text-navy/70">
         <span>{label}</span>
-        {existingUrl && <a href={existingUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold text-amber hover:underline">View current</a>}
+        {existingUrl && <a href={existingUrl} target="_blank" rel="noopener noreferrer" className="rounded-full bg-amber-soft px-3 py-1 text-[11px] font-bold text-navy transition hover:bg-amber/30">View current</a>}
       </div>
       <CameraFileInput label={`Replace ${label}`} name={name} accept="image/jpeg,image/png,image/webp,application/pdf" onFile={(file) => onSelect(file)} />
     </div>
