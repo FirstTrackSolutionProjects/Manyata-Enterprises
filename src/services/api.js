@@ -373,6 +373,12 @@ export const listCommissionPayouts = (params = {}) => {
   const query = new URLSearchParams(params);
   return apiFetch(`/commission-payouts?${query.toString()}`);
 };
+export const createManualCommissionPayout = (payload) =>
+  apiFetch("/commission-payouts/manual", { method: "POST", body: JSON.stringify(payload) });
+export const updateCommissionPayout = (id, payload) =>
+  apiFetch(`/commission-payouts/${id}`, { method: "PUT", body: JSON.stringify(payload) });
+export const deleteCommissionPayout = (id) =>
+  apiFetch(`/commission-payouts/${id}`, { method: "DELETE" });
 export const updateCommissionPayoutStatus = (id, payload) =>
   apiFetch(`/commission-payouts/${id}/status`, { method: "PATCH", body: JSON.stringify(payload) });
 export const recordCommissionPayoutPayment = (id, payload) =>
