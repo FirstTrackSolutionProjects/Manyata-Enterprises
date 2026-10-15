@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { FileText, Handshake, Pencil, X } from "lucide-react";
 import { apiFetch, fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
 import CameraFileInput from "./CameraFileInput";
 
@@ -175,15 +176,20 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
     .join(", ");
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4">
-      <form onSubmit={save} className="mx-auto my-5 max-w-4xl rounded-2xl bg-white p-6 shadow-xl">
-        <div className="flex items-start justify-between gap-4">
-          <div><h3 className="text-xl font-extrabold text-navy">{editing ? "Edit Partner" : "Partner Details"}</h3><p className="mt-1 text-xs text-muted">Partner ID: {partner.id} · Status: {partner.status}</p></div>
-          <button type="button" onClick={onClose} className="text-sm font-bold text-muted">Close</button>
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm">
+      <form onSubmit={save} className="mx-auto my-2 flex max-h-[calc(100vh-2rem)] max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+        <div className="relative shrink-0 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light px-6 py-5">
+          <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-amber/20" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" />
+          <div className="relative flex items-start justify-between gap-4">
+          <div><h3 className="text-xl font-extrabold text-white">{editing ? "Edit Partner" : "Partner Details"}</h3><p className="mt-1 text-xs text-white/70">Partner ID: {partner.id} · Status: {partner.status}</p></div>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20"><X size={18} /></button>
+          </div>
         </div>
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-offwhite/60 p-5 sm:p-6">
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted"><span>Created: {formatDateTime(partner.created_at)}</span><span>Updated by: {partner.updated_by_name || "—"} · {formatDateTime(partner.updated_at)}</span></div>
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <section className="rounded-2xl border border-navy/10 bg-white"><div className="flex items-center gap-3 border-b border-navy/10 px-5 py-3.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-soft text-amber"><Handshake size={18} /></span><div><h4 className="text-sm font-bold text-navy">Partner Profile & Commission</h4><p className="text-xs text-muted">Partner role, referral chain, commission rates, and business details.</p></div></div><div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
           {[...FIELDS, ...(canAssignMultipleRoles ? [["partnerRoles", "Multi-role access", "partner-roles"]] : [])].map(([key, label, type]) => {
             const FieldWrapper = type === "systems" || type === "locations" || type === "commission-chart" || type === "select" || type === "partner-roles" ? "div" : "label";
             return (
@@ -282,11 +288,9 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
             </FieldWrapper>
             );
           })}
-        </div>
-        <div className="mt-5 border-t border-navy/10 pt-4">
-          <h4 className="text-sm font-bold text-navy">Partner Documents</h4>
-          {editing && <p className="mt-1 text-xs text-muted">Upload a file only to replace that document.</p>}
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        </div></section>
+        <section className="rounded-2xl border border-navy/10 bg-white"><div className="flex items-center gap-3 border-b border-navy/10 px-5 py-3.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-soft text-amber"><FileText size={18} /></span><div><h4 className="text-sm font-bold text-navy">Partner Documents</h4><p className="text-xs text-muted">{editing ? "Upload a file only to replace that document." : "View the documents saved for this partner."}</p></div></div><div className="p-5">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {DOCUMENTS.map(([key, label, urlKey]) => (
               <div key={key} className="rounded-lg border border-navy/10 p-3">
                 <p className="text-xs font-semibold text-navy">{label}</p>
@@ -296,9 +300,10 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
             ))}
           </div>
         </div>
-        <div className="mt-6 flex justify-end gap-3">
-          <button type="button" onClick={editing ? onClose : onEdit} className="rounded-full border border-navy/20 px-5 py-2.5 text-sm font-bold text-navy">{editing ? "Cancel" : "Edit Details"}</button>
-          {editing && <button type="submit" disabled={saving} className="rounded-full bg-amber px-5 py-2.5 text-sm font-bold text-navy disabled:opacity-60">{saving ? "Saving..." : "Save Changes"}</button>}
+        </section>
+        </div>
+        <div className="flex shrink-0 justify-end gap-3 border-t border-navy/10 bg-white px-6 py-4">
+          {editing ? <><button type="button" disabled={saving || savingRoles} onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:border-amber hover:shadow-sm disabled:opacity-60">Cancel</button><button type="submit" disabled={saving || savingRoles} className="rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy shadow-sm transition hover:bg-amber-hover hover:shadow-md disabled:opacity-60">{saving ? "Saving..." : "Save All Changes"}</button></> : <><button type="button" onClick={onEdit} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy hover:border-amber"><Pencil size={15} className="mr-1 inline" />Edit Details</button><button type="button" onClick={onClose} className="rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy">Close</button></>}
         </div>
       </form>
     </div>

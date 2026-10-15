@@ -2152,28 +2152,26 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy/60 p-4">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6"
+        className="mx-auto my-2 flex max-h-[calc(100vh-2rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
       >
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold text-navy">
-            {isEdit ? "Edit Employee" : "Add Employee"}
-          </h3>
-          <button onClick={onClose} className="text-muted hover:text-navy">
-            <X size={20} />
-          </button>
+        <div className="relative shrink-0 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light px-6 py-5">
+          <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-amber/20" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" />
+          <div className="relative flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-xl bg-amber text-navy"><Pencil size={20} /></span><div><h3 className="text-xl font-extrabold text-white">{isEdit ? "Edit Employee" : "Add Employee"}</h3><p className="mt-0.5 text-xs text-white/70">{isEdit ? `${employee.name} · ${employee.user_id || "Employee"}` : "Enter employee details and configure dashboard access."}</p></div></div>
+            <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20"><X size={18} /></button>
+          </div>
         </div>
 
-        {error && (
-          <div className="mt-4 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-700">
-            {error}
-          </div>
-        )}
+        {error && <div role="alert" className="mx-5 mt-4 rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">{error}</div>}
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 overflow-y-auto space-y-4 bg-offwhite/60 p-5 sm:p-6">
+          <InstallationEditSection icon={Users} title="Employee Details">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Input
             label="Full Name"
             value={form.name}
@@ -2193,6 +2191,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             onChange={(v) => setForm({ ...form, phone: v })}
             required
           />
+          </div>
 
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -2217,7 +2216,9 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             </div>
             <span className="mt-1 block text-[11px] text-muted">PNG, JPG, or WebP; maximum 5 MB.</span>
           </label>
+          </InstallationEditSection>
 
+          <InstallationEditSection icon={Building2} title="Role & Access Details">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Input
               label="Designation"
@@ -2241,8 +2242,9 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             readOnly={isEdit}
             maxLength={30}
           />
+          </InstallationEditSection>
 
-          <fieldset className="rounded-xl border border-navy/10 p-4">
+          <fieldset className="rounded-2xl border border-navy/10 bg-white p-5">
             <legend className="px-1 text-sm font-bold text-navy">Dashboard access</legend>
             <p className="mb-3 text-xs text-muted">Choose dashboard sections and grant Excel export separately for Applications, Installations, and Partners.</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -2275,6 +2277,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             </div>
           </fieldset>
 
+          <InstallationEditSection icon={MapPin} title="Branch & Address">
           <label className="block">
             <span className="mb-1.5 block text-xs font-semibold text-navy/70">
               Branch
@@ -2316,6 +2319,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
               onChange={(v) => setForm({ ...form, pincode: v })}
             />
           </div>
+          </InstallationEditSection>
 
           {!isEdit && (
             <p className="rounded-lg bg-amber-soft p-3 text-xs text-navy">
@@ -2325,14 +2329,10 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy hover:bg-amber-hover disabled:opacity-60"
-          >
-            {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-            {isEdit ? "Update" : "Create Employee"}
-          </button>
+          <div className="sticky bottom-0 -mx-5 -mb-5 flex justify-end gap-3 border-t border-navy/10 bg-white/95 px-5 py-4 backdrop-blur sm:-mx-6 sm:-mb-6 sm:px-6">
+            <button type="button" disabled={loading} onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:border-amber hover:shadow-sm disabled:opacity-60">Cancel</button>
+            <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy shadow-sm transition hover:bg-amber-hover hover:shadow-md disabled:opacity-60">{loading && <Loader2 size={16} className="animate-spin" />}{loading ? "Saving..." : isEdit ? "Save All Changes" : "Create Employee"}</button>
+          </div>
         </form>
       </motion.div>
     </div>
