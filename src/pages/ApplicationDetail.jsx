@@ -379,8 +379,8 @@ export default function ApplicationDetail() {
             ]}
           />
 
-          <InfoSection title="Uploaded Documents" badge={documentList.length ? `${documentList.length} ${documentList.length === 1 ? "file" : "files"}` : ""} empty={!documentList.length}>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <InfoSection title="Uploaded Documents" badge={documentList.length ? `${documentList.length} ${documentList.length === 1 ? "file" : "files"}` : ""} empty={false}>
+            {documentList.length ? <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {documentList.map(([key, label]) => canDownload && app[key] ? (
                 <a key={key} href={fileUrl(app[key])} target="_blank" rel="noopener noreferrer" className="group flex items-center gap-3 rounded-xl border border-navy/10 bg-white p-3 transition hover:border-amber hover:shadow-sm">
                   {isImageUrl(app[key]) || isImageUrl(fileUrl(app[key]))
@@ -390,7 +390,10 @@ export default function ApplicationDetail() {
                   <Download size={15} className="shrink-0 text-muted transition group-hover:text-amber" />
                 </a>
               ) : <div key={key} className="flex items-center gap-3 rounded-xl border border-navy/10 bg-slate-50 p-3"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-white text-muted"><FileText size={18} /></span><span className="text-sm font-semibold text-muted">{label} · no download access</span></div>)}
-            </div>
+            </div> : <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-dashed border-navy/15 bg-offwhite p-4">
+              <div><p className="text-sm font-semibold text-navy">No documents were uploaded with this application.</p><p className="mt-1 text-xs text-muted">The customer submitted the application without attaching files.</p></div>
+              {canEdit && <button type="button" onClick={() => setShowEditForm(true)} className="inline-flex items-center gap-2 rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy"><Pencil size={14} />Upload documents</button>}
+            </div>}
           </InfoSection>
 
           <InfoSection title="Site Documentation" badge={hasGps ? "GPS captured" : ""} empty={false}>
