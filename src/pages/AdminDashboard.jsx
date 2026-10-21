@@ -1158,7 +1158,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
             {(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view")) && <SearchableFilterSelect label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} options={applicationPartnerOptions} placeholder="All partners" searchPlaceholder="Search vendor or partner name..." />}
-            {(user?.role === "owner" || isHrEmployee(user)) && <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
+            {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" searchPlaceholder="Search employee name..." />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <SearchableFilterSelect
@@ -1170,7 +1170,7 @@ function ApplicationsTab({ initialLocation = "" }) {
               placeholderCount={totalApplicationCount}
             />
 
-            {user?.role === "owner" && <FilterSelect
+            {user?.role === "owner" && <SearchableFilterSelect
               label="Branch"
               value={filters.branchId}
               onChange={(v) => updateFilter("branchId", v)}
@@ -1179,9 +1179,10 @@ function ApplicationsTab({ initialLocation = "" }) {
                 label: `${b.name} (${b.code})`,
               }))}
               placeholder="All branches"
+              searchPlaceholder="Search branch name or code..."
             />}
 
-            <FilterSelect
+            <SearchableFilterSelect
               label="Location"
               value={filters.location}
               onChange={(v) => updateFilter("location", v)}
@@ -1190,6 +1191,7 @@ function ApplicationsTab({ initialLocation = "" }) {
                 { value: "kolkata", label: "West Bengal" },
               ]}
               placeholder="All locations"
+              searchPlaceholder="Search location..."
             />
 
             <FilterSelect
