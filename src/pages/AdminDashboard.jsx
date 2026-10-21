@@ -896,6 +896,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [applicationStatusCounts, setApplicationStatusCounts] = useState({});
   const [branches, setBranches] = useState([]);
   const [updateEmployees, setUpdateEmployees] = useState([]);
+  const [applicationPartnerOptions, setApplicationPartnerOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
   const [showFilters, setShowFilters] = useState(false);
@@ -924,6 +925,38 @@ function ApplicationsTab({ initialLocation = "" }) {
       .catch((err) => console.error("Could not load employees for the updater filter.", err));
     return () => { active = false; };
   }, []);
+
+  useEffect(() => {
+    if (!(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view"))) return undefined;
+    let active = true;
+    (async () => {
+      try {
+        const firstPage = await apiFetch("/admin/partners?limit=100&page=1");
+        const allPartners = [...(firstPage.data.items || [])];
+        const pageCount = Number(firstPage.data.pages || 1);
+        if (pageCount > 1) {
+          const remainingPages = await Promise.all(Array.from({ length: pageCount - 1 }, (_, index) =>
+            apiFetch(`/admin/partners?limit=100&page=${index + 2}`)
+          ));
+          remainingPages.forEach((response) => allPartners.push(...(response.data.items || [])));
+        }
+        const roleOrder = { super_vendor: 0, vendor: 1, sub_vendor: 2, sub_vendor_commission: 2, dealer: 3 };
+        const roleLabels = { super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" };
+        const options = allPartners.flatMap((partner) => {
+          const role = String(partner.partner_type || "").toLowerCase();
+          if (!roleLabels[role]) return [];
+          const names = [...new Set([partner.company_name, partner.contact_name].map((name) => String(name || "").trim()).filter(Boolean))];
+          return names.map((name) => ({ value: name, label: `${name} — ${roleLabels[role]}`, roleOrder: roleOrder[role] }));
+        });
+        const uniqueOptions = [...new Map(options.map((option) => [`${option.value.toLowerCase()}|${option.label.split(" — ").pop()}`, option])).values()]
+          .sort((left, right) => left.roleOrder - right.roleOrder || left.value.localeCompare(right.value));
+        if (active) setApplicationPartnerOptions(uniqueOptions);
+      } catch (error) {
+        console.error("Could not load partners for the application filter.", error);
+      }
+    })();
+    return () => { active = false; };
+  }, [user]);
 
   const load = async (p = page, overrideFilters) => {
     const requestId = ++listRequestId.current;
@@ -1102,7 +1135,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
-            <FilterInput label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} placeholder="Search partner name" />
+            {(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view")) && <SearchableFilterSelect label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} options={applicationPartnerOptions} placeholder="All partners" searchPlaceholder="Search vendor or partner name..." />}
             {(user?.role === "owner" || isHrEmployee(user)) && <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
@@ -1346,7 +1379,7 @@ function FilterInput({ label, value, onChange, type = "text", placeholder = "" }
   );
 }
 
-function SearchableFilterSelect({ label, value, onChange, options, placeholder }) {
+function SearchableFilterSelect({ label, value, onChange, options, placeholder, searchPlaceholder = "Search statuses..." }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef(null);
@@ -1378,7 +1411,7 @@ function SearchableFilterSelect({ label, value, onChange, options, placeholder }
         <div className="border-b border-navy/10 p-2">
           <div className="relative">
             <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
-            <input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search statuses..." className="w-full rounded-lg border border-navy/15 py-2 pl-8 pr-3 text-sm outline-none focus:border-amber" />
+            <input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder} className="w-full rounded-lg border border-navy/15 py-2 pl-8 pr-3 text-sm outline-none focus:border-amber" />
           </div>
         </div>
         <div className="max-h-56 overflow-y-auto p-1">
