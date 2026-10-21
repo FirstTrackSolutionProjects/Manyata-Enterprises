@@ -950,7 +950,12 @@ function ApplicationsTab({ initialLocation = "" }) {
         });
         const uniqueOptions = [...new Map(options.map((option) => [`${option.value.toLowerCase()}|${option.label.split(" — ").pop()}`, option])).values()]
           .sort((left, right) => left.roleOrder - right.roleOrder || left.value.localeCompare(right.value));
-        if (active) setApplicationPartnerOptions(uniqueOptions);
+        const roleOptions = [
+          { value: "type:vendor", label: "All Vendors", roleOrder: -1 },
+          { value: "type:sub_vendor", label: "All Sub-vendors", roleOrder: -1 },
+          { value: "type:super_vendor", label: "All Super-vendors", roleOrder: -1 },
+        ];
+        if (active) setApplicationPartnerOptions([...roleOptions, ...uniqueOptions]);
       } catch (error) {
         console.error("Could not load partners for the application filter.", error);
       }
@@ -966,7 +971,8 @@ function ApplicationsTab({ initialLocation = "" }) {
       const params = { page: p, limit };
       if (f.search) params.search = f.search;
       if (f.name) params.name = f.name;
-      if (f.partner) params.partner = f.partner;
+      if (f.partner?.startsWith("type:")) params.partnerType = f.partner.slice("type:".length);
+      else if (f.partner) params.partner = f.partner;
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
       if (f.updatedBy) params.updatedBy = f.updatedBy;
@@ -1118,7 +1124,12 @@ function ApplicationsTab({ initialLocation = "" }) {
         </button>
         {canExportApplications && <button onClick={async () => {
           try {
-            const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value !== ""));
+            const exportFilters = { ...filters };
+            if (exportFilters.partner?.startsWith("type:")) {
+              exportFilters.partnerType = exportFilters.partner.slice("type:".length);
+              delete exportFilters.partner;
+            }
+            const params = new URLSearchParams(Object.entries(exportFilters).filter(([, value]) => value !== ""));
             await downloadCsvExport(`/applications/export.csv?${params}`, "applications.csv");
           } catch (error) { window.alert(error.message || "Could not download applications."); }
         }} className="inline-flex items-center gap-2 rounded-lg border border-amber bg-white px-4 py-2.5 text-sm font-bold text-navy hover:bg-amber-soft"><Download size={15} /> Download Excel</button>}
