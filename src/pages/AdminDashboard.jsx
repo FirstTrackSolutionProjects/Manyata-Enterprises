@@ -2831,6 +2831,7 @@ function InstallationsTab({ location }) {
   const [locationCounts, setLocationCounts] = useState(null);
   const [totalInstallationCount, setTotalInstallationCount] = useState(null);
   const [installationStatusCounts, setInstallationStatusCounts] = useState({});
+  const [installationTypes, setInstallationTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
@@ -2852,7 +2853,7 @@ function InstallationsTab({ location }) {
     const requestId = ++listRequestId.current;
     setLoading(true);
     try {
-      const params = { search: searchValue.trim(), fromDate, toDate, sortBy, sortOrder, updatedBy: user?.role === "owner" ? updatedByFilter : "", limit: "500" };
+      const params = { search: searchValue.trim(), name: nameFilter.trim(), email: emailFilter.trim(), phone: phoneFilter.trim(), fromDate, toDate, sortBy, sortOrder, updatedBy: user?.role === "owner" || isHrEmployee(user) ? updatedByFilter : "", status: statusFilter, installationType: typeFilter, location: locationFilter, limit: "500" };
       if (user?.role === "employee" && workList === "updated") params.updatedBy = String(user.id);
       if (user?.role === "employee" && workList === "remaining") params.updatedByNot = "1";
       const res = await listInstallations(location, params);
@@ -2867,7 +2868,7 @@ function InstallationsTab({ location }) {
   };
   useEffect(() => {
     load();
-  }, [location, search, fromDate, toDate, sortBy, sortOrder, updatedByFilter, workList]);
+  }, [location, search, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder, updatedByFilter, workList, statusFilter, typeFilter, locationFilter]);
 
   useEffect(() => {
     let active = true;
@@ -2879,12 +2880,13 @@ function InstallationsTab({ location }) {
 
   useEffect(() => {
     let active = true;
-    const statsQuery = location ? `?location=${encodeURIComponent(location)}` : "";
+    const selectedLocation = locationFilter || location;
+    const statsQuery = selectedLocation ? `?location=${encodeURIComponent(selectedLocation)}` : "";
     apiFetch(`/installations/stats/overview${statsQuery}`)
-      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalInstallationCount(Number(res.data.total || 0)); setInstallationStatusCounts(res.data.byStatus || {}); } })
+      .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalInstallationCount(Number(res.data.total || 0)); setInstallationStatusCounts(res.data.byStatus || {}); setInstallationTypes(res.data.installationTypes || []); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
-  }, [location]);
+  }, [location, locationFilter]);
 
   const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "West Bengal Installations" : "All Installations";
   const filteredItems = applyDateSort(items.filter((item) =>
@@ -2926,7 +2928,7 @@ function InstallationsTab({ location }) {
       <button onClick={() => load(search)} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60">Search</button>
       {loading && items.length > 0 && <span role="status" className="self-center text-xs text-muted">Updating results…</span>}
       <button onClick={() => setShowFilters((open) => !open)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showFilters || activeFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={14} /> Filters{activeFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activeFilterCount}</span>}</button>
-      <button onClick={async () => { await load(); const statsQuery = location ? `?location=${encodeURIComponent(location)}` : ""; const statsRes = await apiFetch(`/installations/stats/overview${statsQuery}`); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); setInstallationStatusCounts(statsRes.data.byStatus || {}); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
+      <button onClick={async () => { await load(); const selectedLocation = locationFilter || location; const statsQuery = selectedLocation ? `?location=${encodeURIComponent(selectedLocation)}` : ""; const statsRes = await apiFetch(`/installations/stats/overview${statsQuery}`); setLocationCounts(statsRes.data.byLocation || null); setTotalInstallationCount(Number(statsRes.data.total || 0)); setInstallationStatusCounts(statsRes.data.byStatus || {}); setInstallationTypes(statsRes.data.installationTypes || []); }} disabled={loading} className="rounded-lg bg-navy px-4 py-2.5 text-sm font-bold text-white hover:bg-navy-light disabled:opacity-60">Refresh</button>
       {canExport && <button onClick={async () => {
         try {
           const params = new URLSearchParams();
@@ -2953,10 +2955,10 @@ function InstallationsTab({ location }) {
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
-      {(user?.role === "owner" || isHrEmployee(user)) && <FilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
-      <FilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES} placeholder="All statuses" />
-      <FilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={[...new Set(items.map((item) => item.installation_type).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All types" />
-      <FilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[...new Set(items.map((item) => item.location).filter(Boolean))].sort().map((value) => ({ value, label: value === "kolkata" ? "West Bengal" : "Odisha" }))} placeholder="All locations" />
+      {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" searchPlaceholder="Search employee name..." />}
+      <SearchableFilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES.map((status) => ({ ...status, count: Number(installationStatusCounts[status.value] || 0) }))} placeholder="All statuses" placeholderCount={totalInstallationCount} />
+      <SearchableFilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={installationTypes.map((value) => ({ value, label: value }))} placeholder="All types" searchPlaceholder="Search installation type..." />
+      <SearchableFilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[{ value: "odisha", label: "Odisha" }, { value: "kolkata", label: "West Bengal" }]} placeholder="All locations" searchPlaceholder="Search location..." />
       <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
       <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
       <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "customer_name", label: "Customer Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
