@@ -870,6 +870,7 @@ const EMPTY_FILTERS = {
   sortBy: "created_at",
   sortOrder: "desc",
   name: "",
+  partner: "",
   email: "",
   phone: "",
   updatedBy: "",
@@ -926,6 +927,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       const params = { page: p, limit };
       if (f.search) params.search = f.search;
       if (f.name) params.name = f.name;
+      if (f.partner) params.partner = f.partner;
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
       if (f.updatedBy) params.updatedBy = f.updatedBy;
@@ -973,7 +975,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   };
 
   const resetFilters = () => {
-    setFilters(EMPTY_FILTERS);
+    setFilters({ ...EMPTY_FILTERS, location: initialLocation });
   };
 
   const activeFilterCount = Object.entries(filters).filter(
@@ -981,7 +983,9 @@ function ApplicationsTab({ initialLocation = "" }) {
       v !== "" &&
       v !== EMPTY_FILTERS[k]
   ).length;
-  const visibleApplicationFilterStatusOptions = getApplicationUpdateStatusOptions(user);
+  const visibleApplicationFilterStatusOptions = user?.role === "owner" || isHrEmployee(user)
+    ? APPLICATION_STATUSES
+    : getApplicationUpdateStatusOptions(user);
   const assignedApplicationStatuses = user?.role === "employee"
     ? isHrEmployee(user)
       ? APPLICATION_STATUSES.map((status) => status.value)
@@ -1013,7 +1017,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
           ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Customer Side - Documents Issue", Number(applicationStatusCounts.customer_side_documents_issue || 0)],
-          ["Bank Rejected", Number(applicationStatusCounts.rejected || 0)],
+          ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0) + Number(applicationStatusCounts.rejected || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
         ]).map((card) => {
           const [label, value, key] = Array.isArray(card) ? card : [card.label, card.value, card.label];
@@ -1092,10 +1096,11 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
+            <FilterInput label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} placeholder="Search partner name" />
             {(user?.role === "owner" || isHrEmployee(user)) && <FilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
-            <FilterSelect
+            <SearchableFilterSelect
               label="Status"
               value={filters.status}
               onChange={(v) => updateFilter("status", v)}
@@ -1318,7 +1323,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   );
 }
 
-function FilterInput({ label, value, onChange, type = "text" }) {
+function FilterInput({ label, value, onChange, type = "text", placeholder = "" }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -1327,10 +1332,56 @@ function FilterInput({ label, value, onChange, type = "text" }) {
       <input
         type={type}
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg border border-navy/15 px-3 py-2 text-sm focus:border-amber focus:outline-none"
       />
     </label>
+  );
+}
+
+function SearchableFilterSelect({ label, value, onChange, options, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const containerRef = useRef(null);
+  const selected = options.find((option) => option.value === value);
+  const visibleOptions = options.filter((option) => option.label.toLowerCase().includes(search.trim().toLowerCase()));
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const closeOnOutsideClick = (event) => {
+      if (!containerRef.current?.contains(event.target)) setOpen(false);
+    };
+    const closeOnEscape = (event) => { if (event.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <span className="mb-1.5 block text-xs font-semibold text-navy/70">{label}</span>
+      <button type="button" aria-expanded={open} onClick={() => { setOpen((current) => !current); setSearch(""); }} className="flex w-full items-center justify-between rounded-lg border border-navy/15 bg-white px-3 py-2 text-left text-sm focus:border-amber focus:outline-none">
+        <span className={selected ? "truncate text-navy" : "truncate text-muted"}>{selected?.label || placeholder}</span>
+        <ChevronDown size={16} className="ml-2 shrink-0 text-muted" />
+      </button>
+      {open && <div className="absolute z-30 mt-1 max-h-72 w-full overflow-hidden rounded-xl border border-navy/15 bg-white shadow-xl">
+        <div className="border-b border-navy/10 p-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted" />
+            <input autoFocus value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search statuses..." className="w-full rounded-lg border border-navy/15 py-2 pl-8 pr-3 text-sm outline-none focus:border-amber" />
+          </div>
+        </div>
+        <div className="max-h-56 overflow-y-auto p-1">
+          <button type="button" onClick={() => { onChange(""); setOpen(false); }} className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-amber-soft ${!value ? "bg-amber-soft font-semibold text-navy" : "text-navy"}`}>{placeholder}</button>
+          {visibleOptions.map((option) => <button key={option.value} type="button" onClick={() => { onChange(option.value); setOpen(false); }} className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-amber-soft ${value === option.value ? "bg-amber-soft font-semibold text-navy" : "text-navy"}`}>{option.label}</button>)}
+          {visibleOptions.length === 0 && <p className="px-3 py-3 text-sm text-muted">No matching statuses.</p>}
+        </div>
+      </div>}
+    </div>
   );
 }
 
