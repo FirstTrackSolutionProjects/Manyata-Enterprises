@@ -1031,6 +1031,17 @@ function ApplicationsTab({ initialLocation = "" }) {
   const visibleApplicationFilterStatusOptions = user?.role === "owner" || isHrEmployee(user)
     ? APPLICATION_STATUSES
     : getApplicationUpdateStatusOptions(user);
+  const applicationStatusCountAliases = {
+    customer_side_bank_forward: ["customer_side_bank_forward", "vendor_side_bank_forward"],
+    customer_side_bank_forward_pending: ["customer_side_bank_forward_pending", "vendor_side_pending_for_bank_forward"],
+    consumer_login_submitted_to_govt_portal: ["consumer_login_submitted_to_govt_portal", "submitted_to_govt"],
+    bank_reject: ["bank_reject", "rejected"],
+  };
+  const applicationStatusOptionsWithCounts = visibleApplicationFilterStatusOptions.map((status) => ({
+    ...status,
+    count: (applicationStatusCountAliases[status.value] || [status.value])
+      .reduce((total, value) => total + Number(applicationStatusCounts[value] || 0), 0),
+  }));
   const assignedApplicationStatuses = user?.role === "employee"
     ? isHrEmployee(user)
       ? APPLICATION_STATUSES.map((status) => status.value)
@@ -1154,8 +1165,9 @@ function ApplicationsTab({ initialLocation = "" }) {
               label="Status"
               value={filters.status}
               onChange={(v) => updateFilter("status", v)}
-              options={visibleApplicationFilterStatusOptions}
+              options={applicationStatusOptionsWithCounts}
               placeholder="All statuses"
+              placeholderCount={totalApplicationCount}
             />
 
             {user?.role === "owner" && <FilterSelect
@@ -1390,7 +1402,7 @@ function FilterInput({ label, value, onChange, type = "text", placeholder = "" }
   );
 }
 
-function SearchableFilterSelect({ label, value, onChange, options, placeholder, searchPlaceholder = "Search statuses..." }) {
+function SearchableFilterSelect({ label, value, onChange, options, placeholder, placeholderCount, searchPlaceholder = "Search statuses..." }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const containerRef = useRef(null);
@@ -1415,7 +1427,7 @@ function SearchableFilterSelect({ label, value, onChange, options, placeholder, 
     <div className="relative" ref={containerRef}>
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">{label}</span>
       <button type="button" aria-expanded={open} onClick={() => { setOpen((current) => !current); setSearch(""); }} className="flex w-full items-center justify-between rounded-lg border border-navy/15 bg-white px-3 py-2 text-left text-sm focus:border-amber focus:outline-none">
-        <span className={selected ? "truncate text-navy" : "truncate text-muted"}>{selected?.label || placeholder}</span>
+        <span className={"flex min-w-0 items-center gap-2 " + (selected ? "text-navy" : "text-muted")}><span className="truncate">{selected ? selected.label + (selected.count !== undefined ? " (" + selected.count + ")" : "") : placeholder}</span>{!selected && placeholderCount !== undefined && <span className="shrink-0 rounded-full bg-amber-soft px-2 py-0.5 text-xs font-bold text-navy">{Number(placeholderCount || 0)}</span>}</span>
         <ChevronDown size={16} className="ml-2 shrink-0 text-muted" />
       </button>
       {open && <div className="absolute z-30 mt-1 max-h-72 w-full overflow-hidden rounded-xl border border-navy/15 bg-white shadow-xl">
@@ -1426,8 +1438,8 @@ function SearchableFilterSelect({ label, value, onChange, options, placeholder, 
           </div>
         </div>
         <div className="max-h-56 overflow-y-auto p-1">
-          <button type="button" onClick={() => { onChange(""); setOpen(false); }} className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-amber-soft ${!value ? "bg-amber-soft font-semibold text-navy" : "text-navy"}`}>{placeholder}</button>
-          {visibleOptions.map((option) => <button key={option.value} type="button" onClick={() => { onChange(option.value); setOpen(false); }} className={`w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-amber-soft ${value === option.value ? "bg-amber-soft font-semibold text-navy" : "text-navy"}`}>{option.label}</button>)}
+          <button type="button" onClick={() => { onChange(""); setOpen(false); }} className={"flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm hover:bg-amber-soft " + (!value ? "bg-amber-soft font-semibold text-navy" : "text-navy")}><span>{placeholder}</span>{placeholderCount !== undefined && <span className="rounded-full bg-amber-soft px-2 py-0.5 text-xs font-bold text-navy">{Number(placeholderCount || 0)}</span>}</button>
+          {visibleOptions.map((option) => <button key={option.value} type="button" onClick={() => { onChange(option.value); setOpen(false); }} className={"flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm hover:bg-amber-soft " + (value === option.value ? "bg-amber-soft font-semibold text-navy" : "text-navy")}><span>{option.label}</span>{option.count !== undefined && <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-navy">{Number(option.count || 0)}</span>}</button>)}
           {visibleOptions.length === 0 && <p className="px-3 py-3 text-sm text-muted">No matching statuses.</p>}
         </div>
       </div>}
