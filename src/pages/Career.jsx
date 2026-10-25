@@ -29,6 +29,7 @@ const ROLE =[
   {value:"Sales Executive",label:"Sales Executive"},
   {value:"Sr. Sales Executive",label:"Sr. Sales Executive"},
   {value:"Sales Manager",label:"Sales Manager"},
+  {value:"Branch Manager",label:"Branch Manager"},
   {value:"Technical Engineer",label:"Technical Engineer"},
   
   
