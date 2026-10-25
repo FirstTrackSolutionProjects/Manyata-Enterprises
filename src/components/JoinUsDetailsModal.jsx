@@ -18,7 +18,7 @@ const LOA_FIELDS = [
   ["allowance", "Monthly Allowance (optional)"], ["annualCtc", "Annual CTC", true],
   ["probationPeriod", "Probation Period"], ["noticePeriod", "Notice Period"],
 ];
-const SALES_APPOINTMENT_ROLES = ["Sales Executive", "Sr. Sales Executive", "Sales Manager", "Branch Head"];
+const SALES_APPOINTMENT_ROLES = ["Sales Executive", "Sr. Sales Executive", "Sales Manager", "Branch Head", "Telle Caller", "Sales Co-ordinator"];
 const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"], ["educationCertificate", "Education Certificate / Marksheet", "Education Certificate / Marksheet"], ["experienceDocument", "Experience Certificate / Work Proof", "Experience Certificate / Work Proof"]];
 
 /* ── UI-only: how the fields are grouped on screen ─── */
