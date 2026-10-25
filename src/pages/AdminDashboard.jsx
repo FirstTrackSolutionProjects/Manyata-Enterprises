@@ -490,10 +490,16 @@ function CommissionPayoutsTab({ canRecordPayment, canManagePayouts, recordedBy, 
   const [manualPartnersLoading, setManualPartnersLoading] = useState(false);
   const [manualPartnerDropdownOpen, setManualPartnerDropdownOpen] = useState(false);
   const [manualPartnerSearch, setManualPartnerSearch] = useState("");
+  const [manualApplicationLoading, setManualApplicationLoading] = useState(false);
+  const manualApplicationLookupRef = useRef(0);
+  const manualInitialPartnerRef = useRef("");
   const [manualForm, setManualForm] = useState({ partnerId: "", systemType: "on_grid", amount: "", applicationNo: "", customerName: "", note: "" });
   const [followupForm, setFollowupForm] = useState({ followUpAt: "", note: "" });
   const [paymentForm, setPaymentForm] = useState({ amount: "", paymentMethod: "upi", upiIdOrNumber: "", paymentReference: "", paidAt: "", proof: null });
   const openManualEditor = async (item = null) => {
+    manualApplicationLookupRef.current += 1;
+    setManualApplicationLoading(false);
+    manualInitialPartnerRef.current = item?.recipient_partner_id ? String(item.recipient_partner_id) : "";
     setManualPartnerDropdownOpen(false);
     setManualPartnerSearch("");
     setManualEditItem(item);
@@ -520,8 +526,65 @@ function CommissionPayoutsTab({ canRecordPayment, canManagePayouts, recordedBy, 
       finally { setManualPartnersLoading(false); }
     }
   };
+  const selectManualPartner = async (partner, forceLookup = false) => {
+    setManualPartnerDropdownOpen(false);
+    setManualPartnerSearch("");
+    const partnerId = String(partner.id);
+    if (!forceLookup && partnerId === String(manualForm.partnerId)) return;
+
+    const lookupId = ++manualApplicationLookupRef.current;
+    setManualApplicationLoading(true);
+    setError("");
+    setNotice("");
+    setManualForm((current) => ({ ...current, partnerId, systemType: "on_grid", applicationNo: "", customerName: "" }));
+    try {
+      const partnerNames = [...new Set([partner.company_name, partner.contact_name]
+        .map((name) => String(name || "").trim())
+        .filter(Boolean))];
+      const responses = await Promise.all(partnerNames.map((name) =>
+        listApplications({ partner: name, page: "1", limit: "100", sortBy: "created_at", sortOrder: "desc" })
+      ));
+      if (lookupId !== manualApplicationLookupRef.current) return;
+      const exactNames = new Set(partnerNames.map((name) => name.toLocaleLowerCase()));
+      const matches = [...new Map(responses.flatMap((response) => response.data?.items || [])
+        .filter((application) => [application.super_vendor_name, application.vendor_name, application.sub_vendor_name, application.sales_executive_name]
+          .some((name) => exactNames.has(String(name || "").trim().toLocaleLowerCase())))
+        .map((application) => [application.id, application])).values()]
+        .sort((left, right) => new Date(right.created_at).getTime() - new Date(left.created_at).getTime());
+      const application = matches[0];
+      if (application) {
+        const rawSystemType = String(application.system_type || "").toLowerCase();
+        setManualForm((current) => ({
+          ...current,
+          partnerId,
+          applicationNo: application.application_no || "",
+          customerName: application.full_name || "",
+          systemType: rawSystemType.includes("hybrid") ? "hybrid" : "on_grid",
+        }));
+        setNotice(`Customer, application number and system type filled from ${application.application_no || "the latest linked application"}.`);
+      } else {
+        setNotice("No linked application found for this partner. You can enter the optional fields manually.");
+      }
+    } catch (err) {
+      if (lookupId === manualApplicationLookupRef.current) {
+        setError(err.message || "Could not look up this partner's applications. You can still enter the optional fields manually.");
+      }
+    } finally {
+      if (lookupId === manualApplicationLookupRef.current) setManualApplicationLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (!manualEditorOpen || !manualForm.partnerId) return;
+    if (manualInitialPartnerRef.current === String(manualForm.partnerId)) {
+      return;
+    }
+    manualInitialPartnerRef.current = "";
+    const partner = manualPartners.find((item) => String(item.id) === String(manualForm.partnerId));
+    if (partner) selectManualPartner(partner, true);
+  }, [manualForm.partnerId, manualEditorOpen, manualPartners]);
   const saveManualPayout = async (event) => {
     event.preventDefault();
+    if (manualApplicationLoading) { setError("Wait for the selected partner's application details to load."); return; }
     if (!manualForm.partnerId) { setError("Choose a partner first."); return; }
     const payload = { ...manualForm, partnerId: Number(manualForm.partnerId) };
     setSavingId(manualEditItem?.id || "manual"); setError(""); setNotice("");
