@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
   LogOut,
+  UserRoundX,
   User as UserIcon,
   Menu,
   X,
@@ -35,6 +36,7 @@ const OWNER_NAV = [
   { id: "salary-management", label: "Salary Management", icon: Banknote },
   { id: "leave-requests", label: "Leave Requests", icon: CalendarDays },
   { id: "exit-requests", label: "Resignation Requests", icon: LogOut },
+  { id: "employee-terminations", label: "Employee Terminations", icon: UserRoundX },
   { id: "emp-attendance", label: "Manage Attendance", icon: Clock3 },
   { id: "partners", label: "Partners", icon: Handshake },
   { id: "commission-payouts", label: "Commission Payouts", icon: Banknote },

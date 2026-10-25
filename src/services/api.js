@@ -404,6 +404,11 @@ export const getEmployeeExitRequestInbox = (params = {}) => {
   return apiFetch(`/employee-exit-requests/inbox?${query.toString()}`);
 };
 export const decideEmployeeExitRequest = (id, payload) => apiFetch(`/employee-exit-requests/${id}/decision`, { method: "PATCH", body: JSON.stringify(payload) });
+export const getEmployeeTerminations = (params = {}) => {
+  const query = new URLSearchParams(params);
+  return apiFetch(`/employee-terminations?${query.toString()}`);
+};
+export const terminateEmployee = (payload) => apiFetch("/employee-terminations", { method: "POST", body: JSON.stringify(payload) });
 export const getMyAttendance = (month) => apiFetch(`/attendance/my${month ? `?month=${encodeURIComponent(month)}` : ""}`);
 export const attendancePhotoHref = (id, action) => `${API_URL}/attendance/photo/${encodeURIComponent(id)}/${encodeURIComponent(action)}`;
 export const clockInToAttendance = (payload = {}) => apiFetch("/attendance/clock-in", { method: "POST", body: JSON.stringify(payload) });

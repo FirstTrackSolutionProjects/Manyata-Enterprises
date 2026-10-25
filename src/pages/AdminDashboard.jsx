@@ -38,6 +38,7 @@ import SubmissionCreateModal from "../components/SubmissionCreateModal";
 import EmployeeProfile from "../components/EmployeeProfile";
 import LeaveRequests from "../components/LeaveRequests";
 import EmployeeExitRequests from "../components/EmployeeExitRequests";
+import EmployeeTerminations from "../components/EmployeeTerminations";
 import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel, getApplicationUpdateStatusOptions, normalizeApplicationStatusPermissionValues } from "../constants/applicationStatuses";
 import { INSTALLATION_STATUSES } from "../constants/installationStatuses";
 import { useAuth } from "../contexts/AuthContext";
@@ -144,6 +145,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "commission-payouts" && (user?.role === "owner" || isHr) && <CommissionPayoutsTab canRecordPayment={user?.role === "owner" || isHr} canManagePayouts={user?.role === "owner"} recordedBy={user?.name} recorderRole={user?.role === "owner" ? "Owner" : "HR"} />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
       {hasAccess && tab === "exit-requests" && ["owner", "employee"].includes(user?.role) && <EmployeeExitRequests />}
+      {hasAccess && tab === "employee-terminations" && (user?.role === "owner" || isHr) && <EmployeeTerminations />}
       {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner"} />}
       {hasAccess && tab === "emp-attendance" && (user?.role === "owner" || isHr) && <AttendanceDashboard isManager />}
       {hasAccess && tab === "partners" && <PartnersTab />}
