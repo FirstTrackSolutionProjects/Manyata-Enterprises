@@ -180,7 +180,8 @@ export default function JoinUsDetail() {
             <button onClick={() => setEditing(true)} className={HERO_NAVY}><span className={BUBBLE_ON_NAVY}><Pencil size={15} /></span>Edit Details</button>
             <button onClick={() => downloadSubmissionPdf("join-us", submission.id)} className={HERO_PRIMARY}><span className={BUBBLE_ON_AMBER}><Download size={15} /></span>Download Details PDF</button>
             <button onClick={handleDownloadLOA} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}><FileText size={15} /></span>Download LOA</button>
-            <button onClick={handleSendLOAEmail} disabled={sendingLOA || !submission.email} title={!submission.email ? "Add the employee's email in Edit Details first." : "Send the LOA from hr@themanyata.com to the employee."} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{sendingLOA ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}</span>{sendingLOA ? "Sending to Employee…" : "Send LOA to Employee"}</button>
+            <button onClick={handleSendLOAEmail} disabled={sendingLOA || !submission.email} title={!submission.email ? "Add the employee's email in Edit Details first." : `Send the offer letter to ${fullName || submission.email} (${submission.email}) from hr@themanyata.com.`} className={HERO_OUTLINE}><span className={BUBBLE_ON_WHITE}>{sendingLOA ? <Loader2 size={15} className="animate-spin" /> : <Mail size={15} />}</span>{sendingLOA ? "Sending to Employee…" : "Send Offer Letter"}</button>
+            {submission.email && <span className="self-center text-xs text-muted">To: <strong className="text-navy">{fullName || "Employee"}</strong> · {submission.email}</span>}
           </div>
           {loaMailNotice && <p role="status" className="mt-3 w-full rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">{loaMailNotice}</p>}
         </div>

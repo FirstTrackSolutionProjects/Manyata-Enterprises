@@ -18,6 +18,7 @@ const LOA_FIELDS = [
   ["allowance", "Monthly Allowance (optional)"], ["annualCtc", "Annual CTC", true],
   ["probationPeriod", "Probation Period"], ["noticePeriod", "Notice Period"],
 ];
+const SALES_APPOINTMENT_ROLES = ["Sales Executive", "Sr. Sales Executive", "Sales Manager", "Branch Head"];
 const DOCUMENTS = [["aadhaarFront", "Aadhaar Front", "Aadhaar Front"], ["aadhaarBack", "Aadhaar Back", "Aadhaar Back"], ["panFront", "PAN Front", "PAN Front"], ["panBack", "PAN Back", "PAN Back"], ["photo", "Photo", "Photo"], ["chequePassbook", "Cheque / Passbook", "Cheque / Passbook"], ["cv", "Resume / CV", "Resume / CV"], ["educationCertificate", "Education Certificate / Marksheet", "Education Certificate / Marksheet"], ["experienceDocument", "Experience Certificate / Work Proof", "Experience Certificate / Work Proof"]];
 
 /* ── UI-only: how the fields are grouped on screen ─── */
@@ -111,7 +112,7 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
         </FormSection>)}
 
         {!employeeProfile && <FormSection icon={Briefcase} title="Appointment / LOA Details" subtitle="Fields marked * are needed to generate the appointment letter. You can save other edits without filling them.">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{LOA_FIELDS.map(([key, label, required]) => <label key={key} className="text-xs font-semibold text-navy/70">{label}{required && <span className="ml-1 text-red-600">*</span>}<input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className={INPUT} /></label>)}</div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">{LOA_FIELDS.map(([key, label, required]) => <label key={key} className="text-xs font-semibold text-navy/70">{label}{required && <span className="ml-1 text-red-600">*</span>}{key === "appointmentDesignation" ? <select value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className={INPUT}><option value="">Select appointment designation</option>{form[key] && !SALES_APPOINTMENT_ROLES.includes(form[key]) && <option value={form[key]}>{form[key]} (current)</option>}{SALES_APPOINTMENT_ROLES.map((role) => <option key={role} value={role}>{role}</option>}</select> : <input value={form[key]} onChange={(e) => setForm({ ...form, [key]: e.target.value })} className={INPUT} />}</label>)}</div>
         </FormSection>}
 
         <FormSection icon={Paperclip} title="Documents" subtitle="Choose a file to replace">
