@@ -129,6 +129,7 @@ export const getSalaryAttendancePreview = (employeeId, params = {}) => {
   return apiFetch(`/salaries/employees/${employeeId}/attendance-preview${query ? `?${query}` : ""}`);
 };
 export const getEmployeeSalaryAdvances = (employeeId) => apiFetch(`/salaries/employees/${employeeId}/advances`);
+export const getEmployeeSalaryHistory = (employeeId) => apiFetch(`/salaries/employees/${employeeId}/history`);
 export const createEmployeeSalaryAdvance = (employeeId, payload) =>
   apiFetch(`/salaries/employees/${employeeId}/advances`, { method: "POST", body: JSON.stringify(payload) });
 export const getMySalarySlips = () => apiFetch("/salaries/my");
