@@ -396,6 +396,14 @@ export const getLeaveInbox = (params = {}) => {
   return apiFetch(`/leave-requests/inbox?${query.toString()}`);
 };
 export const decideLeaveRequest = (id, payload) => apiFetch(`/leave-requests/${id}/decision`, { method: "PATCH", body: JSON.stringify(payload) });
+export const getMyEmployeeExitRequests = () => apiFetch("/employee-exit-requests/my");
+export const createEmployeeExitRequest = (payload) => apiFetch("/employee-exit-requests", { method: "POST", body: JSON.stringify(payload) });
+export const cancelEmployeeExitRequest = (id) => apiFetch(`/employee-exit-requests/${id}/cancel`, { method: "PATCH", body: JSON.stringify({}) });
+export const getEmployeeExitRequestInbox = (params = {}) => {
+  const query = new URLSearchParams(params);
+  return apiFetch(`/employee-exit-requests/inbox?${query.toString()}`);
+};
+export const decideEmployeeExitRequest = (id, payload) => apiFetch(`/employee-exit-requests/${id}/decision`, { method: "PATCH", body: JSON.stringify(payload) });
 export const getMyAttendance = (month) => apiFetch(`/attendance/my${month ? `?month=${encodeURIComponent(month)}` : ""}`);
 export const attendancePhotoHref = (id, action) => `${API_URL}/attendance/photo/${encodeURIComponent(id)}/${encodeURIComponent(action)}`;
 export const clockInToAttendance = (payload = {}) => apiFetch("/attendance/clock-in", { method: "POST", body: JSON.stringify(payload) });

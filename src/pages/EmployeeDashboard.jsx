@@ -19,6 +19,7 @@ import { listApplications, downloadApplicationPdf, updateMyEmployeeProfile, uplo
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
 import LeaveRequests from "../components/LeaveRequests";
+import EmployeeExitRequests from "../components/EmployeeExitRequests";
 import CameraFileInput from "../components/CameraFileInput";
 
 const EMPTY_FILTERS = {
@@ -117,6 +118,9 @@ export default function EmployeeDashboard() {
 
   if (tab === "leave-requests") {
     return <DashboardLayout title="Leave Requests" subtitle="Submit a request and follow its review status." activeSection={tab} onSectionChange={setTab}><LeaveRequests /></DashboardLayout>;
+  }
+  if (tab === "exit-requests") {
+    return <DashboardLayout title="Resignation Requests" subtitle="Submit your proposed last working day and follow HR/Admin’s decision." activeSection={tab} onSectionChange={setTab}><EmployeeExitRequests /></DashboardLayout>;
   }
 
   return (

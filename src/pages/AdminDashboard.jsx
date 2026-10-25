@@ -37,6 +37,7 @@ import PartnerCreateModal from "../components/PartnerCreateModal";
 import SubmissionCreateModal from "../components/SubmissionCreateModal";
 import EmployeeProfile from "../components/EmployeeProfile";
 import LeaveRequests from "../components/LeaveRequests";
+import EmployeeExitRequests from "../components/EmployeeExitRequests";
 import { APPLICATION_STATUSES, APPLICATION_UPDATE_STATUSES, applicationStatusLabel, getApplicationUpdateStatusOptions, normalizeApplicationStatusPermissionValues } from "../constants/applicationStatuses";
 import { INSTALLATION_STATUSES } from "../constants/installationStatuses";
 import { useAuth } from "../contexts/AuthContext";
@@ -115,7 +116,7 @@ export default function AdminDashboard() {
     || (tab === "employees" && isHr)
     || ((requiredModule === "applications" || requiredModule === "installations")
       ? hasActionPermission(user, requiredModule, "view")
-      : ((tab === "salary-slips" || tab === "leave-requests" || tab === "attendance") && user?.role === "employee")
+      : ((tab === "salary-slips" || tab === "leave-requests" || tab === "exit-requests" || tab === "attendance") && user?.role === "employee")
         || (tab === "salary-management" && (user?.role === "owner" || isHr))
         || permissions.includes(requiredModule));
 
@@ -142,6 +143,7 @@ export default function AdminDashboard() {
       {hasAccess && tab === "salary-history" && (user?.role === "owner" || isHr) && <SalaryHistoryPage onBack={() => handleSectionChange("salary-management")} />}
       {hasAccess && tab === "commission-payouts" && (user?.role === "owner" || isHr) && <CommissionPayoutsTab canRecordPayment={user?.role === "owner" || isHr} canManagePayouts={user?.role === "owner"} recordedBy={user?.name} recorderRole={user?.role === "owner" ? "Owner" : "HR"} />}
       {hasAccess && tab === "leave-requests" && ["owner", "employee"].includes(user?.role) && <LeaveRequests />}
+      {hasAccess && tab === "exit-requests" && ["owner", "employee"].includes(user?.role) && <EmployeeExitRequests />}
       {hasAccess && tab === "attendance" && ["owner", "employee"].includes(user?.role) && <AttendanceDashboard isManager={user?.role === "owner"} />}
       {hasAccess && tab === "emp-attendance" && (user?.role === "owner" || isHr) && <AttendanceDashboard isManager />}
       {hasAccess && tab === "partners" && <PartnersTab />}
