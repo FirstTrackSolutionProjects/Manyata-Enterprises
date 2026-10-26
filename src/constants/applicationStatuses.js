@@ -50,7 +50,7 @@ export const APPLICATION_STATUSES = [
   { value: "solar_installation_completion_certificate_generated", label: "Solar Installation Completion Certificate Generated" },
   { value: "gps_photo_generated", label: "GPS Photo Generated" },
   { value: "docx_forwarded_to_bank_loan_phase_2", label: "Forward the DOCX to Bank Loan – Phase 2" },
-  { value: "je_verification_pending", label: "JE Verification Pending" },
+  { value: "je_verification_pending", label: "JE Verification - Pending" },
   { value: "je_verification_approved", label: "JE Signature - Approved" },
   { value: "pending_for_loan_disbursement_phase_2", label: "Pending for Loan Disbursed - Phase 2" },
   { value: "loan_disbursed_phase_2", label: "Loan Disbursed – Phase 2" },
