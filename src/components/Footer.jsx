@@ -11,6 +11,21 @@ const QUICK_LINKS = [
   { label: "Contact", href: "/contact" },
 ];
 
+// Add a new branch or phone number here — the footer updates automatically.
+const BRANCHES = [
+  {
+    name: "Main Office",
+    address: "College Square, Soro, Balasore, Odisha - 756045",
+    phones: ["8114721300", "7008581300"],
+  },
+  {
+    name: "Sundargarh Branch",
+    address: "At: Bisra, Rourkela, Sundargarh, Odisha - 770036",
+    phones: ["8114721300"],
+  },
+  
+];
+
 export default function Footer() {
   return (
     <footer className="bg-navy text-white/80">
@@ -69,31 +84,43 @@ export default function Footer() {
             <h4 className="text-sm font-bold uppercase tracking-wide text-white">
               Contact
             </h4>
-            <ul className="mt-4 space-y-3 text-sm text-white/65">
-              <li className="flex items-center gap-2.5">
-                <Phone size={16} className="shrink-0 text-amber" />
-                <a href="tel:+918114721300" className="hover:text-amber">
-                  8114721300
-                </a>
-                <span className="text-white/30">/</span>
-                <a href="tel:+917008581300" className="hover:text-amber">
-                  7008581300
-                </a>
-              </li>
+            <ul className="mt-4 space-y-5 text-sm text-white/65">
+              {BRANCHES.map((branch) => (
+                <li key={branch.name}>
+                  <p className="text-xs font-bold uppercase tracking-wide text-amber">
+                    {branch.name}
+                  </p>
+
+                  <p className="mt-2 flex items-start gap-2.5">
+                    <MapPin size={16} className="mt-0.5 shrink-0 text-amber" />
+                    <span>{branch.address}</span>
+                  </p>
+
+                  <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <Phone size={16} className="shrink-0 text-amber" />
+                    {branch.phones.map((number, i) => (
+                      <span key={number} className="flex items-center gap-2">
+                        {i > 0 && <span className="text-white/30">/</span>}
+                        <a
+                          href={`tel:+91${number}`}
+                          className="transition-colors hover:text-amber"
+                        >
+                          {number}
+                        </a>
+                      </span>
+                    ))}
+                  </p>
+                </li>
+              ))}
+
               <li className="flex items-center gap-2.5">
                 <Mail size={16} className="shrink-0 text-amber" />
-                
-                 <a href="mailto:support@themanyata.com"
+                <a
+                  href="mailto:support@themanyata.com"
                   className="hover:text-amber"
                 >
                   support@themanyata.com
                 </a>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <MapPin size={16} className="shrink-0 text-amber" />
-                 College Square, Soro, Balasore, Odisha - 
-756045
-
               </li>
             </ul>
           </div>
@@ -112,9 +139,7 @@ export default function Footer() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/45 sm:flex-row">
           <p>© {new Date().getFullYear()} Manyata Enterprises · Developed by First Track Solution Technologies</p>
-          <p>Office Address: College Square, Soro, Balasore, Odisha - 
-756045
-</p>
+          <p>Office Address: College Square, Soro, Balasore, Odisha - 756045</p>
         </div>
       </div>
     </footer>
