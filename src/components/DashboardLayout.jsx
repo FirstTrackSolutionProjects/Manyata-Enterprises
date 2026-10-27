@@ -78,7 +78,7 @@ export default function DashboardLayout({
       : OWNER_NAV.filter((item) => item.id !== "overview" && item.id !== "emp-attendance" && item.id !== "salary-management" && (item.id === "applications" || item.id === "installations"
         ? hasActionPermission(user, item.id, "view")
         : (item.id === "employees" && isHr) || (user?.permissions || ["applications"]).includes(item.id)));
-  const NAV_ITEMS = user?.role === "employee" ? [...baseNavItems.map((item) => {
+  const employeeNavItems = user?.role === "employee" ? [...baseNavItems.map((item) => {
     if (!item.children) return item;
     if (isHr) return item;
     const module = item.id;
@@ -86,6 +86,9 @@ export default function DashboardLayout({
     if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };
     return { ...item, children: item.children.filter((child) => allowed.includes(child.id.endsWith("odisha") ? "odisha" : "west_bengal")) };
   }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, { id: "exit-requests", label: "Resignation Requests", icon: LogOut }, { id: "attendance", label: "Attendance", icon: Clock3 }, ...(isHr ? [{ id: "emp-attendance", label: "Manage Attendance", icon: Clock3 }, { id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
+  const NAV_ITEMS = user?.role === "employee"
+    ? employeeNavItems.filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)
+    : baseNavItems;
   // Backend exposes both user_id and userId — support both here.
   const displayUserId = user?.userId || user?.user_id || "";
   const isEmployeeDashboard = user?.role === "employee";
