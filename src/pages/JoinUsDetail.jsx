@@ -119,7 +119,7 @@ export default function JoinUsDetail() {
     }
     setError("");
     try {
-      await downloadJoinUsLOA(id);
+      await downloadJoinUsLOA(id, submission);
     } catch (err) {
       setError(err.message || "Could not download the appointment letter.");
     }

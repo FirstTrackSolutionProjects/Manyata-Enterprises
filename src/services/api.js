@@ -465,7 +465,7 @@ export const updateJoinUs = (id, payload) => apiFetch(`/admin/join-us/${id}`, {
   body: JSON.stringify(payload),
 });
 export const deleteJoinUs = (id) => apiFetch(`/admin/join-us/${id}`, { method: "DELETE" });
-export const downloadJoinUsLOA = async (id) => {
+export const downloadJoinUsLOA = async (id, submission = {}) => {
   const response = await fetch(`${API_URL}/admin/join-us/${id}/loa.pdf`, { credentials: "include" });
   if (!response.ok) {
     let data = null;
@@ -474,7 +474,16 @@ export const downloadJoinUsLOA = async (id) => {
   }
   const blob = await response.blob();
   const disposition = response.headers.get("content-disposition") || "";
-  const filename = disposition.match(/filename="?([^";]+)"?/i)?.[1] || `loa-join-us-${id}.pdf`;
+  const safePart = (value) => String(value || "")
+    .normalize("NFKD")
+    .replace(/[^a-z0-9]+/gi, "_")
+    .replace(/^_+|_+$/g, "");
+  const employeeName = safePart([submission.first_name, submission.last_name].filter(Boolean).join(" "));
+  const designation = safePart(submission.appointment_designation);
+  const date = new Date().toISOString().slice(0, 10);
+  const filename = employeeName && designation
+    ? `LOA_${employeeName}_${designation}_${date}.pdf`
+    : disposition.match(/filename="?([^";]+)"?/i)?.[1] || `loa-join-us-${id}.pdf`;
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
