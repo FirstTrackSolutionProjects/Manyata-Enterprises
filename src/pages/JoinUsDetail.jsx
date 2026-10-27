@@ -165,7 +165,10 @@ export default function JoinUsDetail() {
 
       <div className="px-5 pb-6 sm:px-6">
         <div className="flex flex-wrap items-start gap-4 sm:gap-6">
-          <div className="relative z-10 -mt-14 grid h-28 w-28 shrink-0 place-items-center rounded-full bg-amber-soft text-3xl font-extrabold text-navy shadow-lg ring-4 ring-white sm:-mt-16 sm:h-32 sm:w-32">{initials(fullName)}</div>
+          <div className="relative z-10 -mt-14 grid h-28 w-28 shrink-0 place-items-center overflow-hidden rounded-full bg-amber-soft text-3xl font-extrabold text-navy shadow-lg ring-4 ring-white sm:-mt-16 sm:h-32 sm:w-32">
+            {initials(fullName)}
+            {submission.documentUrls?.Photo && <img src={submission.documentUrls.Photo} alt={`${fullName || "Employee"} profile`} loading="lazy" onError={(event) => event.currentTarget.remove()} className="absolute inset-0 h-full w-full rounded-full object-cover" />}
+          </div>
 
           <div className="min-w-[260px] flex-1 pt-1 sm:pt-3">
             <h2 className="break-words text-2xl font-extrabold tracking-tight text-navy sm:text-3xl">{fullName}</h2>
