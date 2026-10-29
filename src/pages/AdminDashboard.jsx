@@ -1207,7 +1207,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         : []
     : null;
   const roleScopedCards = user?.role === "employee" && !isHrEmployee(user)
-    ? APPLICATION_STATUSES.filter((status) => status.value !== "customer_side_bank_forward_pending" && status.value !== "vendor_side_quotation_agreement_pending" && assignedApplicationStatuses.includes(status.value)).map((status) => ({
+    ? APPLICATION_STATUSES.filter((status) => status.value !== "customer_side_bank_forward_pending" && assignedApplicationStatuses.includes(status.value)).map((status) => ({
       label: status.value === "pending"
         ? "New Customer Application"
         : status.value === "consumer_login_submitted_to_govt_portal"
