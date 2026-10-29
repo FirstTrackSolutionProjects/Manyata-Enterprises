@@ -1193,7 +1193,6 @@ function ApplicationsTab({ initialLocation = "" }) {
     customer_side_bank_forward: ["customer_side_bank_forward", "vendor_side_bank_forward"],
     customer_side_bank_forward_pending: ["customer_side_bank_forward_pending", "vendor_side_pending_for_bank_forward"],
     consumer_login_submitted_to_govt_portal: ["consumer_login_submitted_to_govt_portal", "submitted_to_govt"],
-    bank_reject: ["bank_reject", "rejected"],
   };
   const applicationStatusOptionsWithCounts = visibleApplicationFilterStatusOptions.map((status) => ({
     ...status,
@@ -1231,7 +1230,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
           ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Customer Side - Documents Issue", Number(applicationStatusCounts.customer_side_documents_issue || 0)],
-          ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0) + Number(applicationStatusCounts.rejected || 0)],
+          ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
         ]).map((card) => {
           const [label, value, key] = Array.isArray(card) ? card : [card.label, card.value, card.label];
