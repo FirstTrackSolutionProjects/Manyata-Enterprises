@@ -1218,6 +1218,8 @@ function ApplicationsTab({ initialLocation = "" }) {
         : Number(applicationStatusCounts[status.value] || 0),
     }))
     : null;
+  const showWestBengalStatusCards = ["kolkata", "west_bengal"].includes(String(initialLocation || "").toLowerCase())
+    && (user?.role === "owner" || isHrEmployee(user));
 
   return (
     <div className="space-y-4">
@@ -1227,6 +1229,13 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["New Customer Application", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
           ["Submitted to Government Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
+          ...(showWestBengalStatusCards ? [
+            ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
+            ["Electricity Bill - Name Mismatch", Number(applicationStatusCounts.electricity_bill_name_mismatch || 0)],
+            ["Electricity Bill - Ownership Transfer", Number(applicationStatusCounts.electricity_bill_mismatch_ownership_transfer || 0) + Number(applicationStatusCounts.electricity_bill_ownership_transfer_customer_side_on_process || 0) + Number(applicationStatusCounts.electricity_bill_ownership_transfer_completed_successfully || 0)],
+            ["Customer Not Interested", Number(applicationStatusCounts.customer_not_interested || 0)],
+            ["Rejected", Number(applicationStatusCounts.rejected || 0)],
+          ] : []),
           ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Customer Side - Documents Issue", Number(applicationStatusCounts.customer_side_documents_issue || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0)],
