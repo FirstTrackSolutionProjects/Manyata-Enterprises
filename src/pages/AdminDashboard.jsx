@@ -1207,7 +1207,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         : []
     : null;
   const roleScopedCards = user?.role === "employee" && !isHrEmployee(user)
-    ? APPLICATION_STATUSES.filter((status) => status.value !== "customer_side_bank_forward_pending" && assignedApplicationStatuses.includes(status.value)).map((status) => ({
+    ? APPLICATION_STATUSES.filter((status) => status.value !== "customer_side_bank_forward_pending" && status.value !== "vendor_side_quotation_agreement_pending" && assignedApplicationStatuses.includes(status.value)).map((status) => ({
       label: status.value === "pending"
         ? "New Customer Application"
         : status.value === "consumer_login_submitted_to_govt_portal"
@@ -1227,7 +1227,6 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["New Customer Application", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
           ["Submitted to Government Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
-          ["Vendor Side - Quotation & Agreement Pending", Number(applicationStatusCounts.vendor_side_quotation_agreement_pending || 0)],
           ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Customer Side - Documents Issue", Number(applicationStatusCounts.customer_side_documents_issue || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0)],
