@@ -67,6 +67,7 @@ export const APPLICATION_STATUSES = [
   { value: "approved", label: "Approved" },
   { value: "installed", label: "Installation Completed" },
   { value: "rejected", label: "Rejected" },
+  { value: "customer_not_interested", label: "Customer Not Interested" },
   { value: "office_side_issue", label: "Office Side Issue" },
   { value: "draft", label: "Draft" },
 ];
@@ -92,6 +93,7 @@ export const APPLICATION_UPDATE_STATUSES = [
   "after_calling_some_times",
   "bank_loan_coming_soon",
   "rejected",
+  "customer_not_interested",
   "other",
 ].map((value) => APPLICATION_STATUSES.find((status) => status.value === value));
 
