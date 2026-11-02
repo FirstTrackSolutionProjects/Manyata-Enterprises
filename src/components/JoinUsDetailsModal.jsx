@@ -66,6 +66,7 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
           state: form.state,
           pincode: form.postalCode,
           profileDetails: { ...form, files: { ...(submission.profileDetails?.files || {}), ...uploaded } },
+          ...(uploaded.photo ? { profilePhoto: uploaded.photo } : {}),
         });
       } else {
         await updateJoinUs(submission.id, { ...form, files: uploaded });
@@ -116,10 +117,16 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
         </FormSection>}
 
         <FormSection icon={Paperclip} title="Documents" subtitle="Choose a file to replace">
-          <div className="grid gap-3 sm:grid-cols-2">{DOCUMENTS.map(([key, label, urlKey]) => <div key={key} className="rounded-xl border border-navy/10 bg-offwhite p-3">
-            {!employeeProfile && submission.documentUrls?.[urlKey] && <a href={fileUrl(submission.documentUrls[urlKey])} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy transition hover:bg-amber/30">View current {label}</a>}
-            <CameraFileInput label={label} name={key} onFile={(file) => setFiles((current) => ({ ...current, [key]: file }))} />
-          </div>)}</div>
+          <div className="grid gap-3 sm:grid-cols-2">{DOCUMENTS.map(([key, label, urlKey]) => {
+            const currentPhoto = employeeProfile && key === "photo"
+              ? submission.profilePhoto
+              : submission.documentUrls?.[urlKey];
+            const currentPhotoUrl = currentPhoto ? fileUrl(currentPhoto) : "";
+            return <div key={key} className="rounded-xl border border-navy/10 bg-offwhite p-3">
+            {currentPhotoUrl && key === "photo" && <img src={currentPhotoUrl} alt="Current employee profile" className="mb-2 h-24 w-24 rounded-xl border border-navy/10 object-cover" />}
+            {!employeeProfile && currentPhoto && <a href={currentPhotoUrl} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy transition hover:bg-amber/30">View current {label}</a>}
+            <CameraFileInput label={employeeProfile && key === "photo" ? "Replace profile photo" : label} name={key} accept={key === "photo" ? "image/jpeg,image/png,image/webp" : undefined} onFile={(file) => setFiles((current) => ({ ...current, [key]: file }))} />
+          </div>})}</div>
         </FormSection>
       </div>
 
