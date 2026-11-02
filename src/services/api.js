@@ -47,6 +47,7 @@ export const login = (email, password) =>
 
 export const logout = () => apiFetch("/auth/logout", { method: "POST" });
 export const getMe = () => apiFetch("/auth/me");
+export const getTodaysEmployeeBirthdays = () => apiFetch("/auth/employees/birthdays/today");
 
 export const requestPasswordReset = (email) =>
   apiFetch("/auth/forgot-password", {

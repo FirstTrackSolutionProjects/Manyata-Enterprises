@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -21,11 +21,13 @@ import {
   CalendarDays,
   Clock3,
   Trash2,
+  PartyPopper,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
 import { hasActionPermission } from "../utils/permissions";
 import { isHrEmployee, isTejashHrEmployee } from "../utils/employeeRoles";
+import { getTodaysEmployeeBirthdays } from "../services/api";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
@@ -58,6 +60,24 @@ export default function DashboardLayout({
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [todaysBirthdays, setTodaysBirthdays] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    if (!user || !["owner", "employee"].includes(user.role)) {
+      setTodaysBirthdays([]);
+      return () => { active = false; };
+    }
+    getTodaysEmployeeBirthdays()
+      .then((response) => {
+        if (active) setTodaysBirthdays(response?.data?.birthdays || []);
+      })
+      .catch((error) => {
+        console.error("Could not load today's birthday greetings:", error);
+        if (active) setTodaysBirthdays([]);
+      });
+    return () => { active = false; };
+  }, [user?.role]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState(() => ({
     applications: user?.role === "employee",
@@ -341,6 +361,21 @@ export default function DashboardLayout({
 
         <main className="flex-1">
           <div className="dashboard-page-content mx-auto max-w-[1400px] px-5 py-6 lg:px-8 lg:py-8">
+            {todaysBirthdays.length > 0 && (
+              <section className="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-pink-50 p-5 shadow-sm sm:p-6" aria-live="polite">
+                <div className="flex items-start gap-4">
+                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-400 text-navy shadow-sm">
+                    <PartyPopper size={24} />
+                  </span>
+                  <div>
+                    <h2 className="text-lg font-extrabold text-navy">Birthday surprise! 🎉</h2>
+                    <p className="mt-1 text-sm leading-6 text-slate-700">
+                      Join us in wishing {todaysBirthdays.map((person) => person.name).join(", ")} a very happy birthday today! 🎂
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
             {children}
           </div>
         </main>
