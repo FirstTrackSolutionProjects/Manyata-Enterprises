@@ -364,9 +364,17 @@ export default function DashboardLayout({
             {todaysBirthdays.length > 0 && (
               <section className="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-pink-50 p-5 shadow-sm sm:p-6" aria-live="polite">
                 <div className="flex items-start gap-4">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-400 text-navy shadow-sm">
-                    <PartyPopper size={24} />
-                  </span>
+                  <div className="flex shrink-0 -space-x-3">
+                    {todaysBirthdays.map((person) => (
+                      person.photo ? (
+                        <img key={person.id} src={person.photo} alt={`${person.name}, birthday celebrant`} className="h-16 w-16 rounded-full border-4 border-white object-cover shadow-sm" />
+                      ) : (
+                        <span key={person.id} className="grid h-16 w-16 place-items-center rounded-full border-4 border-white bg-amber-300 text-navy shadow-sm" aria-label={`${person.name}, birthday celebrant`}>
+                          <PartyPopper size={24} />
+                        </span>
+                      )
+                    ))}
+                  </div>
                   <div>
                     <h2 className="text-lg font-extrabold text-navy">Birthday surprise! 🎉</h2>
                     <p className="mt-1 text-sm leading-6 text-slate-700">
