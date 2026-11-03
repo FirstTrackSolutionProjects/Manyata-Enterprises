@@ -1090,12 +1090,14 @@ function ApplicationsTab({ initialLocation = "" }) {
     let active = true;
     (async () => {
       try {
-        const firstPage = await apiFetch("/admin/partners?limit=100&page=1");
+        const partnerLocation = initialLocation === "kolkata" ? "west_bengal" : initialLocation === "odisha" ? "odisha" : "";
+        const locationQuery = partnerLocation ? `&location=${encodeURIComponent(partnerLocation)}` : "";
+        const firstPage = await apiFetch(`/admin/partners?limit=100&page=1${locationQuery}`);
         const allPartners = [...(firstPage.data.items || [])];
         const pageCount = Number(firstPage.data.pages || 1);
         if (pageCount > 1) {
           const remainingPages = await Promise.all(Array.from({ length: pageCount - 1 }, (_, index) =>
-            apiFetch(`/admin/partners?limit=100&page=${index + 2}`)
+            apiFetch(`/admin/partners?limit=100&page=${index + 2}${locationQuery}`)
           ));
           remainingPages.forEach((response) => allPartners.push(...(response.data.items || [])));
         }
@@ -1109,7 +1111,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         });
         const uniqueOptions = [...new Map(options.map((option) => [`${option.value.toLowerCase()}|${option.label.split(" — ").pop()}`, option])).values()]
           .sort((left, right) => left.roleOrder - right.roleOrder || left.value.localeCompare(right.value));
-        const roleOptions = [
+        const roleOptions = partnerLocation ? [] : [
           { value: "type:vendor", label: "All Vendors", roleOrder: -1 },
           { value: "type:sub_vendor", label: "All Sub-vendors", roleOrder: -1 },
           { value: "type:super_vendor", label: "All Super-vendors", roleOrder: -1 },
@@ -1120,7 +1122,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       }
     })();
     return () => { active = false; };
-  }, [user]);
+  }, [user, initialLocation]);
 
   const load = async (p = page, overrideFilters) => {
     const requestId = ++listRequestId.current;
@@ -1331,7 +1333,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
-            {(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view")) && <SearchableFilterSelect label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} options={applicationPartnerOptions} placeholder="All partners" searchPlaceholder="Search vendor or partner name..." />}
+            {(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view")) && <SearchableFilterSelect label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} options={applicationPartnerOptions} placeholder={initialLocation === "odisha" ? "Odisha partners" : initialLocation ? "West Bengal partners" : "All partners"} searchPlaceholder="Search vendor or partner name..." />}
             {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" searchPlaceholder="Search employee name..." />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
