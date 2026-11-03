@@ -294,6 +294,7 @@ export default function DashboardLayout({
     : user?.role === "partner"
       ? [
           { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+          { id: "profile", label: "Partner Profile", icon: UserIcon },
           { id: "commissions", label: "Commission History", icon: Banknote },
           ...(hasActionPermission(user, "applications", "view") ? [{ id: "applications", label: "Applications", icon: FileText }] : []),
         ]

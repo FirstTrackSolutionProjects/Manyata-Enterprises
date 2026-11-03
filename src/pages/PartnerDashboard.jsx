@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Building2, FileText, Search, Loader2, Network, Banknote } from "lucide-react";
+import { Building2, FileText, Search, Loader2, Network, Banknote, UserRound } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import { useAuth } from "../contexts/AuthContext";
-import { getMyCommissionPayouts, getMyPartnerApplications, getMyPartnerHierarchy, setMyChildPartnerCommission } from "../services/api";
+import { fileUrl, getMyCommissionPayouts, getMyPartnerApplications, getMyPartnerHierarchy, setMyChildPartnerCommission } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
+import { applicationStatusLabel } from "../constants/applicationStatuses";
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : "—";
 const titleCase = (value = "") => String(value).replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
@@ -21,23 +22,53 @@ export default function PartnerDashboard() {
   const [section, setSection] = useState("dashboard");
   const [hierarchy, setHierarchy] = useState([]);
   const [incomingCommission, setIncomingCommission] = useState(null);
+  const [partnerProfile, setPartnerProfile] = useState(null);
   const [commissionDrafts, setCommissionDrafts] = useState({});
   const [savingCommissionId, setSavingCommissionId] = useState(null);
   const [commissionNotice, setCommissionNotice] = useState("");
   const [regionCounts, setRegionCounts] = useState({ odisha: 0, west_bengal: 0 });
   const [applications, setApplications] = useState([]);
   const [total, setTotal] = useState(0);
+  const [statusCounts, setStatusCounts] = useState({});
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const regionalCardCoveredStatuses = new Set([
+    "pending", "verified", "consumer_login_submitted_to_govt_portal", "submitted_to_govt",
+    "vendor_side_quotation_agreement_pending", "electricity_bill_name_mismatch",
+    "electricity_bill_mismatch_ownership_transfer", "electricity_bill_ownership_transfer_customer_side_on_process",
+    "electricity_bill_ownership_transfer_completed_successfully", "customer_not_interested", "rejected",
+    "customer_side_bank_forward", "vendor_side_bank_forward", "customer_side_documents_issue", "bank_reject",
+    "loan_visible", "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "customer_full_loan_amount_disbursed",
+  ]);
+  const extraStatusCards = Object.entries(statusCounts)
+    .filter(([status, count]) => Number(count || 0) > 0 && !regionalCardCoveredStatuses.has(status))
+    .map(([status, count]) => [applicationStatusLabel(status), Number(count), `status-${status}`]);
+  const applicationCards = [
+    ["New Customer Application", Number(statusCounts.pending || 0)],
+    ["Verified", Number(statusCounts.verified || 0)],
+    ["Submitted to Government Portal", Number(statusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(statusCounts.submitted_to_govt || 0)],
+    ["Vendor Side - Quotation & Agreement Pending", Number(statusCounts.vendor_side_quotation_agreement_pending || 0)],
+    ["Electricity Bill - Name Mismatch", Number(statusCounts.electricity_bill_name_mismatch || 0)],
+    ["Electricity Bill - Ownership Transfer", Number(statusCounts.electricity_bill_mismatch_ownership_transfer || 0) + Number(statusCounts.electricity_bill_ownership_transfer_customer_side_on_process || 0) + Number(statusCounts.electricity_bill_ownership_transfer_completed_successfully || 0)],
+    ["Customer Not Interested", Number(statusCounts.customer_not_interested || 0)],
+    ["Rejected", Number(statusCounts.rejected || 0)],
+    ["Customer Side - Bank Forward", Number(statusCounts.customer_side_bank_forward || 0) + Number(statusCounts.vendor_side_bank_forward || 0)],
+    ["Customer Side - Documents Issue", Number(statusCounts.customer_side_documents_issue || 0)],
+    ["Bank Rejected", Number(statusCounts.bank_reject || 0)],
+    ["Loan Visible", Number(statusCounts.loan_visible || 0)],
+    ["Loan Disbursed", Number(statusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(statusCounts.loan_disbursed_phase_2 || 0) + Number(statusCounts.customer_full_loan_amount_disbursed || 0)],
+    ...extraStatusCards,
+  ];
 
   useEffect(() => {
     let active = true;
     getMyPartnerHierarchy().then((response) => {
       if (!active) return;
       const children = response.data.children || [];
+      setPartnerProfile(response.data.partner || null);
       setHierarchy(children);
       setIncomingCommission(response.data.partner?.incoming_commission || null);
       if (Array.isArray(response.data.partner?.assigned_locations)) setAssignedLocations([...new Set(response.data.partner.assigned_locations)]);
@@ -86,6 +117,7 @@ export default function PartnerDashboard() {
         if (!active) return;
         setApplications(response.data.items || []);
         setTotal(response.data.total || 0);
+        setStatusCounts(response.data.byStatus || {});
         setPages(response.data.pages || 1);
       } catch (err) {
         if (active) setError(err.message || "Could not load your applications.");
@@ -98,12 +130,12 @@ export default function PartnerDashboard() {
 
   return (
     <DashboardLayout
-      title={section === "applications" ? "Applications" : section === "commissions" ? "Commission History" : "Partner Dashboard"}
-      subtitle={section === "applications" ? `Applications assigned to ${user?.partnerCompanyName || user?.name}.` : section === "commissions" ? "Your earned, approved, and paid commission records." : `${partnerType} dashboard`}
+      title={section === "applications" ? "Applications" : section === "commissions" ? "Commission History" : section === "profile" ? "Partner Profile" : "Partner Dashboard"}
+      subtitle={section === "applications" ? `Applications assigned to ${user?.partnerCompanyName || user?.name}.` : section === "commissions" ? "Your earned, approved, and paid commission records." : section === "profile" ? "Your partner account and contact details." : `${partnerType} dashboard`}
       activeSection={section}
       onSectionChange={setSection}
     >
-      {section === "commissions" ? <PartnerCommissionSection /> : section === "dashboard" ? <>
+      {section === "commissions" ? <PartnerCommissionSection /> : section === "profile" ? <PartnerProfile profile={partnerProfile} partnerType={partnerType} /> : section === "dashboard" ? <>
         <div className="mb-6">
           <DashboardWelcome name={user?.partnerCompanyName || user?.name || partnerType} description="Your partner account details and the sections the owner has allowed you to access." />
         </div>
@@ -127,6 +159,9 @@ export default function PartnerDashboard() {
         <div className="mt-6 rounded-2xl border border-navy/10 bg-white p-5"><h2 className="flex items-center gap-2 text-sm font-bold text-navy"><Network size={16} /> Referral Chain</h2><p className="mt-1 text-sm text-muted">See partner offers throughout your downstream chain. You can set or edit the offer for your direct referrals; upstream partner details stay private.</p>{commissionNotice && <p role="status" className="mt-3 text-sm text-amber">{commissionNotice}</p>}<div className="mt-3 divide-y divide-navy/5">{hierarchy.length ? hierarchy.map((item) => { const direct = Number(item.depth) === 1; const rates = item.referral_commission_rates || {}; const draft = commissionDrafts[item.id] || {}; const indent = `${Math.min(Number(item.depth || 1) - 1, 3) * 18}px`; return <div key={item.id} className="py-4"><div className="flex items-center justify-between gap-3 text-sm"><span className="font-semibold text-navy" style={{ paddingLeft: indent }}>{item.company_name || item.contact_name}</span><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" })[item.partner_type] || item.partner_type}</span></div>{direct ? <><div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"><label className="text-xs font-semibold text-muted">On-Grid offer<input type="number" min="0" step="1" value={draft.on_grid ?? rates.on_grid ?? ""} onChange={(event) => setCommissionDrafts((current) => ({ ...current, [item.id]: { ...(current[item.id] || {}), on_grid: event.target.value } }))} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label><label className="text-xs font-semibold text-muted">Hybrid offer<input type="number" min="0" step="1" value={draft.hybrid ?? rates.hybrid ?? ""} onChange={(event) => setCommissionDrafts((current) => ({ ...current, [item.id]: { ...(current[item.id] || {}), hybrid: event.target.value } }))} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2 text-sm text-navy" /></label><button onClick={() => saveChildCommission(item)} disabled={savingCommissionId === item.id} className="rounded-full bg-amber px-4 py-2 text-xs font-bold text-navy disabled:opacity-50">{savingCommissionId === item.id ? "Saving..." : "Save offer"}</button></div><ReferralMargin incomingCommission={incomingCommission} offeredRates={{ on_grid: draft.on_grid ?? rates.on_grid, hybrid: draft.hybrid ?? rates.hybrid }} /></> : <div className="mt-3 rounded-xl bg-slate-50 p-3 text-sm" style={{ marginLeft: indent }}><p className="text-xs font-semibold text-muted">Offer to this partner from their direct referrer · per completed installation</p><div className="mt-2 flex flex-wrap gap-5 text-navy"><span>On-Grid: <strong>{rates.on_grid === undefined ? "Not set" : `₹${Number(rates.on_grid).toLocaleString("en-IN")}`}</strong></span><span>Hybrid: <strong>{rates.hybrid === undefined ? "Not set" : `₹${Number(rates.hybrid).toLocaleString("en-IN")}`}</strong></span></div></div>}</div>; }) : <p className="py-3 text-sm text-muted">No partners are linked below your account yet. Ask the Owner to set your account as the “Referred by” partner in their partner record.</p>}</div></div>
       </> : canViewApplications ? <>
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-sm text-muted">Only applications assigned to your partner account are listed here.</p></div><div className="rounded-xl border border-navy/10 bg-white px-4 py-2"><span className="text-xs text-muted">Total </span><strong className="text-navy">{total}</strong></div></div>
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          {[[`Total Applications${assignedLocationLabels.length === 1 ? ` - ${assignedLocationLabels[0]}` : ""}`, total, "total"], ...applicationCards].map(([label, value, key]) => <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
+        </div>
         <div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search by name, phone, email, or application no." className="w-full rounded-lg border border-navy/15 bg-white py-3 pl-9 pr-4 text-sm focus:border-amber focus:outline-none" /></div>
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="mt-4 overflow-x-auto rounded-2xl border border-navy/10 bg-white">
@@ -138,6 +173,33 @@ export default function PartnerDashboard() {
       </> : <div className="rounded-2xl border border-navy/10 bg-white p-6"><p className="text-lg font-bold text-navy">{user?.partnerCompanyName || user?.name}</p><p className="mt-1 text-sm text-muted">Your partner dashboard is ready. The owner will enable any additional sections you need.</p></div>}
     </DashboardLayout>
   );
+}
+
+function PartnerProfile({ profile, partnerType }) {
+  const profilePhoto = fileUrl(profile?.file_photo);
+  const details = [
+    ["Partner type", partnerType],
+    ["Contact person", profile?.contact_name],
+    ["Email", profile?.email],
+    ["Phone", profile?.phone],
+    ["Gender", profile?.gender],
+    ["Date of birth", profile?.dob ? new Date(profile.dob).toLocaleDateString("en-IN") : ""],
+    ["Address", profile?.address],
+    ["City", profile?.city],
+    ["State", profile?.state],
+    ["PIN code", profile?.pincode],
+    ["System types", (profile?.system_types || []).map(titleCase).join(", ")],
+    ["Assigned locations", (profile?.assigned_locations || []).map(titleCase).join(", ")],
+  ];
+  return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
+    <div className="flex flex-wrap items-center gap-4 border-b border-navy/10 bg-gradient-to-r from-navy to-[#263c60] p-6 text-white">
+      {profilePhoto ? <img src={profilePhoto} alt="Partner profile" className="h-20 w-20 rounded-full border-4 border-white/80 object-cover" /> : <div className="grid h-20 w-20 place-items-center rounded-full bg-amber text-navy"><UserRound size={32} /></div>}
+      <div><h2 className="text-xl font-extrabold">{profile?.company_name || profile?.contact_name || "Partner Profile"}</h2><p className="mt-1 text-sm text-white/75">{profile?.contact_name || partnerType}</p></div>
+    </div>
+    <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-3">
+      {details.map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p><p className="mt-1 break-words text-sm font-semibold text-navy">{value || "Not provided"}</p></div>)}
+    </div>
+  </section>;
 }
 
 function ReferralMargin({ incomingCommission, offeredRates }) {
