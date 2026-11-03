@@ -22,6 +22,9 @@ import {
   Clock3,
   Trash2,
   PartyPopper,
+  Cake,
+  Sparkles,
+  Heart,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
@@ -362,23 +365,32 @@ export default function DashboardLayout({
         <main className="flex-1">
           <div className="dashboard-page-content mx-auto max-w-[1400px] px-5 py-6 lg:px-8 lg:py-8">
             {todaysBirthdays.length > 0 && (
-              <section className="mb-6 overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 via-orange-50 to-pink-50 p-5 shadow-sm sm:p-6" aria-live="polite">
-                <div className="flex items-start gap-4">
-                  <div className="flex shrink-0 -space-x-3">
+              <section className="relative mb-6 overflow-hidden rounded-3xl border border-amber-200/80 bg-gradient-to-br from-[#fffaf0] via-white to-rose-50 shadow-[0_12px_35px_rgba(15,39,71,0.08)]" aria-live="polite">
+                <div className="pointer-events-none absolute -right-10 -top-16 h-52 w-52 rounded-full bg-amber-200/25 blur-2xl" />
+                <div className="pointer-events-none absolute -bottom-20 right-1/4 h-44 w-44 rounded-full bg-rose-200/25 blur-2xl" />
+                <Sparkles className="pointer-events-none absolute right-7 top-6 hidden h-7 w-7 text-amber-400/70 sm:block" aria-hidden="true" />
+                <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6 sm:px-7 sm:py-6">
+                  <div className="flex shrink-0 items-center">
                     {todaysBirthdays.map((person) => (
                       person.photo ? (
-                        <img key={person.id} src={person.photo} alt={`${person.name}, birthday celebrant`} className="h-16 w-16 rounded-full border-4 border-white object-cover shadow-sm" />
+                        <img key={person.id} src={person.photo} alt={`${person.name}, birthday celebrant`} className="h-[76px] w-[76px] rounded-full border-4 border-white object-cover shadow-[0_5px_18px_rgba(15,39,71,0.2)] ring-2 ring-amber-300" />
                       ) : (
-                        <span key={person.id} className="grid h-16 w-16 place-items-center rounded-full border-4 border-white bg-amber-300 text-navy shadow-sm" aria-label={`${person.name}, birthday celebrant`}>
-                          <PartyPopper size={24} />
+                        <span key={person.id} className="grid h-[76px] w-[76px] place-items-center rounded-full border-4 border-white bg-gradient-to-br from-amber-300 to-orange-400 text-navy shadow-[0_5px_18px_rgba(15,39,71,0.2)] ring-2 ring-amber-300" aria-label={`${person.name}, birthday celebrant`}>
+                          <Cake size={27} />
                         </span>
                       )
                     ))}
                   </div>
-                  <div>
-                    <h2 className="text-lg font-extrabold text-navy">Birthday surprise! 🎉</h2>
-                    <p className="mt-1 text-sm leading-6 text-slate-700">
-                      Join us in wishing {todaysBirthdays.map((person) => person.name).join(", ")} a very happy birthday today! 🎂
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-amber-700 shadow-sm">
+                      <PartyPopper size={13} aria-hidden="true" /> Today we celebrate
+                    </div>
+                    <h2 className="text-xl font-extrabold tracking-tight text-navy sm:text-2xl">Birthday surprise! 🎉</h2>
+                    <p className="mt-1.5 text-sm leading-6 text-slate-600 sm:text-base">
+                      Wishing <span className="font-bold text-navy">{todaysBirthdays.map((person) => person.name).join(", ")}</span> a day filled with happiness, laughter, and lovely surprises.
+                    </p>
+                    <p className="mt-2 flex items-center gap-1.5 text-sm font-bold text-rose-600">
+                      <Heart size={15} className="fill-rose-500" aria-hidden="true" /> Happy Birthday from the Manyata team!
                     </p>
                   </div>
                 </div>
