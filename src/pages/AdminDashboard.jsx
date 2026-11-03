@@ -1167,12 +1167,15 @@ function ApplicationsTab({ initialLocation = "" }) {
     const statsParams = new URLSearchParams();
     if (filters.branchId) statsParams.set("branchId", filters.branchId);
     if (filters.location) statsParams.set("location", filters.location);
+    if (filters.partner?.startsWith("type:")) statsParams.set("partnerType", filters.partner.slice("type:".length));
+    else if (filters.partner) statsParams.set("partner", filters.partner);
+    if (filters.updatedBy) statsParams.set("updatedBy", filters.updatedBy);
     const statsQuery = statsParams.size ? `?${statsParams}` : "";
     apiFetch(`/applications/stats/overview${statsQuery}`)
       .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); setApplicationStatusCounts(res.data.byStatus || {}); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
-  }, [filters.branchId, filters.location, user?.role, user?.designation, user?.department]);
+  }, [filters.branchId, filters.location, filters.partner, filters.updatedBy, user?.role, user?.designation, user?.department]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -1240,6 +1243,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
           ["Customer Side - Documents Issue", Number(applicationStatusCounts.customer_side_documents_issue || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0)],
+          ["Loan Visible", Number(applicationStatusCounts.loan_visible || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
         ]).map((card) => {
           const [label, value, key] = Array.isArray(card) ? card : [card.label, card.value, card.label];
@@ -1251,6 +1255,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Customer Side - Documents Issue</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(applicationStatusCounts.customer_side_documents_issue || 0)}</p></div>
+        <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Loan Visible</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(applicationStatusCounts.loan_visible || 0)}</p></div>
       </div>}
       {/* Top search + filter toggle */}
       <div className="flex flex-wrap gap-3">
@@ -1289,6 +1294,9 @@ function ApplicationsTab({ initialLocation = "" }) {
             const statsParams = new URLSearchParams();
             if (filters.branchId) statsParams.set("branchId", filters.branchId);
             if (filters.location) statsParams.set("location", filters.location);
+            if (filters.partner?.startsWith("type:")) statsParams.set("partnerType", filters.partner.slice("type:".length));
+            else if (filters.partner) statsParams.set("partner", filters.partner);
+            if (filters.updatedBy) statsParams.set("updatedBy", filters.updatedBy);
             const statsQuery = statsParams.size ? `?${statsParams}` : "";
             const statsRes = await apiFetch(`/applications/stats/overview${statsQuery}`);
             setLocationCounts(statsRes.data.byLocation || null);
@@ -1352,10 +1360,9 @@ function ApplicationsTab({ initialLocation = "" }) {
               label="Location"
               value={filters.location}
               onChange={(v) => updateFilter("location", v)}
-              options={[
-                { value: "odisha", label: "Odisha" },
-                { value: "kolkata", label: "West Bengal" },
-              ]}
+              options={initialLocation
+                ? [{ value: initialLocation === "odisha" ? "odisha" : "kolkata", label: initialLocation === "odisha" ? "Odisha" : "West Bengal" }]
+                : [{ value: "odisha", label: "Odisha" }, { value: "kolkata", label: "West Bengal" }]}
               placeholder="All locations"
               searchPlaceholder="Search location..."
             />
