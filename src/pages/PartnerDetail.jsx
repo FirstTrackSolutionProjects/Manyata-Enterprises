@@ -325,6 +325,8 @@ export default function PartnerDetail() {
 
           <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
             <HeroStat icon={MapPin} label="Assigned Locations">{locationLabels.length ? locationLabels.join(", ") : "Not assigned"}</HeroStat>
+            <HeroStat icon={FileText} label="Applications">{Number(partner.application_count || 0)}</HeroStat>
+            <HeroStat icon={User} label="Sales Executive">{partner.sales_executive_name || "Not assigned"}</HeroStat>
             <HeroStat icon={Zap} label="System Types">{systemLabels.length ? systemLabels.map((label) => label.replace(" System", "")).join(", ") : "—"}</HeroStat>
             <HeroStat icon={FileText} label="Documents">{documents.length ? `${documents.length} uploaded` : "None uploaded"}</HeroStat>
             {isOwner && <HeroStat icon={KeyRound} label="Partner Login">{partner.partner_login_id ? `${partner.partner_login_id} · ${titleCase(partner.partner_account_status || "active")}` : "Not created"}</HeroStat>}
@@ -350,6 +352,7 @@ export default function PartnerDetail() {
               ["Date of Birth", partner.dob ? String(partner.dob).slice(0, 10) : ""], ["Experience", partner.experience_years],
             ]],
             ["Contact", [["Phone", partner.phone], ["Email", partner.email]]],
+            ["Sales Assignment", [["Sales Executive", partner.sales_executive_name || "Not assigned"]]],
             ["Coverage & Commission", [
               ["Assigned Locations", locationLabels.length ? locationLabels : "No locations assigned"],
               ["System Types", systemLabels],

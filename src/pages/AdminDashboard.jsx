@@ -1105,7 +1105,7 @@ function ApplicationsTab({ initialLocation = "" }) {
           const role = String(partner.partner_type || "").toLowerCase();
           if (!roleLabels[role]) return [];
           const names = [...new Set([partner.company_name, partner.contact_name].map((name) => String(name || "").trim()).filter(Boolean))];
-          return names.map((name) => ({ value: name, label: `${name} — ${roleLabels[role]}`, roleOrder: roleOrder[role] }));
+          return names.map((name) => ({ value: name, label: `${name} — ${roleLabels[role]} · ${Number(partner.application_count || 0)} applications`, roleOrder: roleOrder[role] }));
         });
         const uniqueOptions = [...new Map(options.map((option) => [`${option.value.toLowerCase()}|${option.label.split(" — ").pop()}`, option])).values()]
           .sort((left, right) => left.roleOrder - right.roleOrder || left.value.localeCompare(right.value));
@@ -3061,7 +3061,7 @@ function InstallationsTab({ location }) {
           const role = String(partner.partner_type || "").toLowerCase();
           if (!roleLabels[role]) return [];
           return [...new Set([partner.company_name, partner.contact_name].map((name) => String(name || "").trim()).filter(Boolean))]
-            .map((name) => ({ value: name, label: `${name} — ${roleLabels[role]}`, roleOrder: roleOrder[role] }));
+            .map((name) => ({ value: name, label: `${name} — ${roleLabels[role]} · ${Number(partner.application_count || 0)} applications`, roleOrder: roleOrder[role] }));
         });
         const uniqueOptions = [...new Map(namedOptions.map((option) => [`${option.value.toLowerCase()}|${option.roleOrder}`, option])).values()]
           .sort((left, right) => left.roleOrder - right.roleOrder || left.value.localeCompare(right.value));
@@ -3687,6 +3687,8 @@ function SubmissionList({ type }) {
             <th className="p-3 whitespace-nowrap">ID</th>
             <th className="p-3 whitespace-nowrap">{isPartners ? "Company / Contact Person" : "Name"}</th>
             <th className="p-3 whitespace-nowrap">Phone</th>
+            {isPartners && <th className="p-3 whitespace-nowrap">Applications</th>}
+            {isPartners && <th className="p-3 whitespace-nowrap">Sales Executive</th>}
             {isJoinUs && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isCareers && <><th className="p-3 whitespace-nowrap">Location</th><th className="p-3 whitespace-nowrap">State</th><th className="p-3 whitespace-nowrap">District</th></>}
             {isPartners && <><th className="p-3 whitespace-nowrap">Partner Type</th><th className="p-3 whitespace-nowrap">Assigned Locations</th><th className="p-3 whitespace-nowrap">Referred By</th></>}
@@ -3714,6 +3716,8 @@ function SubmissionList({ type }) {
                 ) : applicantName}
               </td>
               <td className="p-3 whitespace-nowrap">{it.phone || it.phone_number || "-"}</td>
+              {isPartners && <td className="p-3 text-center font-semibold text-navy whitespace-nowrap">{Number(it.application_count || 0)}</td>}
+              {isPartners && <td className="p-3 whitespace-nowrap">{it.sales_executive_name || "Not assigned"}</td>}
               {isJoinUs && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isCareers && <><td className="p-3 whitespace-nowrap">{it.location || "-"}</td><td className="p-3 whitespace-nowrap">{it.state || "-"}</td><td className="p-3 whitespace-nowrap">{it.district || "-"}</td></>}
               {isPartners && <><td className="p-3 whitespace-nowrap">{(Array.isArray(it.partner_roles) ? [...new Set([it.partner_type, ...it.partner_roles])] : [it.partner_type]).map((role) => ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[role] || role).filter(Boolean).join(" · ") || "-"}</td><td className="p-3 whitespace-nowrap">{(() => { let locations = it.assigned_locations || []; if (typeof locations === "string") { try { locations = JSON.parse(locations); } catch { locations = []; } } return (Array.isArray(locations) ? locations : []).map((location) => ({ odisha: "Odisha", west_bengal: "West Bengal" })[String(location).toLowerCase().replace(/[\s-]+/g, "_")]).filter(Boolean).join(" · ") || "-"; })()}</td><td className="p-3 whitespace-nowrap">{it.referrer_company_name || it.referrer_contact_name || "Owner / Not assigned"}</td></>}

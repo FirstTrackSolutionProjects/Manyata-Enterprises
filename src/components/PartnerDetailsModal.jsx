@@ -75,6 +75,7 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
     commissionModel: partner.commission_model || (partner.partner_type === "sub_vendor_commission" ? "per_completed_installation" : ""),
     systemTypes: readSystemTypes(partner.system_types),
     assignedLocations: readAssignedLocations(partner),
+    salesExecutiveId: partner.sales_executive_id ? String(partner.sales_executive_id) : "",
     commissionRates: readCommissionRates(partner.commission_rates),
     companyName: partner.company_name || "", contactName: partner.contact_name || "",
     phone: partner.phone || "", email: partner.email || "", aadhaarNumber: partner.aadhaar_number || "",
@@ -90,6 +91,7 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
   const [savingRoles, setSavingRoles] = useState(false);
   const [error, setError] = useState("");
   const [approvedPartners, setApprovedPartners] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loadingPartners, setLoadingPartners] = useState(false);
   const canAssignMultipleRoles = Boolean(isOwner && editing);
 
@@ -105,6 +107,9 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
         if (active) setError(err.message || "Could not load approved referral partners.");
       })
       .finally(() => { if (active) setLoadingPartners(false); });
+    apiFetch("/auth/users?role=employee&status=active")
+      .then((response) => { if (active) setEmployees(response?.data?.items || []); })
+      .catch((err) => { if (active) setError(err.message || "Could not load employees."); });
     return () => { active = false; };
   }, [editing]);
 
@@ -143,7 +148,7 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
     setError("");
     try {
       const uploaded = await uploadFilesToS3("partners", files);
-      const payload = { ...form, files: uploaded };
+      const payload = { ...form, salesExecutiveId: form.salesExecutiveId || null, files: uploaded };
       // Role access is saved separately so it never depends on hierarchy or
       // unrelated partner form fields being complete.
       if (partnerTypeChanged || referralChanged) payload.referredByPartnerId = form.referredByPartnerId || null;
@@ -189,6 +194,10 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
         <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-muted"><span>Created: {formatDateTime(partner.created_at)}</span><span>Updated by: {partner.updated_by_name || "—"} · {formatDateTime(partner.updated_at)}</span></div>
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <section className="rounded-2xl border border-navy/10 bg-white"><div className="flex items-center gap-3 border-b border-navy/10 px-5 py-3.5"><span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-soft text-amber"><Handshake size={18} /></span><div><h4 className="text-sm font-bold text-navy">Partner Profile & Commission</h4><p className="text-xs text-muted">Partner role, referral chain, commission rates, and business details.</p></div></div><div className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
+          <label className="text-xs font-semibold text-navy/70">Sales Executive
+            {editing ? <select value={form.salesExecutiveId} onChange={(event) => setForm({ ...form, salesExecutiveId: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm"><option value="">Not assigned</option>{employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.designation ? ` · ${employee.designation}` : ""}</option>)}</select>
+              : <span className="mt-1 block rounded-lg bg-slate-50 px-3 py-2 text-sm font-normal text-navy">{partner.sales_executive_name || "Not assigned"}</span>}
+          </label>
           {[...FIELDS, ...(canAssignMultipleRoles ? [["partnerRoles", "Multi-role access", "partner-roles"]] : [])].map(([key, label, type]) => {
             const FieldWrapper = type === "systems" || type === "locations" || type === "commission-chart" || type === "select" || type === "partner-roles" ? "div" : "label";
             return (
