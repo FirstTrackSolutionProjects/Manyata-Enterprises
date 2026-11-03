@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { FileText, Handshake, Pencil, X } from "lucide-react";
 import { apiFetch, fileUrl, updatePartner, uploadFilesToS3 } from "../services/api";
 import CameraFileInput from "./CameraFileInput";
+import PartnerReferralPicker from "./PartnerReferralPicker";
 
 const PARTNER_TYPES = [
   ["super_vendor", "Super-vendor"],
@@ -56,7 +57,7 @@ const readAssignedLocations = (partner) => {
   return [];
 };
 const normalizePartnerType = (type) => type === "sub_vendor_commission" ? "sub_vendor" : type;
-const PARENT_TYPE_BY_PARTNER_TYPE = { vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
+const PARENT_TYPE_BY_PARTNER_TYPE = { vendor: ["super_vendor"], sub_vendor: ["vendor", "super_vendor"], dealer: ["sub_vendor"] };
 const PARTNER_TYPE_LABELS = { super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", dealer: "Dealer" };
 const readPartnerRoles = (partner) => {
   let roles = partner.partner_roles || [];
@@ -107,19 +108,17 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
     return () => { active = false; };
   }, [editing]);
 
-  const requiredParentType = PARENT_TYPE_BY_PARTNER_TYPE[form.partnerType];
+  const requiredParentTypes = PARENT_TYPE_BY_PARTNER_TYPE[form.partnerType] || [];
+  const requiredParentLabel = requiredParentTypes.map((type) => PARTNER_TYPE_LABELS[type]).join(" or ");
   const originalPartnerType = normalizePartnerType(partner.partner_type);
   const originalParentId = partner.referred_by_partner_id ? String(partner.referred_by_partner_id) : "";
   const partnerTypeChanged = form.partnerType !== originalPartnerType;
   const referralChanged = form.referredByPartnerId !== originalParentId;
-  const requiresParentSelection = Boolean(requiredParentType && (partnerTypeChanged || referralChanged));
   const parentOptions = approvedPartners.filter((item) => {
     let roles = item.partner_roles || [];
     if (typeof roles === "string") { try { roles = JSON.parse(roles); } catch { roles = []; } }
-    return Number(item.id) !== Number(partner.id)
-      && [normalizePartnerType(item.partner_type), ...(Array.isArray(roles) ? roles : [])]
-        .map(normalizePartnerType)
-        .includes(requiredParentType);
+    const availableRoles = [normalizePartnerType(item.partner_type), ...(Array.isArray(roles) ? roles : [])].map(normalizePartnerType);
+    return Number(item.id) !== Number(partner.id) && requiredParentTypes.some((type) => availableRoles.includes(type));
   });
 
   const save = async (event) => {
@@ -128,8 +127,8 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
       setError("Select at least one partner location: Odisha or West Bengal.");
       return;
     }
-    if (requiredParentType && (partnerTypeChanged || referralChanged) && !form.referredByPartnerId) {
-      setError(`Choose an approved ${PARTNER_TYPE_LABELS[requiredParentType]} to refer this partner.`);
+    if (requiredParentTypes.length && (partnerTypeChanged || referralChanged) && !form.referredByPartnerId) {
+      setError(`Choose an approved ${requiredParentLabel} to refer this partner.`);
       return;
     }
     if (!form.systemTypes.length) {
@@ -203,12 +202,12 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
                 <>
                   <select required value={form[key]} onChange={(event) => {
                     const partnerType = event.target.value;
-                    const nextParentType = PARENT_TYPE_BY_PARTNER_TYPE[partnerType];
+                    const nextParentTypes = PARENT_TYPE_BY_PARTNER_TYPE[partnerType] || [];
                     const currentParent = approvedPartners.find((item) => String(item.id) === form.referredByPartnerId);
                     setForm({
                       ...form,
                       partnerType,
-                      referredByPartnerId: nextParentType && currentParent && partnerHasRole(currentParent, nextParentType) ? form.referredByPartnerId : "",
+                      referredByPartnerId: nextParentTypes.length && currentParent && nextParentTypes.some((type) => partnerHasRole(currentParent, type)) ? form.referredByPartnerId : "",
                       commissionModel: partnerType === "sub_vendor" ? (form.commissionModel || COMMISSION_MODELS[0][0]) : "",
                     });
                   }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm">
@@ -217,11 +216,8 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
                   </select>
                   {key === "partnerType" && <>
                     <span className="mt-1 block font-normal text-muted">Owner can assign this partner as a super-vendor, vendor, sub-vendor, or dealer.</span>
-                    {requiredParentType && <label className="mt-3 block text-xs font-semibold text-navy/70">Referred by ({PARTNER_TYPE_LABELS[requiredParentType]})
-                      <select required={requiresParentSelection} value={form.referredByPartnerId} disabled={loadingPartners} onChange={(event) => setForm({ ...form, referredByPartnerId: event.target.value })} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2 text-sm disabled:bg-slate-100">
-                        <option value="">{loadingPartners ? "Loading approved partners…" : `Choose ${PARTNER_TYPE_LABELS[requiredParentType]}`}</option>
-                        {parentOptions.map((item) => <option key={item.id} value={item.id}>{item.company_name || item.contact_name} · #{item.id}</option>)}
-                      </select>
+                    {requiredParentTypes.length > 0 && <label className="mt-3 block text-xs font-semibold text-navy/70">Referred by ({requiredParentLabel})
+                      <PartnerReferralPicker options={parentOptions} value={form.referredByPartnerId} disabled={loadingPartners} placeholder={loadingPartners ? "Loading approved partners…" : `Choose ${requiredParentLabel}`} onChange={(value) => setForm({ ...form, referredByPartnerId: value })} />
                     </label>}
                   </>}
                 </>

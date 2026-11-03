@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { apiFetch, createPartnerRecord, uploadFilesToS3 } from "../services/api";
 import CameraFileInput from "./CameraFileInput";
+import PartnerReferralPicker from "./PartnerReferralPicker";
 
 const SYSTEMS = [
   ["on_grid", "On-Grid System"],
@@ -12,7 +13,7 @@ const LOCATIONS = [
   ["west_bengal", "West Bengal"],
 ];
 const PARTNER_ROLES = [["super_vendor", "Super-vendor"], ["vendor", "Vendor"], ["sub_vendor", "Sub-vendor"], ["dealer", "Dealer"]];
-const PARENT_ROLE = { vendor: "super_vendor", sub_vendor: "vendor", dealer: "sub_vendor" };
+const PARENT_ROLE = { vendor: ["super_vendor"], sub_vendor: ["vendor", "super_vendor"], dealer: ["sub_vendor"] };
 const normalizeRole = (role) => role === "sub_vendor_commission" ? "sub_vendor" : role;
 const hasRole = (partner, role) => {
   let roles = partner.partner_roles || [];
@@ -72,8 +73,8 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
       setError("Select at least one partner location: Odisha or West Bengal.");
       return;
     }
-    if (PARENT_ROLE[form.partnerType] && !form.referredByPartnerId) {
-      setError(`Choose an approved ${PARTNER_ROLES.find(([role]) => role === PARENT_ROLE[form.partnerType])?.[1]} for this partner.`);
+    if (PARENT_ROLE[form.partnerType]?.length && !form.referredByPartnerId) {
+      setError(`Choose an approved ${PARENT_ROLE[form.partnerType].map((type) => PARTNER_ROLES.find(([role]) => role === type)?.[1]).join(" or ")} for this partner.`);
       return;
     }
     setSaving(true);
@@ -91,18 +92,19 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
 
   const updateField = (name, value) => setForm((current) => {
     if (name !== "partnerType") return { ...current, [name]: value };
-    const requiredParentRole = PARENT_ROLE[value];
+    const requiredParentRoles = PARENT_ROLE[value] || [];
     const currentParent = approvedPartners.find((partner) => String(partner.id) === current.referredByPartnerId);
     return {
       ...current,
       partnerType: value,
       partnerRoles: [...new Set([...current.partnerRoles.filter((role) => role !== current.partnerType), value])],
       commissionModel: value === "sub_vendor" ? (current.commissionModel || "per_completed_installation") : "",
-      referredByPartnerId: requiredParentRole && currentParent && hasRole(currentParent, requiredParentRole) ? current.referredByPartnerId : "",
+      referredByPartnerId: requiredParentRoles.length && currentParent && requiredParentRoles.some((role) => hasRole(currentParent, role)) ? current.referredByPartnerId : "",
     };
   });
-  const parentRole = PARENT_ROLE[form.partnerType];
-  const parentOptions = approvedPartners.filter((partner) => hasRole(partner, parentRole));
+  const parentRoles = PARENT_ROLE[form.partnerType] || [];
+  const parentRoleLabel = parentRoles.map((role) => PARTNER_ROLES.find(([value]) => value === role)?.[1]).join(" or ");
+  const parentOptions = approvedPartners.filter((partner) => parentRoles.some((role) => hasRole(partner, role)));
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4">
@@ -116,15 +118,12 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
         <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Select label="Partner Type" value={form.partnerType} onChange={(value) => updateField("partnerType", value)} options={[["super_vendor", "Super-vendor"], ["vendor", "Vendor"], ["sub_vendor", "Sub-vendor"], ["dealer", "Dealer"]]} />
           {form.partnerType === "sub_vendor" && <Select label="Commission (optional)" value={form.commissionModel} required={false} onChange={(value) => updateField("commissionModel", value)} options={[["", "Set later"], ["per_completed_installation", "Per completed installation"]]} />}
-          {parentRole && (
+          {parentRoles.length > 0 && (
             <label className="rounded-xl border border-amber/40 bg-amber-50/50 p-4 text-xs font-semibold text-navy/70 sm:col-span-2">
-              Referred by ({PARTNER_ROLES.find(([value]) => value === parentRole)?.[1]}) <span className="text-red-600">*</span>
-              <select required value={form.referredByPartnerId} onChange={(event) => updateField("referredByPartnerId", event.target.value)} disabled={loadingPartners} className="mt-2 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm font-normal text-navy disabled:bg-slate-100">
-                <option value="">{loadingPartners ? "Loading approved partners..." : "Choose " + PARTNER_ROLES.find(([value]) => value === parentRole)?.[1]}</option>
-                {parentOptions.map((partner) => <option key={partner.id} value={partner.id}>{partner.company_name || partner.contact_name} (ID {partner.id})</option>)}
-              </select>
+              Referred by ({parentRoleLabel}) <span className="text-red-600">*</span>
+              <PartnerReferralPicker options={parentOptions} value={form.referredByPartnerId} onChange={(value) => updateField("referredByPartnerId", value)} disabled={loadingPartners} placeholder={loadingPartners ? "Loading approved partners..." : `Choose ${parentRoleLabel}`} />
               <span className="mt-1 block font-normal text-muted">Required to connect this partner to the referral chain. Choose the person who referred them.</span>
-              {!loadingPartners && parentOptions.length === 0 && <span className="mt-1 block font-normal text-red-700">No approved {PARTNER_ROLES.find(([role]) => role === parentRole)?.[1]} accounts are available. Approve or assign that role to a partner first.</span>}
+              {!loadingPartners && parentOptions.length === 0 && <span className="mt-1 block font-normal text-red-700">No approved {parentRoleLabel} accounts are available.</span>}
             </label>
           )}
           <section className="rounded-xl border border-navy/10 p-4 sm:col-span-2">
