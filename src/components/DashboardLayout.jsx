@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -25,6 +25,8 @@ import {
   Cake,
   Sparkles,
   Heart,
+  Gift,
+  Star,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { assets } from "../assets/assets";
@@ -53,6 +55,203 @@ const OWNER_NAV = [
 /* UI-only: shared sidebar styles */
 const FOOT_LINK = "group flex w-full items-center gap-3 rounded-xl px-2 py-1.5 text-left text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 hover:text-white";
 const FOOT_ICON = "grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white/5 transition group-hover:bg-amber/20 group-hover:text-amber";
+
+/* ═══════════════════════════════════════════════════════════
+   Birthday banner (confetti, balloons, glow ring, wishes)
+   ═══════════════════════════════════════════════════════════ */
+const BIRTHDAY_WISHES = [
+  "May every sunrise bring you new energy, new wins and endless reasons to smile.",
+  "Your hard work lights up our team like sunshine lights up a rooftop. Keep shining!",
+  "Wishing you a year full of growth, good health, big dreams and bigger celebrations.",
+  "Thank you for being such a bright part of the Manyata family. Have a fantastic day!",
+  "Today the spotlight is all yours. Enjoy every moment, you truly deserve it!",
+];
+
+const CONFETTI_COLORS = ["#fbbf24", "#f472b6", "#60a5fa", "#34d399", "#fb923c", "#ffffff", "#a78bfa"];
+
+const BALLOONS = [
+  { left: "4%", color: "#f472b6", delay: "0s", dur: "9s" },
+  { left: "13%", color: "#fbbf24", delay: "2.2s", dur: "11s" },
+  { left: "86%", color: "#60a5fa", delay: "1s", dur: "10s" },
+  { left: "95%", color: "#34d399", delay: "3.4s", dur: "12s" },
+];
+
+function Balloon({ color }) {
+  return (
+    <svg width="34" height="54" viewBox="0 0 34 54" aria-hidden="true">
+      <ellipse cx="17" cy="19" rx="14" ry="17" fill={color} />
+      <ellipse cx="11" cy="12" rx="4" ry="6" fill="#fff" opacity="0.35" />
+      <path d="M17 36 l-3 5 h6 z" fill={color} />
+      <path d="M17 41 q-5 5 0 9 q5 3 0 4" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="1" fill="none" />
+    </svg>
+  );
+}
+
+function BirthdayBanner({ birthdays = [] }) {
+  const [wishIndex, setWishIndex] = useState(0);
+
+  // Rotate the wish text every 6 seconds
+  useEffect(() => {
+    const t = setInterval(() => setWishIndex((i) => (i + 1) % BIRTHDAY_WISHES.length), 6000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Confetti pieces — generated once
+  const confetti = useMemo(
+    () =>
+      Array.from({ length: 28 }, (_, i) => ({
+        id: i,
+        left: `${(i * 37) % 100}%`,
+        size: 6 + ((i * 7) % 7),
+        color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+        delay: `${((i * 13) % 60) / 10}s`,
+        dur: `${5 + ((i * 11) % 40) / 10}s`,
+        round: i % 3 === 0,
+      })),
+    []
+  );
+
+  if (!birthdays.length) return null;
+
+  const names = birthdays.map((p) => p.name);
+  const nameText =
+    names.length > 1 ? `${names.slice(0, -1).join(", ")} & ${names[names.length - 1]}` : names[0];
+
+  return (
+    <section
+      aria-live="polite"
+      className="bday-root relative mb-6 overflow-hidden rounded-3xl border border-amber-300/40 bg-gradient-to-br from-[#0b1d3a] via-[#14305c] to-[#3b1d5a] text-white shadow-[0_18px_50px_rgba(11,29,58,0.45)]"
+    >
+      <style>{`
+        @keyframes bday-fall { 0% { transform: translateY(-20px) rotate(0deg); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(300px) rotate(540deg); opacity: 0; } }
+        @keyframes bday-rise { 0% { transform: translateY(260px) rotate(-4deg); opacity: 0; } 15% { opacity: .9; } 85% { opacity: .9; } 100% { transform: translateY(-120px) rotate(6deg); opacity: 0; } }
+        @keyframes bday-shimmer { to { background-position: 200% center; } }
+        @keyframes bday-spin { to { transform: rotate(360deg); } }
+        @keyframes bday-pulse { 0%,100% { transform: scale(1); opacity: .55; } 50% { transform: scale(1.15); opacity: .9; } }
+        @keyframes bday-twinkle { 0%,100% { transform: scale(.8) rotate(0); opacity: .5; } 50% { transform: scale(1.2) rotate(20deg); opacity: 1; } }
+        @keyframes bday-wish { 0% { opacity: 0; transform: translateY(8px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes bday-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+        .bday-shimmer-text {
+          background: linear-gradient(90deg, #fde68a, #ffffff, #fbbf24, #fde68a);
+          background-size: 200% auto;
+          -webkit-background-clip: text; background-clip: text;
+          -webkit-text-fill-color: transparent; color: transparent;
+          animation: bday-shimmer 4s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .bday-root *, .bday-root *::before { animation: none !important; }
+        }
+      `}</style>
+
+      {/* Glow blobs */}
+      <div className="pointer-events-none absolute -left-16 -top-20 h-64 w-64 rounded-full bg-amber-400/25 blur-3xl" style={{ animation: "bday-pulse 5s ease-in-out infinite" }} />
+      <div className="pointer-events-none absolute -bottom-24 right-1/4 h-60 w-60 rounded-full bg-fuchsia-500/25 blur-3xl" style={{ animation: "bday-pulse 6s ease-in-out infinite 1s" }} />
+
+      {/* Confetti */}
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        {confetti.map((c) => (
+          <span
+            key={c.id}
+            className="absolute top-0 block"
+            style={{
+              left: c.left,
+              width: c.size,
+              height: c.round ? c.size : c.size * 0.45,
+              background: c.color,
+              borderRadius: c.round ? "9999px" : "2px",
+              animation: `bday-fall ${c.dur} linear ${c.delay} infinite`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Balloons */}
+      <div className="pointer-events-none absolute inset-0 hidden sm:block" aria-hidden="true">
+        {BALLOONS.map((b, i) => (
+          <span
+            key={i}
+            className="absolute bottom-0"
+            style={{ left: b.left, animation: `bday-rise ${b.dur} ease-in-out ${b.delay} infinite` }}
+          >
+            <Balloon color={b.color} />
+          </span>
+        ))}
+      </div>
+
+      {/* Twinkling stars */}
+      <Star className="pointer-events-none absolute right-10 top-6 hidden h-5 w-5 fill-amber-300 text-amber-300 sm:block" style={{ animation: "bday-twinkle 2.4s ease-in-out infinite" }} aria-hidden="true" />
+      <Sparkles className="pointer-events-none absolute right-24 top-14 hidden h-7 w-7 text-amber-200 sm:block" style={{ animation: "bday-twinkle 3s ease-in-out infinite .6s" }} aria-hidden="true" />
+      <Star className="pointer-events-none absolute left-1/2 top-4 hidden h-4 w-4 fill-pink-300 text-pink-300 md:block" style={{ animation: "bday-twinkle 2.8s ease-in-out infinite 1.2s" }} aria-hidden="true" />
+
+      {/* Content */}
+      <div className="relative flex flex-col items-center gap-5 px-5 py-7 text-center sm:flex-row sm:gap-8 sm:px-10 sm:py-8 sm:text-left">
+        {/* Photos with rotating gold ring */}
+        <div className="flex shrink-0 items-center justify-center -space-x-5">
+          {birthdays.map((person) => (
+            <div key={person.id} className="relative h-[104px] w-[104px]">
+              <span
+                className="absolute -inset-1.5 rounded-full"
+                style={{
+                  background: "conic-gradient(from 0deg, #fbbf24, #f472b6, #60a5fa, #34d399, #fbbf24)",
+                  animation: "bday-spin 6s linear infinite",
+                }}
+                aria-hidden="true"
+              />
+              <span className="absolute -inset-1.5 rounded-full bg-amber-300/30 blur-md" aria-hidden="true" />
+              {person.photo ? (
+                <img
+                  src={person.photo}
+                  alt={`${person.name}, birthday celebrant`}
+                  className="relative h-full w-full rounded-full border-4 border-white object-cover shadow-xl"
+                />
+              ) : (
+                <span
+                  className="relative grid h-full w-full place-items-center rounded-full border-4 border-white bg-gradient-to-br from-amber-300 to-orange-400 text-navy shadow-xl"
+                  aria-label={`${person.name}, birthday celebrant`}
+                >
+                  <Cake size={38} />
+                </span>
+              )}
+              <span className="absolute -bottom-1 -right-1 grid h-9 w-9 place-items-center rounded-full bg-white text-lg shadow-lg ring-2 ring-amber-300" style={{ animation: "bday-bounce 2s ease-in-out infinite" }}>
+                🎂
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-300/50 bg-white/10 px-3.5 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-amber-200 backdrop-blur">
+            <PartyPopper size={13} aria-hidden="true" /> Today we celebrate
+          </div>
+
+          <h2 className="bday-shimmer-text text-3xl font-black tracking-tight sm:text-4xl">
+            Happy Birthday! 🎉
+          </h2>
+
+          <p className="mt-1 text-lg font-extrabold text-white sm:text-2xl">{nameText}</p>
+
+          {/* Rotating wish */}
+          <p
+            key={wishIndex}
+            className="mt-2 min-h-[3rem] max-w-2xl text-sm leading-6 text-white/85 sm:text-base"
+            style={{ animation: "bday-wish .7s ease-out" }}
+          >
+            {BIRTHDAY_WISHES[wishIndex]}
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-500/90 px-3.5 py-1.5 text-sm font-bold text-white shadow-lg shadow-rose-900/30">
+              <Heart size={14} className="fill-white" aria-hidden="true" /> With love from the Manyata team
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-amber-100 ring-1 ring-white/20">
+              <Gift size={13} aria-hidden="true" /> Make it a day to remember
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export default function DashboardLayout({
   children,
@@ -364,38 +563,8 @@ export default function DashboardLayout({
 
         <main className="flex-1">
           <div className="dashboard-page-content mx-auto max-w-[1400px] px-5 py-6 lg:px-8 lg:py-8">
-            {todaysBirthdays.length > 0 && (
-              <section className="relative mb-6 overflow-hidden rounded-3xl border border-amber-200/80 bg-gradient-to-br from-[#fffaf0] via-white to-rose-50 shadow-[0_12px_35px_rgba(15,39,71,0.08)]" aria-live="polite">
-                <div className="pointer-events-none absolute -right-10 -top-16 h-52 w-52 rounded-full bg-amber-200/25 blur-2xl" />
-                <div className="pointer-events-none absolute -bottom-20 right-1/4 h-44 w-44 rounded-full bg-rose-200/25 blur-2xl" />
-                <Sparkles className="pointer-events-none absolute right-7 top-6 hidden h-7 w-7 text-amber-400/70 sm:block" aria-hidden="true" />
-                <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6 sm:px-7 sm:py-6">
-                  <div className="flex shrink-0 items-center">
-                    {todaysBirthdays.map((person) => (
-                      person.photo ? (
-                        <img key={person.id} src={person.photo} alt={`${person.name}, birthday celebrant`} className="h-[76px] w-[76px] rounded-full border-4 border-white object-cover shadow-[0_5px_18px_rgba(15,39,71,0.2)] ring-2 ring-amber-300" />
-                      ) : (
-                        <span key={person.id} className="grid h-[76px] w-[76px] place-items-center rounded-full border-4 border-white bg-gradient-to-br from-amber-300 to-orange-400 text-navy shadow-[0_5px_18px_rgba(15,39,71,0.2)] ring-2 ring-amber-300" aria-label={`${person.name}, birthday celebrant`}>
-                          <Cake size={27} />
-                        </span>
-                      )
-                    ))}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-white/80 px-3 py-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-amber-700 shadow-sm">
-                      <PartyPopper size={13} aria-hidden="true" /> Today we celebrate
-                    </div>
-                    <h2 className="text-xl font-extrabold tracking-tight text-navy sm:text-2xl">Birthday surprise! 🎉</h2>
-                    <p className="mt-1.5 text-sm leading-6 text-slate-600 sm:text-base">
-                      Wishing <span className="font-bold text-navy">{todaysBirthdays.map((person) => person.name).join(", ")}</span> a day filled with happiness, laughter, and lovely surprises.
-                    </p>
-                    <p className="mt-2 flex items-center gap-1.5 text-sm font-bold text-rose-600">
-                      <Heart size={15} className="fill-rose-500" aria-hidden="true" /> Happy Birthday from the Manyata team!
-                    </p>
-                  </div>
-                </div>
-              </section>
-            )}
+            {/* Birthday celebration banner */}
+            <BirthdayBanner birthdays={todaysBirthdays} />
             {children}
           </div>
         </main>
