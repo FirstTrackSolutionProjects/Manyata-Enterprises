@@ -3021,7 +3021,9 @@ function InstallationsTab({ location }) {
     setLoading(true);
     try {
       const partnerIsType = partnerFilter.startsWith("type:");
-      const params = { search: searchValue.trim(), name: nameFilter.trim(), email: emailFilter.trim(), phone: phoneFilter.trim(), partner: partnerIsType ? "" : partnerFilter, partnerType: partnerIsType ? partnerFilter.slice(5) : "", fromDate, toDate, sortBy, sortOrder, updatedBy: user?.role === "owner" || isHrEmployee(user) ? updatedByFilter : "", status: statusFilter, installationType: typeFilter, location: locationFilter, limit: "500" };
+      const canFilterByUpdater = user?.role === "owner" || isHrEmployee(user);
+      const selectedUpdaterName = updateEmployees.find((employee) => String(employee.id) === String(updatedByFilter))?.name || "";
+      const params = { search: searchValue.trim(), name: nameFilter.trim(), email: emailFilter.trim(), phone: phoneFilter.trim(), partner: partnerIsType ? "" : partnerFilter, partnerType: partnerIsType ? partnerFilter.slice(5) : "", fromDate, toDate, sortBy, sortOrder, updatedBy: canFilterByUpdater ? updatedByFilter : "", updatedByName: canFilterByUpdater ? selectedUpdaterName : "", status: statusFilter, installationType: typeFilter, location: locationFilter, limit: "500" };
       if (user?.role === "employee" && workList === "updated") params.updatedBy = String(user.id);
       if (user?.role === "employee" && workList === "remaining") params.updatedByNot = "1";
       const res = await listInstallations(location, params);
@@ -3148,7 +3150,11 @@ function InstallationsTab({ location }) {
           if (phoneFilter.trim()) params.set("phone", phoneFilter.trim());
           if (partnerFilter.startsWith("type:")) params.set("partnerType", partnerFilter.slice(5));
           else if (partnerFilter) params.set("partner", partnerFilter);
-          if (updatedByFilter.trim()) params.set("updatedBy", updatedByFilter.trim());
+          if (updatedByFilter.trim()) {
+            params.set("updatedBy", updatedByFilter.trim());
+            const selectedUpdaterName = updateEmployees.find((employee) => String(employee.id) === String(updatedByFilter))?.name;
+            if (selectedUpdaterName) params.set("updatedByName", selectedUpdaterName);
+          }
           if (user?.role === "employee" && workList === "updated") params.set("updatedBy", String(user.id));
           if (user?.role === "employee" && workList === "remaining") params.set("updatedByNot", "1");
           if (statusFilter) params.set("status", statusFilter);
@@ -3180,7 +3186,7 @@ function InstallationsTab({ location }) {
       <div role="status" className="flex justify-center rounded-xl border border-navy/10 bg-white p-8"><Loader2 className="animate-spin text-amber" /></div>
     ) : filteredItems.length === 0 ? (
       <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">
-        {search ? "No matching installations found." : "No installation submissions found."}
+        {search || activeFilterCount ? "No matching installations found for these filters." : "No installation submissions found."}
       </p>
     ) : (
       <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
