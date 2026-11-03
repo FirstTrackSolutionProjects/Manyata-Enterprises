@@ -2997,6 +2997,7 @@ function InstallationsTab({ location }) {
   const [totalInstallationCount, setTotalInstallationCount] = useState(null);
   const [installationStatusCounts, setInstallationStatusCounts] = useState({});
   const [installationTypes, setInstallationTypes] = useState([]);
+  const [installationPartnerOptions, setInstallationPartnerOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
@@ -3008,6 +3009,7 @@ function InstallationsTab({ location }) {
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [partnerFilter, setPartnerFilter] = useState("");
   const [updatedByFilter, setUpdatedByFilter] = useState("");
   const [workList, setWorkList] = useState("all");
   const [fromDate, setFromDate] = useState("");
@@ -3018,7 +3020,8 @@ function InstallationsTab({ location }) {
     const requestId = ++listRequestId.current;
     setLoading(true);
     try {
-      const params = { search: searchValue.trim(), name: nameFilter.trim(), email: emailFilter.trim(), phone: phoneFilter.trim(), fromDate, toDate, sortBy, sortOrder, updatedBy: user?.role === "owner" || isHrEmployee(user) ? updatedByFilter : "", status: statusFilter, installationType: typeFilter, location: locationFilter, limit: "500" };
+      const partnerIsType = partnerFilter.startsWith("type:");
+      const params = { search: searchValue.trim(), name: nameFilter.trim(), email: emailFilter.trim(), phone: phoneFilter.trim(), partner: partnerIsType ? "" : partnerFilter, partnerType: partnerIsType ? partnerFilter.slice(5) : "", fromDate, toDate, sortBy, sortOrder, updatedBy: user?.role === "owner" || isHrEmployee(user) ? updatedByFilter : "", status: statusFilter, installationType: typeFilter, location: locationFilter, limit: "500" };
       if (user?.role === "employee" && workList === "updated") params.updatedBy = String(user.id);
       if (user?.role === "employee" && workList === "remaining") params.updatedByNot = "1";
       const res = await listInstallations(location, params);
@@ -3033,7 +3036,44 @@ function InstallationsTab({ location }) {
   };
   useEffect(() => {
     load();
-  }, [location, search, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder, updatedByFilter, workList, statusFilter, typeFilter, locationFilter]);
+  }, [location, search, nameFilter, emailFilter, phoneFilter, partnerFilter, fromDate, toDate, sortBy, sortOrder, updatedByFilter, workList, statusFilter, typeFilter, locationFilter]);
+
+  useEffect(() => {
+    if (!(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view"))) return undefined;
+    let active = true;
+    (async () => {
+      try {
+        const firstPage = await apiFetch("/admin/partners?limit=100&page=1");
+        const allPartners = [...(firstPage.data.items || [])];
+        const pageCount = Number(firstPage.data.pages || 1);
+        if (pageCount > 1) {
+          const remainingPages = await Promise.all(Array.from({ length: pageCount - 1 }, (_, index) =>
+            apiFetch(`/admin/partners?limit=100&page=${index + 2}`)
+          ));
+          remainingPages.forEach((response) => allPartners.push(...(response.data.items || [])));
+        }
+        const roleOrder = { super_vendor: 0, vendor: 1, sub_vendor: 2, sub_vendor_commission: 2, dealer: 3 };
+        const roleLabels = { super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" };
+        const namedOptions = allPartners.flatMap((partner) => {
+          const role = String(partner.partner_type || "").toLowerCase();
+          if (!roleLabels[role]) return [];
+          return [...new Set([partner.company_name, partner.contact_name].map((name) => String(name || "").trim()).filter(Boolean))]
+            .map((name) => ({ value: name, label: `${name} — ${roleLabels[role]}`, roleOrder: roleOrder[role] }));
+        });
+        const uniqueOptions = [...new Map(namedOptions.map((option) => [`${option.value.toLowerCase()}|${option.roleOrder}`, option])).values()]
+          .sort((left, right) => left.roleOrder - right.roleOrder || left.value.localeCompare(right.value));
+        const roleOptions = [
+          { value: "type:super_vendor", label: "All Super-vendors", roleOrder: -1 },
+          { value: "type:vendor", label: "All Vendors", roleOrder: -1 },
+          { value: "type:sub_vendor", label: "All Sub-vendors / Dealers", roleOrder: -1 },
+        ];
+        if (active) setInstallationPartnerOptions([...roleOptions, ...uniqueOptions]);
+      } catch (error) {
+        console.error("Could not load partners for the installation filter.", error);
+      }
+    })();
+    return () => { active = false; };
+  }, [user]);
 
   useEffect(() => {
     let active = true;
@@ -3060,11 +3100,14 @@ function InstallationsTab({ location }) {
     (!nameFilter || String(item.customer_name || "").toLowerCase().includes(nameFilter.trim().toLowerCase())) &&
     (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) &&
     (!phoneFilter || String(item.phone || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) &&
+    (!partnerFilter || (partnerFilter.startsWith("type:")
+      ? ({ "type:super_vendor": item.super_vendor_name, "type:vendor": item.vendor_name, "type:sub_vendor": item.sub_vendor_name }[partnerFilter] || "")
+      : [item.super_vendor_name, item.vendor_name, item.sub_vendor_name, item.sales_executive_name].some((name) => String(name || "").trim().toLowerCase() === partnerFilter.trim().toLowerCase()))) &&
     (!statusFilter || item.status === statusFilter) &&
     (!typeFilter || item.installation_type === typeFilter) &&
     (!locationFilter || item.location === locationFilter)
   ), { fromDate, toDate, sortBy, sortOrder, nameKey: "customer_name" });
-  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(updatedByFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
+  const activeFilterCount = Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(partnerFilter)) + Number(Boolean(updatedByFilter)) + Number(Boolean(statusFilter)) + Number(Boolean(typeFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate));
   return <div className="space-y-4">
     <h2 className="text-xl font-extrabold text-navy">{title}</h2>
     {user?.role === "employee" && <div className="flex flex-wrap gap-2" role="tablist" aria-label="Installation update lists">
@@ -3103,6 +3146,8 @@ function InstallationsTab({ location }) {
           if (nameFilter.trim()) params.set("name", nameFilter.trim());
           if (emailFilter.trim()) params.set("email", emailFilter.trim());
           if (phoneFilter.trim()) params.set("phone", phoneFilter.trim());
+          if (partnerFilter.startsWith("type:")) params.set("partnerType", partnerFilter.slice(5));
+          else if (partnerFilter) params.set("partner", partnerFilter);
           if (updatedByFilter.trim()) params.set("updatedBy", updatedByFilter.trim());
           if (user?.role === "employee" && workList === "updated") params.set("updatedBy", String(user.id));
           if (user?.role === "employee" && workList === "remaining") params.set("updatedByNot", "1");
@@ -3120,6 +3165,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="Name" value={nameFilter} onChange={setNameFilter} />
       <FilterInput label="Email" value={emailFilter} onChange={setEmailFilter} />
       <FilterInput label="Phone Number" value={phoneFilter} onChange={setPhoneFilter} />
+      {(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view")) && <SearchableFilterSelect label="Partner" value={partnerFilter} onChange={setPartnerFilter} options={installationPartnerOptions} placeholder="All partners" searchPlaceholder="Search vendor or partner name..." />}
       {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" searchPlaceholder="Search employee name..." />}
       <SearchableFilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES.map((status) => ({ ...status, count: Number(installationStatusCounts[status.value] || 0) }))} placeholder="All statuses" placeholderCount={totalInstallationCount} />
       <SearchableFilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={installationTypes.map((value) => ({ value, label: value }))} placeholder="All types" searchPlaceholder="Search installation type..." />
@@ -3128,7 +3174,7 @@ function InstallationsTab({ location }) {
       <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
       <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "customer_name", label: "Customer Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
       <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
-      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setUpdatedByFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+      <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setPartnerFilter(""); setUpdatedByFilter(""); setStatusFilter(""); setTypeFilter(""); setLocationFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
     </div>}
     {loading && items.length === 0 ? (
       <div role="status" className="flex justify-center rounded-xl border border-navy/10 bg-white p-8"><Loader2 className="animate-spin text-amber" /></div>
