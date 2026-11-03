@@ -1226,6 +1226,17 @@ function ApplicationsTab({ initialLocation = "" }) {
     : null;
   const showRegionalStatusCards = ["kolkata", "west_bengal", "odisha", "orissa", "udisa", "odisa"].includes(String(initialLocation || "").toLowerCase())
     && (user?.role === "owner" || isHrEmployee(user));
+  const regionalCardCoveredStatuses = new Set([
+    "pending", "verified", "consumer_login_submitted_to_govt_portal", "submitted_to_govt",
+    "vendor_side_quotation_agreement_pending", "electricity_bill_name_mismatch",
+    "electricity_bill_mismatch_ownership_transfer", "electricity_bill_ownership_transfer_customer_side_on_process",
+    "electricity_bill_ownership_transfer_completed_successfully", "customer_not_interested", "rejected",
+    "customer_side_bank_forward", "vendor_side_bank_forward", "customer_side_documents_issue", "bank_reject",
+    "loan_visible", "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "customer_full_loan_amount_disbursed",
+  ]);
+  const additionalRegionalStatusCards = Object.entries(applicationStatusCounts)
+    .filter(([status, count]) => Number(count || 0) > 0 && !regionalCardCoveredStatuses.has(status))
+    .map(([status, count]) => [applicationStatusLabel(status), Number(count), `status-${status}`]);
 
   return (
     <div className="space-y-4">
@@ -1242,11 +1253,12 @@ function ApplicationsTab({ initialLocation = "" }) {
             ["Customer Not Interested", Number(applicationStatusCounts.customer_not_interested || 0)],
             ["Rejected", Number(applicationStatusCounts.rejected || 0)],
           ] : []),
-          ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0)],
+          ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0) + Number(applicationStatusCounts.vendor_side_bank_forward || 0)],
           ["Customer Side - Documents Issue", Number(applicationStatusCounts.customer_side_documents_issue || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0)],
           ["Loan Visible", Number(applicationStatusCounts.loan_visible || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
+          ...additionalRegionalStatusCards,
         ]).map((card) => {
           const [label, value, key] = Array.isArray(card) ? card : [card.label, card.value, card.label];
           return <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>;
