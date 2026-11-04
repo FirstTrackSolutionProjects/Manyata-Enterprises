@@ -1251,10 +1251,10 @@ function ApplicationsTab({ initialLocation = "" }) {
     "electricity_bill_mismatch_ownership_transfer", "electricity_bill_ownership_transfer_customer_side_on_process",
     "electricity_bill_ownership_transfer_completed_successfully", "customer_not_interested", "rejected",
     "customer_side_bank_forward", "vendor_side_bank_forward", "customer_side_documents_issue", "bank_reject",
-    "loan_visible", "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "customer_full_loan_amount_disbursed",
+    "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "customer_full_loan_amount_disbursed",
   ]);
   const additionalRegionalStatusCards = Object.entries(applicationStatusCounts)
-    .filter(([status, count]) => Number(count || 0) > 0 && !regionalCardCoveredStatuses.has(status))
+    .filter(([status, count]) => status !== "loan_visible" && Number(count || 0) > 0 && !regionalCardCoveredStatuses.has(status))
     .map(([status, count]) => [applicationStatusLabel(status), Number(count), `status-${status}`]);
 
   return (
@@ -1275,7 +1275,6 @@ function ApplicationsTab({ initialLocation = "" }) {
           ["Customer Side - Bank Forward", Number(applicationStatusCounts.customer_side_bank_forward || 0) + Number(applicationStatusCounts.vendor_side_bank_forward || 0)],
           ["Customer Side - Documents Issue", Number(applicationStatusCounts.customer_side_documents_issue || 0)],
           ["Bank Rejected", Number(applicationStatusCounts.bank_reject || 0)],
-          ["Loan Visible", Number(applicationStatusCounts.loan_visible || 0)],
           ["Loan Disbursed", Number(applicationStatusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(applicationStatusCounts.loan_disbursed_phase_2 || 0) + Number(applicationStatusCounts.customer_full_loan_amount_disbursed || 0)],
           ...additionalRegionalStatusCards,
         ]).map((card) => {
@@ -1288,7 +1287,6 @@ function ApplicationsTab({ initialLocation = "" }) {
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
         {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Customer Side - Documents Issue</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(applicationStatusCounts.customer_side_documents_issue || 0)}</p></div>
-        <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Loan Visible</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(applicationStatusCounts.loan_visible || 0)}</p></div>
       </div>}
       {/* Top search + filter toggle */}
       <div className="flex flex-wrap gap-3">
@@ -2594,7 +2592,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
                   {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div></div>}
                   {["applications", "installations", "partners"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{(value === "partners" ? [["export", "Excel export"]] : [["view", "View"], ["edit", "Edit"], ["download", "PDF download"], ["export", "Excel export"]]).map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={value !== "partners" && action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
                   {["applications", "installations"].includes(value) && form.permissions.includes(value) && <details className="mt-2 border-t border-navy/10 pt-2">
-                    <summary className="cursor-pointer text-[11px] font-semibold text-navy">Role-wise Status access ({form.actionPermissions[value]?.statusUpdates?.length || 0})</summary>
+                    <summary className="cursor-pointer text-[11px] font-semibold text-navy">Role-wise Status access ({(form.actionPermissions[value]?.statusUpdates || []).filter((status) => status !== "loan_visible").length})</summary>
                     <div className="mt-2 rounded-lg border border-navy/10 bg-white p-2">
                       {!form.actionPermissions[value]?.edit && <p className="mb-2 text-[10px] text-muted">Enable Edit access to configure status permissions.</p>}
                       <div className="mb-2 flex gap-3 text-[11px]">

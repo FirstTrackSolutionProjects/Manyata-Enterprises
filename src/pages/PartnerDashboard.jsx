@@ -45,10 +45,10 @@ export default function PartnerDashboard() {
     "electricity_bill_mismatch_ownership_transfer", "electricity_bill_ownership_transfer_customer_side_on_process",
     "electricity_bill_ownership_transfer_completed_successfully", "customer_not_interested", "rejected",
     "customer_side_bank_forward", "vendor_side_bank_forward", "customer_side_documents_issue", "bank_reject",
-    "loan_visible", "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "customer_full_loan_amount_disbursed",
+    "loan_disbursed_successfully_phase_1", "loan_disbursed_phase_2", "customer_full_loan_amount_disbursed",
   ]);
   const extraStatusCards = Object.entries(statusCounts)
-    .filter(([status, count]) => Number(count || 0) > 0 && !regionalCardCoveredStatuses.has(status))
+    .filter(([status, count]) => status !== "loan_visible" && Number(count || 0) > 0 && !regionalCardCoveredStatuses.has(status))
     .map(([status, count]) => [applicationStatusLabel(status), Number(count), `status-${status}`]);
   const applicationCards = [
     ["New Customer Application", Number(statusCounts.pending || 0)],
@@ -62,7 +62,6 @@ export default function PartnerDashboard() {
     ["Customer Side - Bank Forward", Number(statusCounts.customer_side_bank_forward || 0) + Number(statusCounts.vendor_side_bank_forward || 0)],
     ["Customer Side - Documents Issue", Number(statusCounts.customer_side_documents_issue || 0)],
     ["Bank Rejected", Number(statusCounts.bank_reject || 0)],
-    ["Loan Visible", Number(statusCounts.loan_visible || 0)],
     ["Loan Disbursed", Number(statusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(statusCounts.loan_disbursed_phase_2 || 0) + Number(statusCounts.customer_full_loan_amount_disbursed || 0)],
     ...extraStatusCards,
   ];
