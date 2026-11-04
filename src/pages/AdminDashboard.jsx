@@ -100,10 +100,16 @@ import { formatApplicationLocation } from "../utils/applicationLocation";
 import AttendanceDashboard from "./AttendanceDashboard";
 
 const TECHNICAL_APPLICATION_STATUS_VALUES = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
+const LOAN_DISBURSED_PERMISSION_STATUSES = [
+  "loan_disbursed_successfully_phase_1",
+  "loan_disbursed_phase_2",
+  "customer_full_loan_amount_disbursed",
+];
 const EMPLOYEE_APPLICATION_STATUS_OPTIONS = [...new Map([
   ...APPLICATION_UPDATE_STATUSES,
   ...APPLICATION_STATUSES.filter((status) => TECHNICAL_APPLICATION_STATUS_VALUES.includes(status.value)),
-].map((status) => [status.value, status])).values()];
+].filter((status) => !LOAN_DISBURSED_PERMISSION_STATUSES.includes(status.value))
+  .map((status) => [status.value, status])).values()];
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -1232,7 +1238,10 @@ function ApplicationsTab({ initialLocation = "" }) {
         : []
     : null;
   const roleScopedCards = user?.role === "employee" && !isHrEmployee(user)
-    ? APPLICATION_STATUSES.filter((status) => status.value !== "customer_side_bank_forward_pending" && assignedApplicationStatuses.includes(status.value)).map((status) => ({
+    ? [
+      ...APPLICATION_STATUSES.filter((status) => status.value !== "customer_side_bank_forward_pending"
+        && !LOAN_DISBURSED_PERMISSION_STATUSES.includes(status.value)
+        && assignedApplicationStatuses.includes(status.value)).map((status) => ({
       label: status.value === "pending"
         ? "New Customer Application"
         : status.value === "consumer_login_submitted_to_govt_portal"
@@ -1241,7 +1250,14 @@ function ApplicationsTab({ initialLocation = "" }) {
       value: status.value === "consumer_login_submitted_to_govt_portal"
         ? Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)
         : Number(applicationStatusCounts[status.value] || 0),
-    }))
+      })),
+      ...(LOAN_DISBURSED_PERMISSION_STATUSES.some((status) => assignedApplicationStatuses.includes(status)) ? [{
+        label: "Loan Disbursed",
+        value: LOAN_DISBURSED_PERMISSION_STATUSES
+          .filter((status) => assignedApplicationStatuses.includes(status))
+          .reduce((total, status) => total + Number(applicationStatusCounts[status] || 0), 0),
+      }] : []),
+    ]
     : null;
   const showRegionalStatusCards = ["kolkata", "west_bengal", "odisha", "orissa", "udisa", "odisa"].includes(String(initialLocation || "").toLowerCase())
     && (user?.role === "owner" || isHrEmployee(user));
@@ -2596,9 +2612,25 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
                     <div className="mt-2 rounded-lg border border-navy/10 bg-white p-2">
                       {!form.actionPermissions[value]?.edit && <p className="mb-2 text-[10px] text-muted">Enable Edit access to configure status permissions.</p>}
                       <div className="mb-2 flex gap-3 text-[11px]">
-                        <button type="button" disabled={!form.actionPermissions[value]?.edit} onClick={() => setModuleStatusUpdates(value, (value === "applications" ? EMPLOYEE_APPLICATION_STATUS_OPTIONS : INSTALLATION_STATUSES).map((status) => status.value))} className="font-semibold text-amber disabled:opacity-50">Select all</button>
+                        <button type="button" disabled={!form.actionPermissions[value]?.edit} onClick={() => setModuleStatusUpdates(value, [
+                          ...(value === "applications" ? EMPLOYEE_APPLICATION_STATUS_OPTIONS : INSTALLATION_STATUSES).map((status) => status.value),
+                          ...(value === "applications" ? LOAN_DISBURSED_PERMISSION_STATUSES : []),
+                        ])} className="font-semibold text-amber disabled:opacity-50">Select all</button>
                         <button type="button" disabled={!form.actionPermissions[value]?.edit} onClick={() => setModuleStatusUpdates(value, [])} className="font-semibold text-muted disabled:opacity-50">Clear</button>
                       </div>
+                      {value === "applications" && <label className="mb-2 flex items-start gap-2 border-b border-navy/10 pb-2 text-[11px] font-semibold text-navy/80">
+                        <input
+                          type="checkbox"
+                          checked={LOAN_DISBURSED_PERMISSION_STATUSES.every((status) => form.actionPermissions[value]?.statusUpdates?.includes(status))}
+                          disabled={!form.actionPermissions[value]?.edit}
+                          onChange={(event) => setModuleStatusUpdates(value, [...new Set([
+                            ...(form.actionPermissions[value]?.statusUpdates || []).filter((status) => !LOAN_DISBURSED_PERMISSION_STATUSES.includes(status)),
+                            ...(event.target.checked ? LOAN_DISBURSED_PERMISSION_STATUSES : []),
+                          ])])}
+                          className="mt-0.5 accent-amber"
+                        />
+                        <span>Loan Disbursed (Phase 1, Phase 2 &amp; Full Amount)</span>
+                      </label>}
                       <div className="max-h-40 space-y-1 overflow-y-auto">
                         {(value === "applications" ? EMPLOYEE_APPLICATION_STATUS_OPTIONS : INSTALLATION_STATUSES).map((status) => <label key={status.value} className="flex items-start gap-2 text-[11px] text-navy/80">
                           <input type="checkbox" checked={Boolean(form.actionPermissions[value]?.statusUpdates?.includes(status.value))} disabled={!form.actionPermissions[value]?.edit} onChange={(event) => toggleStatusUpdate(value, status.value, event.target.checked)} className="mt-0.5 accent-amber" />
