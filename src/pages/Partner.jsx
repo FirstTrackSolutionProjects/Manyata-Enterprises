@@ -47,6 +47,7 @@ const initialState = {
   address: "",
   city: "",
   state: "",
+  district: "",
   pincode: "",
   experienceYears: "",
   description: "",
@@ -266,8 +267,10 @@ export default function Partner() {
                 name="state"
                 value={form.state}
                 onChange={handleChange}
+                required
                 options={[{ value: "", label: "Select state" }, { value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]}
               />
+              <Field label="District" name="district" value={form.district} onChange={handleChange} placeholder="Enter your district" required />
               <Field
                 label="PIN Code"
                 name="pincode"
@@ -397,7 +400,7 @@ function FormCard({ icon: Icon, title, children }) {
   );
 }
 
-function Field({ label, name, value, onChange, placeholder, type = "text" }) {
+function Field({ label, name, value, onChange, placeholder, type = "text", required = false }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -409,13 +412,14 @@ function Field({ label, name, value, onChange, placeholder, type = "text" }) {
         value={value}
         onChange={onChange}
         placeholder={placeholder}
+        required={required}
         className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy placeholder:text-muted focus:border-amber focus:outline-none"
       />
     </label>
   );
 }
 
-function SelectField({ label, name, value, onChange, options }) {
+function SelectField({ label, name, value, onChange, options, required = false }) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">
@@ -425,6 +429,7 @@ function SelectField({ label, name, value, onChange, options }) {
         name={name}
         value={value}
         onChange={onChange}
+        required={required}
         className="w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none"
       >
         {options.map((opt) => (

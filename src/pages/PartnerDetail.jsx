@@ -373,7 +373,7 @@ export default function PartnerDetail() {
             ["GST Number", partner.gst_number], ["PAN Number", partner.pan_number], ["MSME Number", partner.msme_number],
           ]} />
           <InfoSection title="Address" items={[
-            ["Address", partner.address], ["City", partner.city], ["State", partner.state], ["PIN Code", partner.pincode],
+            ["Address", partner.address], ["City", partner.city], ["District", partner.district], ["State", partner.state], ["PIN Code", partner.pincode],
           ]} />
           {partner.site_latitude != null && partner.site_longitude != null && <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-navy/10 bg-white px-5 py-4"><div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-amber-soft text-amber"><MapPin size={18} /></span><div><h3 className="text-base font-bold text-navy">Submission GPS</h3><p className="text-xs text-muted">Accuracy: {partner.site_accuracy_m ?? "Not recorded"} m</p></div></div><a className="inline-flex items-center gap-1.5 rounded-full border border-navy/20 px-4 py-2 text-xs font-bold text-navy transition hover:border-amber" href={`https://maps.google.com/?q=${partner.site_latitude},${partner.site_longitude}`} target="_blank" rel="noreferrer"><ExternalLink size={13} />Open location on map</a></section>}
           <InfoSection title="Bank Details" items={[

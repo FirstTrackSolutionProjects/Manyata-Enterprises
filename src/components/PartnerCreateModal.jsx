@@ -26,7 +26,7 @@ const INITIAL_FORM = {
   assignedLocations: [],
   contactName: "", email: "", phone: "", gstNumber: "", panNumber: "",
   aadhaarNumber: "", gender: "", dob: "",
-  msmeNumber: "", address: "", city: "", state: "", pincode: "",
+  msmeNumber: "", address: "", city: "", state: "", district: "", pincode: "",
   experienceYears: "", description: "", bankName: "", accountNumber: "", ifscCode: "",
 };
 
@@ -133,6 +133,7 @@ export default function PartnerCreateModal({ onClose, onSaved }) {
           </section>
           {INPUTS.map(([name, label, required, type]) => <Field key={name} label={label} value={form[name]} required={required} type={type || "text"} onChange={(value) => updateField(name, value)} />)}
           <Select label="State" value={form.state} onChange={(value) => updateField("state", value)} options={[["", "Select state"], ["Odisha", "Odisha"], ["West Bengal", "West Bengal"]]} />
+          <Field label="District" value={form.district} required onChange={(value) => updateField("district", value)} />
           <Select label="Gender" value={form.gender} required={false} onChange={(value) => updateField("gender", value)} options={[["", "Select gender (optional)"], ["male", "Male"], ["female", "Female"], ["other", "Other"]]} />
           <label className="text-xs font-semibold text-navy/70 sm:col-span-2">Business Description<textarea rows={3} value={form.description} onChange={(event) => updateField("description", event.target.value)} className="mt-1 w-full rounded-lg border border-navy/15 px-3 py-2.5 text-sm font-normal" /></label>
         </div>

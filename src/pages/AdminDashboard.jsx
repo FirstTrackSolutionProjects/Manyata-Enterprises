@@ -2999,6 +2999,7 @@ function BranchModal({ branch, onClose, onSaved }) {
               label="District"
               value={form.district}
               onChange={(v) => setForm({ ...form, district: v })}
+              required
             />
           </div>
           <Input

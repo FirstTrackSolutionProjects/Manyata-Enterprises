@@ -23,6 +23,7 @@ export default function PartnerDashboard() {
   const [hierarchy, setHierarchy] = useState([]);
   const [incomingCommission, setIncomingCommission] = useState(null);
   const [partnerProfile, setPartnerProfile] = useState(null);
+  const [districtBranches, setDistrictBranches] = useState([]);
   const [commissionDrafts, setCommissionDrafts] = useState({});
   const [savingCommissionId, setSavingCommissionId] = useState(null);
   const [commissionNotice, setCommissionNotice] = useState("");
@@ -74,6 +75,7 @@ export default function PartnerDashboard() {
       if (!active) return;
       const children = response.data.children || [];
       setPartnerProfile(response.data.partner || null);
+      setDistrictBranches(response.data.branches || []);
       setHierarchy(children);
       setIncomingCommission(response.data.partner?.incoming_commission || null);
       if (Array.isArray(response.data.partner?.assigned_locations)) setAssignedLocations([...new Set(response.data.partner.assigned_locations)]);
@@ -155,6 +157,11 @@ export default function PartnerDashboard() {
           <div className="mt-3 flex flex-wrap gap-2">{assignedLocationLabels.length ? assignedLocationLabels.map((location) => <span key={location} className="rounded-full bg-amber-50 px-3 py-1.5 text-sm font-semibold text-navy">{location}</span>) : <span className="text-sm text-muted">No locations assigned. Contact the owner.</span>}</div>
         </div>
         </div>
+        <section className="mb-6 rounded-2xl border border-navy/10 bg-white p-5">
+          <h2 className="flex items-center gap-2 text-sm font-bold text-navy"><Building2 size={16} /> Branches in Your District</h2>
+          <p className="mt-1 text-xs text-muted">Matched using your partner profile state and district.</p>
+          {districtBranches.length ? <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{districtBranches.map((branch) => <article key={branch.id} className="rounded-xl border border-navy/10 bg-slate-50 p-4"><p className="font-bold text-navy">{branch.name}</p><p className="mt-1 text-sm text-muted">{branch.district}, {branch.state}</p>{branch.address && <p className="mt-1 text-xs text-muted">{branch.address}</p>}</article>)}</div> : <p className="mt-3 text-sm text-muted">No active branch matches {partnerProfile?.district ? `${partnerProfile.district}, ${partnerProfile.state || ""}` : "your district yet"}.</p>}
+        </section>
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:max-w-4xl">
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">Odisha Partners in Your Chain</p><p className="mt-2 text-2xl font-extrabold text-navy">{regionCounts.odisha}</p></div>
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">West Bengal Partners in Your Chain</p><p className="mt-2 text-2xl font-extrabold text-navy">{regionCounts.west_bengal}</p></div>
@@ -206,6 +213,7 @@ function PartnerProfile({ profile, partnerType }) {
     ["Date of birth", profile?.dob ? new Date(profile.dob).toLocaleDateString("en-IN") : ""],
     ["Address", profile?.address],
     ["City", profile?.city],
+    ["District", profile?.district],
     ["State", profile?.state],
     ["PIN code", profile?.pincode],
     ["System types", (profile?.system_types || []).map(titleCase).join(", ")],
