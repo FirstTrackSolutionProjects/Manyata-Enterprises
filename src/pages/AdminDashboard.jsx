@@ -1784,8 +1784,6 @@ function EmployeesTab() {
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
-  const [salesExecutiveFilter, setSalesExecutiveFilter] = useState("");
-  const [salesExecutiveEmployees, setSalesExecutiveEmployees] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
@@ -3473,6 +3471,8 @@ function SubmissionList({ type }) {
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [salesExecutiveFilter, setSalesExecutiveFilter] = useState("");
+  const [salesExecutiveEmployees, setSalesExecutiveEmployees] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
