@@ -25,6 +25,7 @@ import CameraFileInput from "../components/CameraFileInput";
 const EMPTY_FILTERS = {
   search: "",
   status: "",
+  salesExecutive: "",
   location: "",
   systemType: "",
   systemSize: "",
@@ -70,6 +71,7 @@ export default function EmployeeDashboard() {
       const params = { page: p, limit };
       if (filters.search) params.search = filters.search;
       if (filters.status) params.status = filters.status;
+      if (filters.salesExecutive) params.salesExecutive = filters.salesExecutive;
       if (filters.location) params.location = filters.location;
       if (filters.systemType) params.systemType = filters.systemType;
       if (filters.systemSize) params.systemSize = filters.systemSize;
@@ -84,6 +86,7 @@ export default function EmployeeDashboard() {
       setTotalPages(res.data.pages || 1);
       if (
         !filters.status &&
+        !filters.salesExecutive &&
         !filters.search &&
         !filters.location &&
         !filters.systemType &&
@@ -231,6 +234,7 @@ export default function EmployeeDashboard() {
               options={APPLICATION_STATUSES}
               placeholder="All statuses"
             />
+            <FilterInput label="Sales Executive" value={filters.salesExecutive} onChange={(v) => updateFilter("salesExecutive", v)} />
             <FilterSelect
               label="Location"
               value={filters.location}

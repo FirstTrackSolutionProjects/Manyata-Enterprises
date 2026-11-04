@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { Building2, FileText, Search, Loader2, Network, Banknote, UserRound } from "lucide-react";
+import { Building2, FileText, Search, Loader2, Network, Banknote, UserRound, Filter, RotateCcw, Eye, X } from "lucide-react";
 import DashboardLayout from "../components/DashboardLayout";
 import DashboardWelcome from "../components/DashboardWelcome";
 import { useAuth } from "../contexts/AuthContext";
 import { fileUrl, getMyCommissionPayouts, getMyPartnerApplications, getMyPartnerHierarchy, setMyChildPartnerCommission } from "../services/api";
 import { hasActionPermission } from "../utils/permissions";
 import { formatApplicationLocation } from "../utils/applicationLocation";
-import { applicationStatusLabel } from "../constants/applicationStatuses";
+import { APPLICATION_STATUSES, applicationStatusLabel } from "../constants/applicationStatuses";
 
 const formatDateTime = (value) => value ? new Date(value).toLocaleString("en-IN", { dateStyle: "short", timeStyle: "short" }) : "—";
 const titleCase = (value = "") => String(value).replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
@@ -33,6 +33,9 @@ export default function PartnerDashboard() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [search, setSearch] = useState("");
+  const [showApplicationFilters, setShowApplicationFilters] = useState(false);
+  const [applicationFilters, setApplicationFilters] = useState({ status: "", location: "", salesExecutive: "", systemType: "", systemSize: "", fromDate: "", toDate: "", sortBy: "created_at", sortOrder: "desc" });
+  const [selectedApplication, setSelectedApplication] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const regionalCardCoveredStatuses = new Set([
@@ -62,6 +65,8 @@ export default function PartnerDashboard() {
     ["Loan Disbursed", Number(statusCounts.loan_disbursed_successfully_phase_1 || 0) + Number(statusCounts.loan_disbursed_phase_2 || 0) + Number(statusCounts.customer_full_loan_amount_disbursed || 0)],
     ...extraStatusCards,
   ];
+  const activePartnerApplicationFilterCount = Object.entries(applicationFilters)
+    .filter(([key, value]) => value && key !== "sortBy" && key !== "sortOrder").length;
 
   useEffect(() => {
     let active = true;
@@ -113,7 +118,7 @@ export default function PartnerDashboard() {
       setLoading(true);
       setError("");
       try {
-        const response = await getMyPartnerApplications({ page: String(page), limit: "20", search: search.trim() });
+        const response = await getMyPartnerApplications({ page: String(page), limit: "20", search: search.trim(), ...Object.fromEntries(Object.entries(applicationFilters).filter(([, value]) => value)) });
         if (!active) return;
         setApplications(response.data.items || []);
         setTotal(response.data.total || 0);
@@ -126,7 +131,7 @@ export default function PartnerDashboard() {
       }
     }, 180);
     return () => { active = false; clearTimeout(timer); };
-  }, [canViewApplications, page, search]);
+  }, [canViewApplications, page, search, applicationFilters]);
 
   return (
     <DashboardLayout
@@ -162,13 +167,28 @@ export default function PartnerDashboard() {
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {[[`Total Applications${assignedLocationLabels.length === 1 ? ` - ${assignedLocationLabels[0]}` : ""}`, total, "total"], ...applicationCards].map(([label, value, key]) => <div key={key || label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
         </div>
-        <div className="relative"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search by name, phone, email, or application no." className="w-full rounded-lg border border-navy/15 bg-white py-3 pl-9 pr-4 text-sm focus:border-amber focus:outline-none" /></div>
+        <div className="flex flex-wrap gap-3">
+          <div className="relative min-w-[240px] flex-1"><Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search by name, phone, email, or application no." className="w-full rounded-lg border border-navy/15 bg-white py-3 pl-9 pr-4 text-sm focus:border-amber focus:outline-none" /></div>
+          <button type="button" onClick={() => setShowApplicationFilters((shown) => !shown)} className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-bold ${showApplicationFilters || activePartnerApplicationFilterCount ? "border-amber bg-amber-soft text-navy" : "border-navy/15 bg-white text-navy hover:border-amber"}`}><Filter size={15} /> Filters{activePartnerApplicationFilterCount > 0 && <span className="rounded-full bg-amber px-2 text-xs">{activePartnerApplicationFilterCount}</span>}</button>
+        </div>
+        {showApplicationFilters && <div className="mt-3 rounded-2xl border border-navy/10 bg-white p-4"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <label className="text-xs font-semibold text-muted">Status<select value={applicationFilters.status} onChange={(event) => { setApplicationFilters((current) => ({ ...current, status: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy"><option value="">All statuses</option>{APPLICATION_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}</select></label>
+          <label className="text-xs font-semibold text-muted">Location<select value={applicationFilters.location} onChange={(event) => { setApplicationFilters((current) => ({ ...current, location: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy"><option value="">All assigned locations</option>{assignedLocationLabels.map((location) => <option key={location} value={location === "West Bengal" ? "kolkata" : "odisha"}>{location}</option>)}</select></label>
+          <label className="text-xs font-semibold text-muted">Sales Executive<input value={applicationFilters.salesExecutive} onChange={(event) => { setApplicationFilters((current) => ({ ...current, salesExecutive: event.target.value })); setPage(1); }} placeholder="Search Sales Executive name" className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy" /></label>
+          <label className="text-xs font-semibold text-muted">System Type<select value={applicationFilters.systemType} onChange={(event) => { setApplicationFilters((current) => ({ ...current, systemType: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy"><option value="">All types</option><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label>
+          <label className="text-xs font-semibold text-muted">System Size<select value={applicationFilters.systemSize} onChange={(event) => { setApplicationFilters((current) => ({ ...current, systemSize: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy"><option value="">All sizes</option>{["1kw", "2kw", "3kw", "5kw", "10kw"].map((size) => <option key={size} value={size}>{titleCase(size)}</option>)}</select></label>
+          <label className="text-xs font-semibold text-muted">From Date<input type="date" value={applicationFilters.fromDate} onChange={(event) => { setApplicationFilters((current) => ({ ...current, fromDate: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy" /></label>
+          <label className="text-xs font-semibold text-muted">To Date<input type="date" value={applicationFilters.toDate} onChange={(event) => { setApplicationFilters((current) => ({ ...current, toDate: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy" /></label>
+          <label className="text-xs font-semibold text-muted">Sort By<select value={applicationFilters.sortBy} onChange={(event) => { setApplicationFilters((current) => ({ ...current, sortBy: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy"><option value="created_at">Date Created</option><option value="updated_at">Last Updated</option><option value="full_name">Applicant Name</option><option value="status">Status</option><option value="sales_executive_name">Sales Executive</option></select></label>
+          <label className="text-xs font-semibold text-muted">Sort Order<select value={applicationFilters.sortOrder} onChange={(event) => { setApplicationFilters((current) => ({ ...current, sortOrder: event.target.value })); setPage(1); }} className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3 py-2.5 text-sm text-navy"><option value="desc">Newest / Z→A</option><option value="asc">Oldest / A→Z</option></select></label>
+        </div><div className="mt-4 flex justify-end"><button type="button" onClick={() => { setApplicationFilters({ status: "", location: "", salesExecutive: "", systemType: "", systemSize: "", fromDate: "", toDate: "", sortBy: "created_at", sortOrder: "desc" }); setPage(1); }} className="inline-flex items-center gap-2 rounded-lg border border-navy/15 px-4 py-2 text-xs font-semibold text-navy"><RotateCcw size={13} /> Reset Filters</button></div></div>}
         {error && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
         <div className="mt-4 overflow-x-auto rounded-2xl border border-navy/10 bg-white">
-          <table className="w-full min-w-[780px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">App No</th><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">System</th><th className="p-3">Status</th></tr></thead>
-            <tbody>{loading ? <tr><td colSpan="7" className="p-8 text-center text-muted"><Loader2 className="mx-auto animate-spin text-amber" /></td></tr> : applications.length ? applications.map((application) => <tr key={application.id} className="border-b border-navy/5 last:border-0"><td className="p-3 font-mono text-xs">{application.application_no}</td><td className="p-3 text-xs text-muted">{formatDateTime(application.created_at)}</td><td className="p-3 font-semibold text-navy">{application.full_name}</td><td className="p-3">{application.phone_number}</td><td className="p-3">{formatApplicationLocation(application.location)}</td><td className="p-3">{titleCase(application.system_size)} · {titleCase(application.system_type)}</td><td className="p-3"><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{titleCase(application.status)}</span></td></tr>) : <tr><td colSpan="7" className="p-8 text-center text-sm text-muted">No applications assigned to your partner or referral chain yet. The Owner must assign the application to a partner in your chain.</td></tr>}</tbody>
+          <table className="w-full min-w-[1080px] text-sm"><thead><tr className="border-b border-navy/10 text-left text-xs font-semibold text-muted"><th className="p-3">App No</th><th className="p-3">Created</th><th className="p-3">Customer</th><th className="p-3">Phone</th><th className="p-3">Location</th><th className="p-3">System</th><th className="p-3">Sales Executive</th><th className="p-3">Status</th><th className="p-3">Action</th></tr></thead>
+            <tbody>{loading ? <tr><td colSpan="9" className="p-8 text-center text-muted"><Loader2 className="mx-auto animate-spin text-amber" /></td></tr> : applications.length ? applications.map((application) => <tr key={application.id} className="border-b border-navy/5 last:border-0"><td className="p-3 font-mono text-xs">{application.application_no}</td><td className="p-3 text-xs text-muted">{formatDateTime(application.created_at)}</td><td className="p-3 font-semibold text-navy">{application.full_name}</td><td className="p-3">{application.phone_number}</td><td className="p-3">{formatApplicationLocation(application.location)}</td><td className="p-3">{titleCase(application.system_size)} · {titleCase(application.system_type)}</td><td className="p-3">{application.sales_executive_name || "—"}</td><td className="p-3"><span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-navy">{titleCase(application.status)}</span></td><td className="p-3"><button type="button" onClick={() => setSelectedApplication(application)} className="inline-flex items-center gap-1 rounded-lg border border-navy/15 px-3 py-1.5 text-xs font-semibold text-navy hover:border-amber"><Eye size={13} /> View</button></td></tr>) : <tr><td colSpan="9" className="p-8 text-center text-sm text-muted">No applications found with these filters.</td></tr>}</tbody>
           </table>
         </div>
+        {selectedApplication && <div className="fixed inset-0 z-[90] grid place-items-center bg-navy/50 p-4" onClick={() => setSelectedApplication(null)}><section role="dialog" aria-modal="true" aria-label="Application details" onClick={(event) => event.stopPropagation()} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"><header className="flex items-start justify-between gap-4 bg-navy p-5 text-white"><div><p className="text-xs text-white/70">Application details</p><h2 className="mt-1 text-lg font-extrabold">{selectedApplication.full_name || "Customer"}</h2><p className="mt-1 font-mono text-xs">{selectedApplication.application_no}</p></div><button type="button" onClick={() => setSelectedApplication(null)} className="rounded-full p-2 hover:bg-white/10" aria-label="Close"><X size={18} /></button></header><div className="grid gap-3 p-5 sm:grid-cols-2">{[["Phone", selectedApplication.phone_number], ["Email", selectedApplication.email], ["Location", formatApplicationLocation(selectedApplication.location)], ["System", `${titleCase(selectedApplication.system_size)} · ${titleCase(selectedApplication.system_type)}`], ["Status", applicationStatusLabel(selectedApplication.status)], ["Sales Executive", selectedApplication.sales_executive_name], ["Super-vendor", selectedApplication.super_vendor_name], ["Vendor", selectedApplication.vendor_name], ["Sub-vendor", selectedApplication.sub_vendor_name], ["Created", formatDateTime(selectedApplication.created_at)], ["Last updated", formatDateTime(selectedApplication.updated_at)], ["Updated by", selectedApplication.last_updated_by_name]].map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-3"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-1 break-words text-sm font-semibold text-navy">{value || "—"}</p></div>)}</div><footer className="flex justify-end border-t border-navy/10 p-4"><button type="button" onClick={() => setSelectedApplication(null)} className="rounded-full border border-navy/15 px-4 py-2 text-sm font-semibold text-navy">Close</button></footer></section></div>}
         {pages > 1 && <div className="mt-4 flex items-center justify-center gap-3"><button onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1} className="rounded-lg border border-navy/15 px-3 py-2 text-xs font-semibold disabled:opacity-40">Previous</button><span className="text-xs text-muted">Page {page} of {pages}</span><button onClick={() => setPage((current) => Math.min(pages, current + 1))} disabled={page === pages} className="rounded-lg border border-navy/15 px-3 py-2 text-xs font-semibold disabled:opacity-40">Next</button></div>}
       </> : <div className="rounded-2xl border border-navy/10 bg-white p-6"><p className="text-lg font-bold text-navy">{user?.partnerCompanyName || user?.name}</p><p className="mt-1 text-sm text-muted">Your partner dashboard is ready. The owner will enable any additional sections you need.</p></div>}
     </DashboardLayout>

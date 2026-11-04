@@ -1039,6 +1039,7 @@ const EMPTY_FILTERS = {
   email: "",
   phone: "",
   updatedBy: "",
+  salesExecutive: "",
 };
 
 function ApplicationsTab({ initialLocation = "" }) {
@@ -1137,6 +1138,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
       if (f.updatedBy) params.updatedBy = f.updatedBy;
+      if (f.salesExecutive) params.salesExecutive = f.salesExecutive;
       if (f.status) params.status = f.status;
       if (f.branchId) params.branchId = f.branchId;
       if (f.location) params.location = f.location;
@@ -1172,12 +1174,22 @@ function ApplicationsTab({ initialLocation = "" }) {
     if (filters.partner?.startsWith("type:")) statsParams.set("partnerType", filters.partner.slice("type:".length));
     else if (filters.partner) statsParams.set("partner", filters.partner);
     if (filters.updatedBy) statsParams.set("updatedBy", filters.updatedBy);
+    if (filters.salesExecutive) statsParams.set("salesExecutive", filters.salesExecutive);
+    if (filters.status) statsParams.set("status", filters.status);
+    if (filters.systemType) statsParams.set("systemType", filters.systemType);
+    if (filters.systemSize) statsParams.set("systemSize", filters.systemSize);
+    if (filters.fromDate) statsParams.set("fromDate", filters.fromDate);
+    if (filters.toDate) statsParams.set("toDate", filters.toDate);
+    if (filters.search) statsParams.set("search", filters.search);
+    if (filters.name) statsParams.set("name", filters.name);
+    if (filters.email) statsParams.set("email", filters.email);
+    if (filters.phone) statsParams.set("phone", filters.phone);
     const statsQuery = statsParams.size ? `?${statsParams}` : "";
     apiFetch(`/applications/stats/overview${statsQuery}`)
       .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); setApplicationStatusCounts(res.data.byStatus || {}); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
-  }, [filters.branchId, filters.location, filters.partner, filters.updatedBy, user?.role, user?.designation, user?.department]);
+  }, [filters.branchId, filters.location, filters.partner, filters.updatedBy, filters.salesExecutive, filters.status, filters.systemType, filters.systemSize, filters.fromDate, filters.toDate, filters.search, filters.name, filters.email, filters.phone, user?.role, user?.designation, user?.department]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -1311,6 +1323,16 @@ function ApplicationsTab({ initialLocation = "" }) {
             if (filters.partner?.startsWith("type:")) statsParams.set("partnerType", filters.partner.slice("type:".length));
             else if (filters.partner) statsParams.set("partner", filters.partner);
             if (filters.updatedBy) statsParams.set("updatedBy", filters.updatedBy);
+            if (filters.salesExecutive) statsParams.set("salesExecutive", filters.salesExecutive);
+            if (filters.status) statsParams.set("status", filters.status);
+            if (filters.systemType) statsParams.set("systemType", filters.systemType);
+            if (filters.systemSize) statsParams.set("systemSize", filters.systemSize);
+            if (filters.fromDate) statsParams.set("fromDate", filters.fromDate);
+            if (filters.toDate) statsParams.set("toDate", filters.toDate);
+            if (filters.search) statsParams.set("search", filters.search);
+            if (filters.name) statsParams.set("name", filters.name);
+            if (filters.email) statsParams.set("email", filters.email);
+            if (filters.phone) statsParams.set("phone", filters.phone);
             const statsQuery = statsParams.size ? `?${statsParams}` : "";
             const statsRes = await apiFetch(`/applications/stats/overview${statsQuery}`);
             setLocationCounts(statsRes.data.byLocation || null);
@@ -1347,6 +1369,7 @@ function ApplicationsTab({ initialLocation = "" }) {
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
             {(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view")) && <SearchableFilterSelect label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} options={applicationPartnerOptions} placeholder={initialLocation === "odisha" ? "Odisha partners" : initialLocation ? "West Bengal partners" : "All partners"} searchPlaceholder="Search vendor or partner name..." />}
             {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" searchPlaceholder="Search employee name..." />}
+            {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Sales Executive" value={filters.salesExecutive} onChange={(v) => updateFilter("salesExecutive", v)} options={[...new Set(updateEmployees.map((employee) => employee.name).filter(Boolean))].map((name) => ({ value: name, label: name }))} placeholder="All Sales Executives" searchPlaceholder="Search Sales Executive..." />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <SearchableFilterSelect
@@ -1761,6 +1784,8 @@ function EmployeesTab() {
   const [nameFilter, setNameFilter] = useState("");
   const [emailFilter, setEmailFilter] = useState("");
   const [phoneFilter, setPhoneFilter] = useState("");
+  const [salesExecutiveFilter, setSalesExecutiveFilter] = useState("");
+  const [salesExecutiveEmployees, setSalesExecutiveEmployees] = useState([]);
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [sortBy, setSortBy] = useState("created_at");
@@ -3470,6 +3495,7 @@ function SubmissionList({ type }) {
       if (isPartners && stateFilter) query.set("location", stateFilter === "West Bengal" ? "west_bengal" : "odisha");
       if (isPartners && partnerTypeFilter) query.set("partnerType", partnerTypeFilter);
       if (isPartners && systemTypeFilter) query.set("systemType", systemTypeFilter);
+      if (isPartners && salesExecutiveFilter) query.set("salesExecutiveId", salesExecutiveFilter);
       if (nameFilter.trim()) query.set("name", nameFilter.trim());
       if (emailFilter.trim()) query.set("email", emailFilter.trim());
       if (phoneFilter.trim()) query.set("phone", phoneFilter.trim());
@@ -3504,7 +3530,16 @@ function SubmissionList({ type }) {
     const timer = setTimeout(() => load(), 250);
     return () => clearTimeout(timer);
     // eslint-disable-next-line
-  }, [type, search, statusFilter, locationFilter, stateFilter, systemTypeFilter, partnerTypeFilter, nameFilter, emailFilter, phoneFilter, fromDate, toDate, sortBy, sortOrder]);
+  }, [type, search, statusFilter, locationFilter, stateFilter, systemTypeFilter, partnerTypeFilter, nameFilter, emailFilter, phoneFilter, salesExecutiveFilter, fromDate, toDate, sortBy, sortOrder]);
+
+  useEffect(() => {
+    if (!isPartners) return undefined;
+    let active = true;
+    listUsers({ role: "employee" }).then((response) => {
+      if (active) setSalesExecutiveEmployees((response.data.items || []).filter((employee) => employee.status === "active"));
+    }).catch((error) => console.error("Could not load Sales Executives for the partner filter.", error));
+    return () => { active = false; };
+  }, [isPartners]);
 
   useEffect(() => {
     if (!showPartnerOnboard || !isOwner || type !== "partners") return;
@@ -3637,7 +3672,7 @@ function SubmissionList({ type }) {
       : String(item.state || "").trim().toLowerCase() === stateFilter.toLowerCase());
     return matchesSearch && (!nameFilter || recordName.includes(nameFilter.trim().toLowerCase())) && (!emailFilter || String(item.email || "").toLowerCase().includes(emailFilter.trim().toLowerCase())) && (!phoneFilter || String(item.phone || item.phone_number || "").toLowerCase().includes(phoneFilter.trim().toLowerCase())) && (!statusFilter || item.status === statusFilter) && (!locationFilter || String(item.location || item.city || "").toLowerCase().includes(locationFilter.trim().toLowerCase())) && stateMatches && (!systemTypeFilter || partnerSystemTypes.includes(systemTypeFilter)) && (!systemSizeFilter || String(item.system_size || "") === systemSizeFilter) && (!partnerTypeFilter || partnerRoles.includes(partnerTypeFilter));
   }), { fromDate, toDate, sortBy, sortOrder, nameKey: isPartners ? "company_name" : isContacts ? "name" : "first_name" });
-  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter)) + Number(Boolean(partnerTypeFilter));
+  const activeFilterCount = Number(Boolean(statusFilter)) + Number(Boolean(locationFilter)) + Number(Boolean(stateFilter)) + Number(Boolean(nameFilter)) + Number(Boolean(emailFilter)) + Number(Boolean(phoneFilter)) + Number(Boolean(salesExecutiveFilter)) + Number(Boolean(fromDate)) + Number(Boolean(toDate)) + Number(Boolean(systemTypeFilter)) + Number(Boolean(systemSizeFilter)) + Number(Boolean(partnerTypeFilter));
 
   if (loading && !hasLoaded)
     return (
@@ -3668,6 +3703,7 @@ function SubmissionList({ type }) {
               if (statusFilter) params.set("status", statusFilter);
               if (partnerTypeFilter) params.set("partnerType", partnerTypeFilter);
               if (systemTypeFilter) params.set("systemType", systemTypeFilter);
+              if (salesExecutiveFilter) params.set("salesExecutiveId", salesExecutiveFilter);
               if (stateFilter) params.set("location", stateFilter === "West Bengal" ? "west_bengal" : "odisha");
               if (fromDate) params.set("fromDate", fromDate);
               if (toDate) params.set("toDate", toDate);
@@ -3692,13 +3728,14 @@ function SubmissionList({ type }) {
         {(isJoinUs || isCareers) && <FilterSelect label="State" value={stateFilter} onChange={setStateFilter} options={availableStates.map((value) => ({ value, label: value }))} placeholder="All states" />}
         {isPartners && <FilterSelect label="Assigned Location" value={stateFilter} onChange={setStateFilter} options={[{ value: "Odisha", label: "Odisha" }, { value: "West Bengal", label: "West Bengal" }]} placeholder="All assigned locations" />}
         {isPartners && <FilterSelect label="Partner Type" value={partnerTypeFilter} onChange={setPartnerTypeFilter} options={[{ value: "super_vendor", label: "Super-vendor" }, { value: "vendor", label: "Vendor" }, { value: "sub_vendor", label: "Sub-vendor" }, { value: "dealer", label: "Dealer" }]} placeholder="All partner types" />}
+        {isPartners && <FilterSelect label="Sales Executive" value={salesExecutiveFilter} onChange={setSalesExecutiveFilter} options={salesExecutiveEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All Sales Executives" />}
         {isPartners && <FilterSelect label="System Type" value={systemTypeFilter} onChange={setSystemTypeFilter} options={[{ value: "on_grid", label: "On-Grid" }, { value: "hybrid", label: "Hybrid" }]} placeholder="All types" />}
         {isContacts && <FilterSelect label="System Size" value={systemSizeFilter} onChange={setSystemSizeFilter} options={[...new Set(items.map((item) => item.system_size).filter(Boolean))].sort().map((value) => ({ value, label: value }))} placeholder="All sizes" />}
         <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
         <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
         <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "name", label: "Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />
         <FilterSelect label="Sort Order" value={sortOrder} onChange={setSortOrder} options={[{ value: "desc", label: "Newest / Z→A" }, { value: "asc", label: "Oldest / A→Z" }]} placeholder="Order" />
-        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); setSystemTypeFilter(""); setSystemSizeFilter(""); setPartnerTypeFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
+        <button onClick={() => { setNameFilter(""); setEmailFilter(""); setPhoneFilter(""); setSalesExecutiveFilter(""); setStatusFilter(""); setLocationFilter(""); setStateFilter(""); setSystemTypeFilter(""); setSystemSizeFilter(""); setPartnerTypeFilter(""); setFromDate(""); setToDate(""); setSortBy("created_at"); setSortOrder("desc"); }} className="justify-self-start text-xs font-semibold text-amber">Reset filters</button>
       </div>}
       {filteredItems.length === 0 && <p className="rounded-xl border border-navy/10 bg-white p-6 text-center text-sm text-muted">{search || activeFilterCount ? "No matching records found." : isPartners ? "No partners found." : "No submissions."}</p>}
       {filteredItems.length > 0 && <div className="overflow-x-auto rounded-2xl border border-navy/10 bg-white">
