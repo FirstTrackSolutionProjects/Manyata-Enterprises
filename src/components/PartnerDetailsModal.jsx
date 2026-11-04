@@ -66,6 +66,10 @@ const readPartnerRoles = (partner) => {
   return [...new Set([primary, ...(Array.isArray(roles) ? roles : [])].filter((role) => PARTNER_TYPES.some(([value]) => value === role)))];
 };
 const partnerHasRole = (partner, role) => readPartnerRoles(partner).map(normalizePartnerType).includes(role);
+const isSalesExecutiveEmployee = (employee) => {
+  const isSalesExecutiveTitle = (value) => /^(sr\.?\s*)?sales[\s-]+executive$/i.test(String(value || "").trim());
+  return isSalesExecutiveTitle(employee?.designation) || isSalesExecutiveTitle(employee?.department);
+};
 
 export default function PartnerDetailsModal({ partner, editing, isOwner = false, onClose, onEdit, onSaved }) {
   const [form, setForm] = useState({
@@ -108,7 +112,7 @@ export default function PartnerDetailsModal({ partner, editing, isOwner = false,
       })
       .finally(() => { if (active) setLoadingPartners(false); });
     apiFetch("/auth/users?role=employee&status=active")
-      .then((response) => { if (active) setEmployees(response?.data?.items || []); })
+      .then((response) => { if (active) setEmployees((response?.data?.items || []).filter(isSalesExecutiveEmployee)); })
       .catch((err) => { if (active) setError(err.message || "Could not load employees."); });
     return () => { active = false; };
   }, [editing]);

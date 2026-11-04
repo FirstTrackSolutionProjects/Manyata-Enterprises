@@ -1042,6 +1042,12 @@ const EMPTY_FILTERS = {
   salesExecutive: "",
 };
 
+const isSalesExecutiveEmployee = (employee) => {
+  const isSalesExecutiveTitle = (value) => /^(sr\.?\s*)?sales[\s-]+executive$/i.test(String(value || "").trim());
+  return isSalesExecutiveTitle(employee?.designation)
+    || isSalesExecutiveTitle(employee?.department);
+};
+
 function ApplicationsTab({ initialLocation = "" }) {
   const { user } = useAuth();
   const canDeleteRecords = user?.role === "owner" || isTejashHrEmployee(user);
@@ -1056,6 +1062,7 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [applicationStatusCounts, setApplicationStatusCounts] = useState({});
   const [branches, setBranches] = useState([]);
   const [updateEmployees, setUpdateEmployees] = useState([]);
+  const salesExecutiveEmployees = updateEmployees.filter(isSalesExecutiveEmployee);
   const [applicationPartnerOptions, setApplicationPartnerOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
@@ -1369,7 +1376,7 @@ function ApplicationsTab({ initialLocation = "" }) {
             <FilterInput label="Name" value={filters.name} onChange={(v) => updateFilter("name", v)} />
             {(user?.role === "owner" || isHrEmployee(user) || hasActionPermission(user, "partners", "view")) && <SearchableFilterSelect label="Partner" value={filters.partner} onChange={(v) => updateFilter("partner", v)} options={applicationPartnerOptions} placeholder={initialLocation === "odisha" ? "Odisha partners" : initialLocation ? "West Bengal partners" : "All partners"} searchPlaceholder="Search vendor or partner name..." />}
             {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Updated by employee" value={filters.updatedBy} onChange={(v) => updateFilter("updatedBy", v)} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" searchPlaceholder="Search employee name..." />}
-            {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Sales Executive" value={filters.salesExecutive} onChange={(v) => updateFilter("salesExecutive", v)} options={[...new Set(updateEmployees.map((employee) => employee.name).filter(Boolean))].map((name) => ({ value: name, label: name }))} placeholder="All Sales Executives" searchPlaceholder="Search Sales Executive..." />}
+            {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Sales Executive" value={filters.salesExecutive} onChange={(v) => updateFilter("salesExecutive", v)} options={[...new Map(salesExecutiveEmployees.filter((employee) => employee.name).map((employee) => [employee.name.trim().toLowerCase(), employee.name.trim()])).values()].map((name) => ({ value: name, label: name }))} placeholder="All Sales Executives" searchPlaceholder="Search Sales Executive..." />}
             <FilterInput label="Email" value={filters.email} onChange={(v) => updateFilter("email", v)} />
             <FilterInput label="Phone Number" value={filters.phone} onChange={(v) => updateFilter("phone", v)} />
             <SearchableFilterSelect
@@ -3536,7 +3543,7 @@ function SubmissionList({ type }) {
     if (!isPartners) return undefined;
     let active = true;
     listUsers({ role: "employee" }).then((response) => {
-      if (active) setSalesExecutiveEmployees((response.data.items || []).filter((employee) => employee.status === "active"));
+      if (active) setSalesExecutiveEmployees((response.data.items || []).filter(isSalesExecutiveEmployee));
     }).catch((error) => console.error("Could not load Sales Executives for the partner filter.", error));
     return () => { active = false; };
   }, [isPartners]);
