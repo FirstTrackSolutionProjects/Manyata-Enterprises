@@ -259,6 +259,7 @@ export default function DashboardLayout({
   subtitle,
   activeSection,
   onSectionChange,
+  profilePhoto,
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -462,9 +463,9 @@ export default function DashboardLayout({
               aria-label="Edit employee profile"
             >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-amber text-navy ring-2 ring-amber/60">
-                {user?.profilePhoto ? (
+                {(profilePhoto || user?.profilePhoto) ? (
                   <img
-                    src={user.profilePhoto}
+                    src={profilePhoto || user.profilePhoto}
                     alt={`${user?.name || "User"} profile`}
                     className="h-full w-full object-cover"
                   />

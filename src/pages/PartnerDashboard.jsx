@@ -140,6 +140,7 @@ export default function PartnerDashboard() {
       subtitle={section === "applications" ? `Applications assigned to ${user?.partnerCompanyName || user?.name} and partners under your referral chain.` : section === "commissions" ? "Your earned, approved, and paid commission records." : section === "profile" ? "Your partner account and contact details." : `${partnerType} dashboard`}
       activeSection={section}
       onSectionChange={setSection}
+      profilePhoto={partnerProfile?.documentUrls?.Photo || (partnerProfile?.file_photo ? fileUrl(partnerProfile.file_photo) : null)}
     >
       {section === "commissions" ? <PartnerCommissionSection /> : section === "profile" ? <PartnerProfile profile={partnerProfile} partnerType={partnerType} /> : section === "dashboard" ? <>
         <div className="mb-6">
