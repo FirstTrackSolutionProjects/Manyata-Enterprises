@@ -99,6 +99,7 @@ export default function AdminAttendanceDashboard({ context }) {
     scheduleForm, setScheduleForm, loadRegister, syncManualDate, load, reviewCorrection,
     saveSchedule, submitHoliday, submitManagerEvent, submitManualPunchTime,
     updateRegisterTime, saveAttendanceBreak, printAttendanceReport, downloadRegister, statusLabel,
+    saveRegisterPhoto,
     attendancePhotoHref, removeAttendanceHoliday, attendanceDateLabel, attendanceTimeLabel,
     attendanceDateTimeLabel, indiaTodayInput, indiaDateTimeInput, breakTypeLabel,
   } = context;
@@ -110,6 +111,19 @@ export default function AdminAttendanceDashboard({ context }) {
   const [showSchedule, setShowSchedule] = useState(false);
   const [breakEdits, setBreakEdits] = useState({});
   const [savingBreakId, setSavingBreakId] = useState(null);
+  const [photoEdits, setPhotoEdits] = useState({});
+  const [savingPhotoId, setSavingPhotoId] = useState(null);
+
+  const savePhoto = async (item, eventType) => {
+    const key = `${item.id}:${eventType}`;
+    const edit = photoEdits[key] || {};
+    if (!edit.file) { setError("Choose a photo file first."); return; }
+    if (!edit.reason?.trim()) { setError("Enter a reason for attaching this photo."); return; }
+    setSavingPhotoId(key);
+    const saved = await saveRegisterPhoto(item, eventType, edit.file, edit.reason.trim());
+    if (saved) setPhotoEdits((current) => ({ ...current, [key]: {} }));
+    setSavingPhotoId(null);
+  };
 
   // Old links like #manual-attendance-update still open the manual update popup.
   useEffect(() => {
@@ -411,7 +425,7 @@ export default function AdminAttendanceDashboard({ context }) {
                                   title="Clock-in photo"
                                   className="inline-flex items-center gap-1 rounded-full bg-offwhite px-2.5 py-1 text-xs font-bold text-navy"
                                 >
-                                  <Camera size={13} />In
+                                  <Camera size={13} />In{item.clock_in_photo_source === "manual" && <span className="ml-1 text-[10px] text-amber-700">Manual</span>}
                                 </a>
                               )}
                               {item.clock_out_photo_key && (
@@ -422,7 +436,7 @@ export default function AdminAttendanceDashboard({ context }) {
                                   title="Clock-out photo"
                                   className="inline-flex items-center gap-1 rounded-full bg-offwhite px-2.5 py-1 text-xs font-bold text-navy"
                                 >
-                                  <Camera size={13} />Out
+                                  <Camera size={13} />Out{item.clock_out_photo_source === "manual" && <span className="ml-1 text-[10px] text-amber-700">Manual</span>}
                                 </a>
                               )}
                               {!item.clock_in_photo_key && !item.clock_out_photo_key && (
@@ -454,7 +468,7 @@ export default function AdminAttendanceDashboard({ context }) {
                           <tr className="bg-offwhite/60">
                             <td colSpan={11} className="px-4 py-4">
                               <div className="grid gap-4 md:grid-cols-[1fr_1fr_1fr]">
-                                <label className="block text-[11px] font-semibold text-muted">
+                                <div className="block text-[11px] font-semibold text-muted">
                                   Clock-in (IST)
                                   <input
                                     type="datetime-local"
@@ -474,9 +488,13 @@ export default function AdminAttendanceDashboard({ context }) {
                                   >
                                     {savingTimeRecord === `${item.id}:clock_in` ? "Saving..." : "Save time"}
                                   </button>
-                                </label>
+                                  <span className="mt-3 block border-t border-navy/10 pt-2 text-[11px] font-bold text-navy">Attach clock-in photo (manual)</span>
+                                  <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-[11px]" onChange={(event) => setPhotoEdits((current) => ({ ...current, [`${item.id}:clock_in`]: { ...current[`${item.id}:clock_in`], file: event.target.files?.[0] || null } }))} />
+                                  <input type="text" maxLength={500} placeholder="Reason for manual attachment" value={photoEdits[`${item.id}:clock_in`]?.reason || ""} onChange={(event) => setPhotoEdits((current) => ({ ...current, [`${item.id}:clock_in`]: { ...current[`${item.id}:clock_in`], reason: event.target.value } }))} className="mt-1 block w-full rounded-md border border-navy/15 bg-white px-2 py-1.5 text-[11px] font-normal" />
+                                  <button type="button" onClick={() => savePhoto(item, "clock_in")} disabled={savingPhotoId === `${item.id}:clock_in`} className="mt-1 rounded-md bg-navy px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50">{savingPhotoId === `${item.id}:clock_in` ? "Uploading..." : "Upload In photo"}</button>
+                                </div>
 
-                                <label className="block text-[11px] font-semibold text-muted">
+                                <div className="block text-[11px] font-semibold text-muted">
                                   Clock-out (IST)
                                   <input
                                     type="datetime-local"
@@ -500,7 +518,11 @@ export default function AdminAttendanceDashboard({ context }) {
                                       ? "Save time"
                                       : "Add clock-out"}
                                   </button>
-                                </label>
+                                  <span className="mt-3 block border-t border-navy/10 pt-2 text-[11px] font-bold text-navy">Attach clock-out photo (manual)</span>
+                                  <input type="file" accept="image/jpeg,image/png,image/webp" className="mt-1 block w-full text-[11px]" onChange={(event) => setPhotoEdits((current) => ({ ...current, [`${item.id}:clock_out`]: { ...current[`${item.id}:clock_out`], file: event.target.files?.[0] || null } }))} />
+                                  <input type="text" maxLength={500} placeholder="Reason for manual attachment" value={photoEdits[`${item.id}:clock_out`]?.reason || ""} onChange={(event) => setPhotoEdits((current) => ({ ...current, [`${item.id}:clock_out`]: { ...current[`${item.id}:clock_out`], reason: event.target.value } }))} className="mt-1 block w-full rounded-md border border-navy/15 bg-white px-2 py-1.5 text-[11px] font-normal" />
+                                  <button type="button" onClick={() => savePhoto(item, "clock_out")} disabled={savingPhotoId === `${item.id}:clock_out`} className="mt-1 rounded-md bg-navy px-2 py-1 text-[11px] font-semibold text-white disabled:opacity-50">{savingPhotoId === `${item.id}:clock_out` ? "Uploading..." : "Upload Out photo"}</button>
+                                </div>
 
                                 <div>
                                   <p className="text-[11px] font-semibold text-muted">
@@ -757,7 +779,7 @@ export default function AdminAttendanceDashboard({ context }) {
                       rel="noreferrer"
                       className="font-semibold text-blue-700 underline"
                     >
-                      Clock-in photo
+                      Clock-in photo{item.clock_in_photo_source === "manual" ? " · Manual" : ""}
                     </a>
                   )}
                   {item.clock_out_photo_key && (
@@ -767,7 +789,7 @@ export default function AdminAttendanceDashboard({ context }) {
                       rel="noreferrer"
                       className="font-semibold text-blue-700 underline"
                     >
-                      Clock-out photo
+                      Clock-out photo{item.clock_out_photo_source === "manual" ? " · Manual" : ""}
                     </a>
                   )}
                 </div>

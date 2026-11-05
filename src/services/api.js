@@ -423,6 +423,12 @@ export const getAttendanceRegister = (params = {}) => {
 };
 export const addManagerAttendanceEvent = (payload) => apiFetch("/attendance/manager-events", { method: "POST", body: JSON.stringify(payload) });
 export const updateAttendanceRegisterTime = (id, payload) => apiFetch(`/attendance/register/${id}/time`, { method: "PATCH", body: JSON.stringify(payload) });
+export const attachAttendancePhoto = (id, action, file, reason) => {
+  const body = new FormData();
+  body.append("photo", file);
+  body.append("reason", reason);
+  return apiFetch(`/attendance/register/${encodeURIComponent(id)}/photo/${encodeURIComponent(action)}`, { method: "PATCH", body });
+};
 export const updateAttendanceBreak = (id, payload) => apiFetch(`/attendance/breaks/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
 export const getAttendanceSettings = () => apiFetch("/attendance/settings");
 export const saveAttendanceSettings = (payload) => apiFetch("/attendance/settings", { method: "PUT", body: JSON.stringify(payload) });
