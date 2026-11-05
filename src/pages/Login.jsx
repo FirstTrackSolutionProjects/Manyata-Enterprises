@@ -22,7 +22,12 @@ export default function Login() {
     setError("");
 
     try {
-      const loggedInUser = await login(email.trim(), password);
+      // Read the live DOM values so browser password-manager autofill is included
+      // even when it did not fire React's onChange handler.
+      const formData = new FormData(e.currentTarget);
+      const loginId = String(formData.get("email") ?? email).trim();
+      const loginPassword = String(formData.get("password") ?? password);
+      const loggedInUser = await login(loginId, loginPassword);
       if (loggedInUser.mustChangePassword) {
         navigate("/change-password", { replace: true });
       } else {
@@ -90,6 +95,8 @@ export default function Login() {
             />
             <input
             type="text"
+            name="email"
+            autoComplete="username"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -110,6 +117,8 @@ export default function Login() {
             />
             <input
               type={showPassword ? "text" : "password"}
+              name="password"
+              autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
