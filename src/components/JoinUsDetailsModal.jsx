@@ -125,7 +125,7 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
             return <div key={key} className="rounded-xl border border-navy/10 bg-offwhite p-3">
             {currentPhotoUrl && key === "photo" && <img src={currentPhotoUrl} alt="Current employee profile" className="mb-2 h-24 w-24 rounded-xl border border-navy/10 object-cover" />}
             {!employeeProfile && currentPhoto && <a href={currentPhotoUrl} target="_blank" rel="noreferrer" className="mb-2 inline-flex items-center gap-1 rounded-full bg-amber-soft px-3 py-1 text-xs font-bold text-navy transition hover:bg-amber/30">View current {label}</a>}
-            <CameraFileInput label={employeeProfile && key === "photo" ? "Replace profile photo" : label} name={key} accept={key === "photo" ? "image/jpeg,image/png,image/webp" : undefined} onFile={(file) => setFiles((current) => ({ ...current, [key]: file }))} />
+            <CameraFileInput label={employeeProfile && key === "photo" ? "Replace profile photo" : label} name={key} accept={key === "photo" ? "image/jpeg,image/png,image/webp" : ".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"} onFile={(file) => setFiles((current) => ({ ...current, [key]: file }))} />
           </div>})}</div>
         </FormSection>
       </div>
