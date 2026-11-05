@@ -120,6 +120,13 @@ export default function CameraFileInput({ label, name, accept, required = false,
     onFile?.(file);
   };
 
+  const openFilePicker = () => pickerRef.current?.click();
+  const handleFileChange = (event) => {
+    selectFile(event.target.files?.[0]);
+    // Clearing the native input lets the user pick the same file again after a failed upload.
+    event.target.value = "";
+  };
+
   const startCamera = async (nextFacing) => {
     setFacing(nextFacing);
     setCameraError("");
@@ -280,10 +287,10 @@ export default function CameraFileInput({ label, name, accept, required = false,
     <div className="block min-w-0">
       <span className="mb-1.5 block text-xs font-semibold text-navy/70">{label}{required && <span className="ml-1 text-red-500">*</span>}</span>
       <div className="flex flex-wrap items-stretch gap-2">
-        <label className="flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3 py-3 text-xs text-muted hover:border-amber hover:text-navy">
+        <button type="button" onClick={openFilePicker} className="flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-navy/25 px-3 py-3 text-xs text-muted hover:border-amber hover:text-navy">
           <Upload size={15} /><span className="max-w-full truncate">{filename || "Choose file"}</span>
-          <input ref={pickerRef} type="file" name={name} accept={accept} required={required} onChange={(event) => selectFile(event.target.files?.[0])} className="sr-only" />
-        </label>
+        </button>
+        <input ref={pickerRef} type="file" name={name} accept={accept} required={required} onChange={handleFileChange} className="sr-only" tabIndex={-1} />
         {[{ facing: "user", label: "Front camera" }, { facing: "environment", label: "Rear camera" }].map((option) => <button key={option.facing} type="button" disabled={startingCamera} onClick={() => startCamera(option.facing)} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-navy/15 bg-white px-3 py-2 text-xs font-semibold text-navy hover:border-amber disabled:opacity-60"><Camera size={15} />{option.label}</button>)}
         {selectedFile && downloadUrl && <a href={downloadUrl} download={selectedFile.name || `${name || "photo"}.jpg`} className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800 hover:bg-emerald-100"><Download size={14} />Download photo</a>}
       </div>
