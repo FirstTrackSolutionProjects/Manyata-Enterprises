@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Briefcase, Building2, FileText, GraduationCap, Landmark, Loader2, MapPin, Paperclip, Pencil, ShieldCheck, User, X } from "lucide-react";
 import { fileUrl, updateJoinUs, uploadFilesToS3 } from "../services/api";
 import CameraFileInput from "./CameraFileInput";
@@ -52,11 +53,15 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
   }).concat([["sameAsAbove", Boolean(submission.sameAsAbove ?? submission.profileDetails?.sameAsAbove ?? submission.same_as_above ?? submission.profileDetails?.same_as_above)]])));
   const [files, setFiles] = useState({});
   const [saving, setSaving] = useState(false);
+  const [saveStep, setSaveStep] = useState("");
   const [error, setError] = useState(loaNotice);
   const save = async (event) => {
     event.preventDefault(); setSaving(true); setError("");
     try {
+      const selectedFileCount = Object.values(files).filter((file) => file instanceof File).length;
+      setSaveStep(selectedFileCount ? `Uploading ${selectedFileCount} document${selectedFileCount === 1 ? "" : "s"}…` : "Saving changes…");
       const uploaded = await uploadFilesToS3(employeeProfile ? "employee-profiles" : "join-us", files);
+      setSaveStep("Saving changes…");
       if (employeeProfile) {
         await onSaveProfile({
           name: `${form.firstName} ${form.lastName}`.trim(),
@@ -74,7 +79,7 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
       await onSaved();
     }
     catch (err) { setError(err.message || "Could not update Join Us details."); }
-    finally { setSaving(false); }
+    finally { setSaving(false); setSaveStep(""); }
   };
 
   const renderField = (key) => {
@@ -87,7 +92,7 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
     </label>;
   };
 
-  return <div className="fixed inset-0 z-50 overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm">
+  return createPortal(<div className="fixed inset-0 z-[100] overflow-y-auto bg-navy/60 p-4 backdrop-blur-sm">
     <form onSubmit={save} className="mx-auto my-2 flex max-h-[calc(100vh-2rem)] max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
       <div className="relative shrink-0 overflow-hidden bg-gradient-to-r from-navy via-navy to-navy-light px-6 py-5">
         <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-amber/20" />
@@ -100,12 +105,13 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
               {!employeeProfile && <p className="mt-0.5 text-xs text-white/70">Submission #{submission.id} · Created {new Date(submission.created_at).toLocaleString("en-IN")}</p>}
             </div>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20"><X size={18} /></button>
+          <button type="button" disabled={saving} onClick={onClose} aria-label="Close" className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/25 transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50"><X size={18} /></button>
         </div>
       </div>
 
       <div className="flex-1 space-y-5 overflow-y-auto bg-offwhite/60 p-5 sm:p-6">
         {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-700">{error}</p>}
+        {saving && <p role="status" aria-live="polite" className="rounded-xl border border-amber/30 bg-amber-soft px-4 py-3 text-sm font-semibold text-navy">{saveStep || "Please wait…"} Keep this window open until the save finishes.</p>}
 
         {GROUPS.map((group) => <FormSection key={group.title} icon={group.icon} title={group.title}>
           {group.sameAsAboveToggle && <label className="mb-4 flex cursor-pointer items-center gap-3 rounded-xl border border-navy/10 bg-offwhite px-4 py-3 text-sm font-semibold text-navy transition hover:border-amber/60"><input type="checkbox" checked={form.sameAsAbove} onChange={(e) => setForm({ ...form, sameAsAbove: e.target.checked })} className="h-5 w-5 shrink-0 cursor-pointer accent-amber" />Permanent address same as current</label>}
@@ -130,10 +136,11 @@ export default function JoinUsDetailsModal({ submission, onClose, onSaved, loaNo
         </FormSection>
       </div>
 
-      <div className="flex shrink-0 justify-end gap-3 border-t border-navy/10 bg-white px-6 py-4">
-        <button type="button" onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:-translate-y-0.5 hover:border-amber hover:shadow-sm active:translate-y-0">Cancel</button>
+      <div className="flex shrink-0 items-center justify-end gap-3 border-t border-navy/10 bg-white px-6 py-4">
+        {saving && <span className="mr-auto text-xs font-semibold text-muted" role="status">{saveStep}</span>}
+        <button type="button" disabled={saving} onClick={onClose} className="rounded-full border border-navy/20 bg-white px-6 py-2.5 text-sm font-bold text-navy transition hover:-translate-y-0.5 hover:border-amber hover:shadow-sm active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50">Cancel</button>
         <button disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-full bg-amber px-6 py-2.5 text-sm font-bold text-navy shadow-sm transition hover:-translate-y-0.5 hover:bg-amber-hover hover:shadow-md active:translate-y-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none">{saving && <Loader2 size={16} className="animate-spin" />}{saving ? "Saving..." : "Save Changes"}</button>
       </div>
     </form>
-  </div>;
+  </div>, document.body);
 }
