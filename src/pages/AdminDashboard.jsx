@@ -1042,6 +1042,8 @@ const EMPTY_FILTERS = {
   sortOrder: "desc",
   name: "",
   partner: "",
+  city: "",
+  district: "",
   email: "",
   phone: "",
   updatedBy: "",
@@ -1150,6 +1152,8 @@ function ApplicationsTab({ initialLocation = "" }) {
       else if (f.partner) params.partner = f.partner;
       if (f.email) params.email = f.email;
       if (f.phone) params.phone = f.phone;
+      if (f.city) params.city = f.city;
+      if (f.district) params.district = f.district;
       if (f.updatedBy) params.updatedBy = f.updatedBy;
       if (f.salesExecutive) params.salesExecutive = f.salesExecutive;
       if (f.status) params.status = f.status;
@@ -1197,12 +1201,14 @@ function ApplicationsTab({ initialLocation = "" }) {
     if (filters.name) statsParams.set("name", filters.name);
     if (filters.email) statsParams.set("email", filters.email);
     if (filters.phone) statsParams.set("phone", filters.phone);
+    if (filters.city) statsParams.set("city", filters.city);
+    if (filters.district) statsParams.set("district", filters.district);
     const statsQuery = statsParams.size ? `?${statsParams}` : "";
     apiFetch(`/applications/stats/overview${statsQuery}`)
       .then((res) => { if (active) { setLocationCounts(res.data.byLocation || null); setTotalApplicationCount(Number(res.data.total || 0)); setApplicationStatusCounts(res.data.byStatus || {}); } })
       .catch((err) => console.error(err));
     return () => { active = false; };
-  }, [filters.branchId, filters.location, filters.partner, filters.updatedBy, filters.salesExecutive, filters.status, filters.systemType, filters.systemSize, filters.fromDate, filters.toDate, filters.search, filters.name, filters.email, filters.phone, user?.role, user?.designation, user?.department]);
+  }, [filters.branchId, filters.location, filters.partner, filters.updatedBy, filters.salesExecutive, filters.status, filters.systemType, filters.systemSize, filters.fromDate, filters.toDate, filters.search, filters.name, filters.email, filters.phone, filters.city, filters.district, user?.role, user?.designation, user?.department]);
 
   const updateFilter = (key, value) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -1354,6 +1360,8 @@ function ApplicationsTab({ initialLocation = "" }) {
             if (filters.name) statsParams.set("name", filters.name);
             if (filters.email) statsParams.set("email", filters.email);
             if (filters.phone) statsParams.set("phone", filters.phone);
+            if (filters.city) statsParams.set("city", filters.city);
+            if (filters.district) statsParams.set("district", filters.district);
             const statsQuery = statsParams.size ? `?${statsParams}` : "";
             const statsRes = await apiFetch(`/applications/stats/overview${statsQuery}`);
             setLocationCounts(statsRes.data.byLocation || null);
@@ -1402,7 +1410,7 @@ function ApplicationsTab({ initialLocation = "" }) {
               placeholderCount={totalApplicationCount}
             />
 
-            {user?.role === "owner" && <SearchableFilterSelect
+            {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect
               label="Branch"
               value={filters.branchId}
               onChange={(v) => updateFilter("branchId", v)}
@@ -1424,6 +1432,10 @@ function ApplicationsTab({ initialLocation = "" }) {
               placeholder="All locations"
               searchPlaceholder="Search location..."
             />
+
+            <FilterInput label="City" value={filters.city} onChange={(v) => updateFilter("city", v)} />
+            <FilterInput label="District" value={filters.district} onChange={(v) => updateFilter("district", v)} />
+            {user?.role === "employee" && !isHrEmployee(user) && <FilterInput label="Partner / Vendor / Sub-vendor" value={filters.partner} onChange={(v) => updateFilter("partner", v)} />}
 
             <FilterSelect
               label="System Type"
@@ -1524,6 +1536,8 @@ function ApplicationsTab({ initialLocation = "" }) {
                   <th className="p-3 whitespace-nowrap">Phone</th>
                   <th className="p-3 whitespace-nowrap">Location</th>
                   <th className="p-3 whitespace-nowrap">Branch</th>
+                  <th className="p-3 whitespace-nowrap">City</th>
+                  <th className="p-3 whitespace-nowrap">District</th>
                   <th className="p-3 whitespace-nowrap">Super Vendor</th>
                   <th className="p-3 whitespace-nowrap">Vendor</th>
                   <th className="p-3 whitespace-nowrap">Sub Vendor</th>
@@ -1549,6 +1563,8 @@ function ApplicationsTab({ initialLocation = "" }) {
                     <td className="p-3 whitespace-nowrap">{a.phone_number}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{formatApplicationLocation(a.location)}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.branch_name ? a.branch_name.replace(/\bKolkata\b/gi, "West Bengal") : "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.city || "-"}</td>
+                    <td className="p-3 text-xs whitespace-nowrap">{a.district || "-"}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.super_vendor_name || "-"}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.vendor_name || "-"}</td>
                     <td className="p-3 text-xs whitespace-nowrap">{a.sub_vendor_name || "-"}</td>
