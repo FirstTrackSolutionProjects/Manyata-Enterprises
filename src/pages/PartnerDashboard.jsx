@@ -142,9 +142,8 @@ export default function PartnerDashboard() {
       onSectionChange={setSection}
     >
       {section === "commissions" ? <PartnerCommissionSection /> : section === "profile" ? <PartnerProfile profile={partnerProfile} partnerType={partnerType} /> : section === "dashboard" ? <>
-        <div className="mb-6 flex items-center gap-4">
-          {(partnerProfile?.documentUrls?.Photo || partnerProfile?.file_photo) ? <img src={partnerProfile.documentUrls?.Photo || fileUrl(partnerProfile.file_photo)} alt={`${user?.partnerCompanyName || user?.name || "Partner"} profile`} onError={(event) => event.currentTarget.remove()} className="h-16 w-16 shrink-0 rounded-full border-2 border-amber object-cover" /> : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-amber-soft text-navy"><UserRound size={28} /></div>}
-          <div className="min-w-0 flex-1"><DashboardWelcome name={user?.partnerCompanyName || user?.name || partnerType} description="Your partner account details and the sections the owner has allowed you to access." /></div>
+        <div className="mb-6">
+          <DashboardWelcome name={user?.partnerCompanyName || user?.name || partnerType} description="Your partner account details and the sections the owner has allowed you to access." />
         </div>
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <div className="rounded-2xl border border-navy/10 bg-white p-5"><p className="text-xs font-semibold text-muted">Partner Name</p><p className="mt-1 text-lg font-extrabold text-navy">{user?.partnerCompanyName || user?.name || "—"}</p></div>
