@@ -2183,21 +2183,6 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
   const [attendancePreviewError, setAttendancePreviewError] = useState("");
  const [attendanceDeductionCustomized, setAttendanceDeductionCustomized] = useState(false); const [rateOverride, setRateOverride] = useState(""); const [hoursSalaryOverride, setHoursSalaryOverride] = useState(""); const [netOverride, setNetOverride] = useState(""); const [unpaidHoursOverride, setUnpaidHoursOverride] = useState("");
   const gross = Number(form.grossSalary || 0);
-  const joinMatch = joiningDate.trim().match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
-  const joinDay = joinMatch && Number(joinMatch[2]) === Number(form.month) && Number(joinMatch[3]) === Number(form.year) ? Math.min(30, Math.max(1, Number(joinMatch[1]))) : 1;
-  const activeDays = 30 - joinDay + 1;
-  const sundaysFromJoin = Array.from({ length: activeDays }, (_, index) => new Date(Date.UTC(Number(form.year), Number(form.month) - 1, joinDay + index)).getUTCDay()).filter((weekday) => weekday === 0).length;
-  const previewReady = Boolean(attendancePreview);
-    const joinValid = Boolean(joinMatch && Number(joinMatch[2]) === Number(form.month) && Number(joinMatch[3]) === Number(form.year));
-  useEffect(() => {
-        if (attendanceCalculationMode !== "hours" || !previewReady || !joinValid) return;
-    setAttendancePreview((current) => {
-      if (!current || current.fromSavedSlip) return current;
-      const paidSundays = joinValid ? Math.min(4, sundaysFromJoin) : Number(current.paidSundayCount || 0);
-     return { ...current, paidSundayCount: paidSundays, unpaidDays: current.unpaidDays };
-    });
-    // eslint-disable-next-line
-  }, [joiningDate, form.month, form.year, previewReady, attendanceCalculationMode]);
   const basic = salaryStructure === "custom" ? Number(customStructure.basicSalary || 0) : Math.round(gross * 50) / 100;
   const hra = salaryStructure === "custom" ? Number(customStructure.hra || 0) : Math.round(gross * 40) / 100;
   const allowance = salaryStructure === "custom" ? Number(customStructure.allowance || 0) : Math.round((gross - basic - hra) * 100) / 100;
@@ -2208,8 +2193,8 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
   const standardHoursValue = Number(attendancePreview?.standardHours || 0);
   const workedHoursValue = Math.floor(Number(attendancePreview?.workedHours || 0) + 1e-9);
  const hourlyRateAuto = standardHoursValue > 0 ? Math.ceil(calculatedGross / standardHoursValue / 0.25 - 1e-9) * 0.25 : 0;
-  const hourlyRate = rateOverride !== "" ? Number(rateOverride) : hourlyRateAuto; const hoursSalaryAuto = standardHoursValue > 0 ? Math.floor(hourlyRate * workedHoursValue + 1e-9) : calculatedGross;
-  const hoursSalary = hoursSalaryOverride !== "" ? Number(hoursSalaryOverride) : hoursSalaryAuto; const unpaidHoursAuto = Math.max(0, standardHoursValue - workedHoursValue); const unpaidHoursValue = unpaidHoursOverride !== "" ? Number(unpaidHoursOverride) : unpaidHoursAuto;
+ const hourlyRate = rateOverride !== "" ? Number(rateOverride) : hourlyRateAuto; const shiftHoursValue = Number(attendancePreview?.shiftHours || 8); const bonusDayDelta = Number(attendancePreview?.paidSundayCount || 0) - Number(autoAttendancePreview.current?.paidSundayCount ?? attendancePreview?.paidSundayCount ?? 0); const payableHours = Math.min(standardHoursValue, Number(attendancePreview?.payableHours ?? workedHoursValue) + (workedHoursValue - Number(autoAttendancePreview.current?.workedHours ?? workedHoursValue)) + bonusDayDelta * shiftHoursValue); const hoursSalaryAuto = standardHoursValue > 0 ? Math.floor(hourlyRate * payableHours + 1e-9) : calculatedGross;
+  const hoursSalary = hoursSalaryOverride !== "" ? Number(hoursSalaryOverride) : hoursSalaryAuto; const unpaidHoursAuto = Math.max(0, standardHoursValue - payableHours); const unpaidHoursValue = unpaidHoursOverride !== "" ? Number(unpaidHoursOverride) : unpaidHoursAuto;
    const daysPresentValue = Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0);
   const standardDaysValue = Number(attendancePreview?.standardDays || 30);
   const attendanceDeductionDefault = attendanceCalculationMode === "days"
@@ -2289,6 +2274,7 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
     manualNetSalary: netOverride === "" ? null : netSalary,
     attendanceStandardHours: attendancePreview?.standardHours || 0,
     attendanceWorkedHours: attendancePreview?.workedHours || 0,
+    attendancePayableHours: payableHours,
        attendanceUnpaidHours: attendanceCalculationMode === "hours" ? unpaidHoursValue : (attendancePreview?.unpaidHours || 0),
     attendancePaidSundays: attendancePreview?.paidSundayCount || 0,
     attendanceStandardDays: attendancePreview?.standardDays || 0,
@@ -2369,18 +2355,20 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
               {attendanceMetricInput("workedHours", "Worked Present hours")}
               
              <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Unpaid hours<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={unpaidHoursOverride !== "" ? unpaidHoursOverride : unpaidHoursAuto.toFixed(2)} onChange={(event) => setUnpaidHoursOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
-              {attendanceMetricInput("workedDays", "Present days", "0.5")}
-              {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
+              {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
+              {attendanceMetricInput("workedDays", "Worked days", "0.5")}
+              {attendanceMetricInput("paidSundayCount", "Bonus days", "1")}
               {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
-              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Total present (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)}</p></div>
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
               <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={rateOverride !== "" ? rateOverride : hourlyRateAuto.toFixed(2)} onChange={(event) => setRateOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
               <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={hoursSalaryOverride !== "" ? hoursSalaryOverride : hoursSalaryAuto} onChange={(event) => setHoursSalaryOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
             </> : <>
               {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
-              {attendanceMetricInput("workedDays", "Attended days", "0.5")}
+              {attendanceMetricInput("workedDays", "Worked days", "0.5")}
               
              {attendanceMetricInput("unpaidDays", "Unpaid days so far", "0.5")}
-              {attendanceMetricInput("paidSundayCount", "Paid Sundays", "1")}
+              {attendanceMetricInput("paidSundayCount", "Bonus days", "1")}
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
             </>}
           </div>
         </> : <p className="text-sm text-muted">Loading this month’s attendance calculation…</p>}
