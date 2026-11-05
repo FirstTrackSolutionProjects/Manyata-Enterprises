@@ -1993,6 +1993,7 @@ function EmployeesTab() {
                       const granted = actionList.filter((action) => u.actionPermissions?.[module]?.[action]).map((action) => action === "export" ? "Excel export" : action[0].toUpperCase() + action.slice(1));
                       return `${module === "applications" ? "Applications" : module === "installations" ? "Installation" : "Partners"}: ${granted.join(" / ") || "No actions"}`;
                     }).join(" · ")}</div>}
+                    {u.locationPermissions?.branchIds?.length > 0 && <div className="mt-1 text-[11px] leading-4 text-muted">Application branches: {u.locationPermissions.branchIds.map((id) => branches.find((branch) => Number(branch.id) === Number(id))?.name || `#${id}`).join(", ")}</div>}
                   </td>
                   <td className="p-3 whitespace-nowrap">
                     <span
@@ -2418,7 +2419,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
     department: employee?.department || "",
     permissions: Array.isArray(employee?.permissions) ? employee.permissions : ["applications"],
     actionPermissions: initialActionPermissions,
-    locationPermissions: employee?.locationPermissions || { applications: [], installations: [] },
+    locationPermissions: employee?.locationPermissions || { applications: [], installations: [], branchIds: [] },
     userId: employee?.user_id || "",
     address: employee?.address || "",
     city: employee?.city || "",
@@ -2476,6 +2477,18 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
       locationPermissions: {
         ...current.locationPermissions,
         [module]: checked ? [...new Set([...selected, location])] : selected.filter((item) => item !== location),
+      },
+    };
+  });
+
+  const toggleBranchPermission = (branchId, checked) => setForm((current) => {
+    const selected = current.locationPermissions?.branchIds || [];
+    const id = Number(branchId);
+    return {
+      ...current,
+      locationPermissions: {
+        ...current.locationPermissions,
+        branchIds: checked ? [...new Set([...selected.map(Number), id])] : selected.filter((item) => Number(item) !== id),
       },
     };
   });
@@ -2615,13 +2628,13 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
             <legend className="px-1 text-sm font-bold text-navy">Dashboard access</legend>
             <p className="mb-3 text-xs text-muted">Choose dashboard sections and grant Excel export separately for Applications, Installations, and Partners.</p>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {[["applications", "Applications"], ["installations", "Installation"], ["employees", "Employees"], ["partners", "Partners"], ["branches", "Branches"], ["submissions", "Submissions"]].map(([value, label]) => (
+                  {[["applications", "Applications"], ["installations", "Installation"], ["employees", "Employees"], ["partners", "Partners"], ["branches", "Branches"], ["submissions", "Submissions"]].map(([value, label]) => (
                 <div key={value} className="rounded-lg bg-offwhite p-3">
                   <label className="flex items-center gap-2 text-sm font-semibold text-navy">
                     <input type="checkbox" checked={form.permissions.includes(value)} onChange={(event) => toggleModule(value, event.target.checked)} className="accent-amber" />
                     {label}
                   </label>
-                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div></div>}
+                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div>{value === "applications" && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Branch access (optional; overrides state access)</p><div className="max-h-32 space-y-1 overflow-y-auto">{branches.map((branch) => <label key={branch.id} className="flex items-center gap-2 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.branchIds?.map(Number).includes(Number(branch.id)))} onChange={(event) => toggleBranchPermission(branch.id, event.target.checked)} className="accent-amber" /><span>{branch.name} ({branch.code})</span><span className="text-muted">{[branch.district, branch.state].filter(Boolean).join(", ")}</span></label>)}</div><p className="mt-1 text-[10px] text-muted">Selected branches restrict this employee to applications from those branches.</p></div>}</div>}
                   {["applications", "installations", "partners"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{(value === "partners" ? [["export", "Excel export"]] : [["view", "View"], ["edit", "Edit"], ["download", "PDF download"], ["export", "Excel export"]]).map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={value !== "partners" && action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
                   {["applications", "installations"].includes(value) && form.permissions.includes(value) && <details className="mt-2 border-t border-navy/10 pt-2">
                     <summary className="cursor-pointer text-[11px] font-semibold text-navy">Role-wise Status access ({(form.actionPermissions[value]?.statusUpdates || []).filter((status) => status !== "loan_visible").length})</summary>
