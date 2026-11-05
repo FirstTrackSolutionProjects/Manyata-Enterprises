@@ -143,7 +143,7 @@ export default function PartnerDashboard() {
     >
       {section === "commissions" ? <PartnerCommissionSection /> : section === "profile" ? <PartnerProfile profile={partnerProfile} partnerType={partnerType} /> : section === "dashboard" ? <>
         <div className="mb-6 flex items-center gap-4">
-          {partnerProfile?.file_photo ? <img src={fileUrl(partnerProfile.file_photo)} alt={`${user?.partnerCompanyName || user?.name || "Partner"} profile`} className="h-16 w-16 shrink-0 rounded-full border-2 border-amber object-cover" /> : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-amber-soft text-navy"><UserRound size={28} /></div>}
+          {(partnerProfile?.documentUrls?.Photo || partnerProfile?.file_photo) ? <img src={partnerProfile.documentUrls?.Photo || fileUrl(partnerProfile.file_photo)} alt={`${user?.partnerCompanyName || user?.name || "Partner"} profile`} onError={(event) => event.currentTarget.remove()} className="h-16 w-16 shrink-0 rounded-full border-2 border-amber object-cover" /> : <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-amber-soft text-navy"><UserRound size={28} /></div>}
           <div className="min-w-0 flex-1"><DashboardWelcome name={user?.partnerCompanyName || user?.name || partnerType} description="Your partner account details and the sections the owner has allowed you to access." /></div>
         </div>
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -203,30 +203,32 @@ export default function PartnerDashboard() {
 }
 
 function PartnerProfile({ profile, partnerType }) {
-  const profilePhoto = fileUrl(profile?.file_photo);
+  const profilePhoto = profile?.documentUrls?.Photo || (profile?.file_photo ? fileUrl(profile.file_photo) : null);
   const details = [
-    ["Partner type", partnerType],
-    ["Contact person", profile?.contact_name],
-    ["Email", profile?.email],
-    ["Phone", profile?.phone],
-    ["Gender", profile?.gender],
-    ["Date of birth", profile?.dob ? new Date(profile.dob).toLocaleDateString("en-IN") : ""],
-    ["Address", profile?.address],
-    ["City", profile?.city],
-    ["District", profile?.district],
-    ["State", profile?.state],
-    ["PIN code", profile?.pincode],
-    ["System types", (profile?.system_types || []).map(titleCase).join(", ")],
+    ["Company name", profile?.company_name], ["Partner type", partnerType],
+    ["Partner roles", (profile?.partner_roles || []).map(titleCase).join(", ")],
+    ["Contact person", profile?.contact_name], ["Email", profile?.email], ["Phone", profile?.phone],
+    ["Gender", profile?.gender], ["Date of birth", profile?.dob ? new Date(profile.dob).toLocaleDateString("en-IN") : ""],
+    ["Address", profile?.address], ["City", profile?.city], ["District", profile?.district], ["State", profile?.state], ["PIN code", profile?.pincode],
     ["Assigned locations", (profile?.assigned_locations || []).map(titleCase).join(", ")],
+    ["System types", (profile?.system_types || []).map(titleCase).join(", ")],
+    ["GST number", profile?.gst_number], ["PAN number", profile?.pan_number], ["Aadhaar number", profile?.aadhaar_number], ["MSME number", profile?.msme_number],
+    ["Experience (years)", profile?.experience_years], ["Description", profile?.description],
+    ["Bank name", profile?.bank_name], ["Account number", profile?.account_number], ["IFSC code", profile?.ifsc_code],
+    ["Commission model", profile?.commission_model ? titleCase(profile.commission_model) : ""],
+    ["On-Grid commission", profile?.commission_rates?.on_grid != null ? `₹${Number(profile.commission_rates.on_grid).toLocaleString("en-IN")}` : ""],
+    ["Hybrid commission", profile?.commission_rates?.hybrid != null ? `₹${Number(profile.commission_rates.hybrid).toLocaleString("en-IN")}` : ""],
   ];
+  const documents = Object.entries(profile?.documentUrls || {}).filter(([label]) => label !== "Photo");
   return <section className="overflow-hidden rounded-2xl border border-navy/10 bg-white">
-    <div className="flex flex-wrap items-center gap-4 border-b border-navy/10 bg-gradient-to-r from-navy to-[#263c60] p-6 text-white">
-      {profilePhoto ? <img src={profilePhoto} alt="Partner profile" className="h-20 w-20 rounded-full border-4 border-white/80 object-cover" /> : <div className="grid h-20 w-20 place-items-center rounded-full bg-amber text-navy"><UserRound size={32} /></div>}
-      <div><h2 className="text-xl font-extrabold">{profile?.company_name || profile?.contact_name || "Partner Profile"}</h2><p className="mt-1 text-sm text-white/75">{profile?.contact_name || partnerType}</p></div>
+    <div className="relative border-b border-navy/10 pb-6">
+      <div className="relative h-36 overflow-hidden bg-gradient-to-r from-navy via-navy to-[#263c60] sm:h-40"><div className="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full bg-amber/20" /><div className="pointer-events-none absolute right-40 top-14 h-28 w-28 rounded-full bg-amber/10" /><div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber via-amber/60 to-transparent" /><div className="absolute right-5 top-5 flex flex-wrap justify-end gap-2"><span className="rounded-full bg-amber px-3 py-1 font-mono text-[11px] font-bold text-navy">Partner #{profile?.id || "—"}</span>{profile?.status && <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold text-white">{titleCase(profile.status)}</span>}<span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-bold text-white">{partnerType}</span></div></div>
+      <div className="-mt-14 flex flex-wrap items-end gap-4 px-5 sm:-mt-16 sm:px-6">
+        {profilePhoto ? <img src={profilePhoto} alt="Partner profile" onError={(event) => event.currentTarget.remove()} className="relative z-10 h-28 w-28 rounded-full border border-navy/10 object-cover shadow-lg ring-4 ring-white sm:h-32 sm:w-32" /> : <div className="relative z-10 grid h-28 w-28 place-items-center rounded-full bg-amber-soft text-3xl font-extrabold text-navy shadow-lg ring-4 ring-white sm:h-32 sm:w-32"><UserRound size={34} /></div>}
+        <div className="min-w-[240px] flex-1 pb-1 sm:pb-2"><h2 className="break-words text-2xl font-extrabold tracking-tight text-navy sm:text-3xl">{profile?.company_name || profile?.contact_name || "Partner Profile"}</h2><div className="mt-3 flex flex-wrap gap-2">{profile?.contact_name && <span className="rounded-full bg-offwhite px-3 py-1.5 text-xs font-semibold text-navy">{profile.contact_name}</span>}{profile?.phone && <span className="rounded-full bg-offwhite px-3 py-1.5 text-xs font-semibold text-navy">{profile.phone}</span>}{profile?.email && <span className="break-all rounded-full bg-offwhite px-3 py-1.5 text-xs font-semibold text-navy">{profile.email}</span>}</div><p className="mt-3 text-xs text-muted">{profile?.created_at ? `Partner since ${new Date(profile.created_at).toLocaleDateString("en-IN")}` : "Partner account profile"}</p></div>
+      </div>
     </div>
-    <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-3">
-      {details.map(([label, value]) => <div key={label} className="rounded-xl bg-slate-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p><p className="mt-1 break-words text-sm font-semibold text-navy">{value || "Not provided"}</p></div>)}
-    </div>
+    <div className="p-5 sm:p-6"><h3 className="mb-3 text-base font-bold text-navy">Partner details</h3><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{details.map(([label, value]) => <div key={label} className="rounded-xl border border-navy/5 bg-slate-50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p><p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold text-navy">{value || "Not provided"}</p></div>)}</div>{documents.length > 0 && <><h3 className="mb-3 mt-6 text-base font-bold text-navy">Uploaded documents</h3><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{documents.map(([label, url]) => <a key={label} href={url} target="_blank" rel="noreferrer" className="rounded-xl border border-navy/10 bg-white p-4 text-sm font-semibold text-navy hover:border-amber">{label}<span className="mt-1 block text-xs font-normal text-muted">Open document</span></a>)}</div></>}</div>
   </section>;
 }
 
