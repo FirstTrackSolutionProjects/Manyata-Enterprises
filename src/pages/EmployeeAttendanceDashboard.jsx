@@ -544,7 +544,7 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
             <p className="mt-1 text-xs text-muted">
               {mine.dailySalaryEstimate == null
                 ? "Requires a generated salary slip for the selected month."
-                : `Monthly net salary spread across ${mine.expectedWorkdays || 0} scheduled workday(s) at ${mine.scheduledShiftHours || 0} scheduled hours per day; the estimate uses recorded net work hours up to the monthly scheduled-hours limit. Estimate only; the approved salary slip is authoritative.`}
+                : `Monthly net salary spread across ${mine.expectedWorkdays || 0} scheduled workday(s) at ${mine.scheduledShiftHours || 0} scheduled hours per day, multiplied by ${(Number(monthSummary.worked_minutes || 0) / 60).toFixed(2)} net work hours. Estimate only; the approved salary slip is authoritative.`}
             </p>
           </div>
         </div>
