@@ -2191,9 +2191,9 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
   const bonus = Number(form.bonus || 0);
   const scheduledAdvanceRecovery = Number(form.scheduledAdvanceRecovery || 0);
   const standardHoursValue = Number(attendancePreview?.standardHours || 0);
-  const workedHoursValue = Math.floor(Number(attendancePreview?.workedHours || 0) + 1e-9);
+  const workedHoursValue = Number(attendancePreview?.workedHours || 0);
  const hourlyRateAuto = standardHoursValue > 0 ? Math.ceil(calculatedGross / standardHoursValue / 0.25 - 1e-9) * 0.25 : 0;
- const hourlyRate = rateOverride !== "" ? Number(rateOverride) : hourlyRateAuto; const shiftHoursValue = Number(attendancePreview?.shiftHours || 8); const bonusDayCount = Number(attendancePreview?.paidSundayCount || 0); const bonusDayDelta = bonusDayCount - Number(autoAttendancePreview.current?.paidSundayCount ?? bonusDayCount); const payableHours = Math.min(standardHoursValue, Number(attendancePreview?.payableHours ?? workedHoursValue) + (workedHoursValue - Number(autoAttendancePreview.current?.workedHours ?? workedHoursValue)) + bonusDayDelta * shiftHoursValue); const hoursSalaryAuto = standardHoursValue > 0 ? Math.floor(hourlyRate * Math.floor(payableHours + 1e-9) + 1e-9) : calculatedGross;
+ const hourlyRate = rateOverride !== "" ? Number(rateOverride) : hourlyRateAuto; const bonusDayCount = Number(attendancePreview?.paidSundayCount || 0); const payableHours = Math.max(0, workedHoursValue); const hoursSalaryAuto = standardHoursValue > 0 ? Math.floor(hourlyRate * payableHours * 100 + 1e-9) / 100 : calculatedGross;
   const hoursSalary = hoursSalaryOverride !== "" ? Number(hoursSalaryOverride) : hoursSalaryAuto; const unpaidHoursAuto = Math.max(0, standardHoursValue - payableHours); const unpaidHoursValue = unpaidHoursOverride !== "" ? Number(unpaidHoursOverride) : unpaidHoursAuto;
    const daysPresentValue = Number(attendancePreview?.workedDays || 0) + bonusDayCount;
   const standardDaysValue = Number(attendancePreview?.standardDays || 30);
@@ -2206,7 +2206,7 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
     ? Number(form.attendanceDeduction || 0)
     : attendanceDeductionDefault;
   const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0) + scheduledAdvanceRecovery + attendanceDeduction;
-  const totalEarnings = calculatedGross + incentive + bonus + attendanceBonusSalary;
+  const totalEarnings = Math.max(calculatedGross, hoursSalary) + incentive + bonus + attendanceBonusSalary;
     const netSalaryAuto = Math.max(0, totalEarnings - deductions); const netSalary = netOverride !== "" ? Number(netOverride) : netSalaryAuto; const attendanceDeductionFinal = attendanceDeduction;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const returnToAutoCalculation = () => {
