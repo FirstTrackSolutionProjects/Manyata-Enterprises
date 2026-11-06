@@ -2362,7 +2362,7 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
               {attendanceMetricInput("paidSundayCount", "Bonus days", "1")}
               {readOnlyAmount(`${bonusDayCount} Sunday bonus day${bonusDayCount === 1 ? "" : "s"} × Rs. ${bonusDailySalary.toFixed(2)}`, attendanceBonusSalary)}
               {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
-              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
               <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={rateOverride !== "" ? rateOverride : hourlyRateAuto.toFixed(2)} onChange={(event) => setRateOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
               <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Salary for worked hours (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={hoursSalaryOverride !== "" ? hoursSalaryOverride : hoursSalaryAuto} onChange={(event) => setHoursSalaryOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
             </> : <>
@@ -2375,7 +2375,7 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
              {attendanceMetricInput("unpaidDays", "Unpaid days so far", "0.5")}
               {attendanceMetricInput("paidSundayCount", "Bonus days", "1")}
               {readOnlyAmount(`${bonusDayCount} Sunday bonus day${bonusDayCount === 1 ? "" : "s"} × Rs. ${bonusDailySalary.toFixed(2)}`, attendanceBonusSalary)}
-              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
+              <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
             </>}
           </div>
         </> : <p className="text-sm text-muted">Loading this month’s attendance calculation…</p>}
