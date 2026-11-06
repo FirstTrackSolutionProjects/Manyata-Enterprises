@@ -2206,7 +2206,9 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
     ? Number(form.attendanceDeduction || 0)
     : attendanceDeductionDefault;
   const deductions = Number(form.employeeEpf || 0) + Number(form.employeeEsi || 0) + Number(form.professionalTax || 0) + Number(form.advanceSalary || 0) + scheduledAdvanceRecovery + attendanceDeduction;
-  const totalEarnings = calculatedGross + incentive + bonus + attendanceBonusSalary;
+  // Sunday bonus days are already included in payable hours/days. Do not add
+  // their value again as a separate earning on top of the monthly salary.
+  const totalEarnings = calculatedGross + incentive + bonus;
     const netSalaryAuto = Math.max(0, totalEarnings - deductions); const netSalary = netOverride !== "" ? Number(netOverride) : netSalaryAuto; const attendanceDeductionFinal = attendanceDeduction;
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const returnToAutoCalculation = () => {
@@ -2360,7 +2362,7 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
               {attendanceMetricInput("standardDays", "Calendar days in month", "1")}
               {attendanceMetricInput("workedDays", "Worked days", "0.5")}
               {attendanceMetricInput("paidSundayCount", "Bonus days", "1")}
-              {readOnlyAmount(`${bonusDayCount} Sunday bonus day${bonusDayCount === 1 ? "" : "s"} × Rs. ${bonusDailySalary.toFixed(2)}`, attendanceBonusSalary)}
+              {readOnlyAmount(`${bonusDayCount} Sunday bonus day${bonusDayCount === 1 ? "" : "s"} included in payable days (not extra)`, attendanceBonusSalary)}
               {attendanceMetricInput("unpaidDays", "Absent days", "0.5")}
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
               <label className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Hourly rate (Rs.)<input type="number" min="0" step="0.01" disabled={!isCustomCalculation} value={rateOverride !== "" ? rateOverride : hourlyRateAuto.toFixed(2)} onChange={(event) => setRateOverride(event.target.value)} className={`${inputClass} mt-1 bg-transparent text-sm font-bold text-navy disabled:bg-slate-100`} /></label>
@@ -2374,7 +2376,7 @@ function SalarySlipModal({ employee, onClose, onGenerate, onPublished }) {
               
              {attendanceMetricInput("unpaidDays", "Unpaid days so far", "0.5")}
               {attendanceMetricInput("paidSundayCount", "Bonus days", "1")}
-              {readOnlyAmount(`${bonusDayCount} Sunday bonus day${bonusDayCount === 1 ? "" : "s"} × Rs. ${bonusDailySalary.toFixed(2)}`, attendanceBonusSalary)}
+              {readOnlyAmount(`${bonusDayCount} Sunday bonus day${bonusDayCount === 1 ? "" : "s"} included in payable days (not extra)`, attendanceBonusSalary)}
               <div className="block rounded-lg bg-white px-3 py-2 text-xs text-muted">Present days (auto)<p className="mt-1 py-2.5 text-sm font-bold text-navy">{Number(attendancePreview?.workedDays || 0)} + {Number(attendancePreview?.paidSundayCount || 0)} = {Number(attendancePreview?.workedDays || 0) + Number(attendancePreview?.paidSundayCount || 0)} / {Number(attendancePreview?.standardDays || 0)} days</p></div>
             </>}
           </div>
