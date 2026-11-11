@@ -291,7 +291,8 @@ export default function AttendanceDashboard({ isManager }) {
       setManualEvent((current) => ({ ...current, attendance_date: indiaTodayInput(), event_at: indiaNowDateTimeInput(), event_type: "custom", event_label: "", note: "" }));
       setManualPunchTimes({ clock_in: indiaNowDateTimeInput(), clock_out: "" });
       await showAttendanceDate(savedDate);
-    } catch (err) { setError(err.message || "Could not save the attendance update."); }
+      return true;
+    } catch (err) { setError(err.message || "Could not save the attendance update."); return false; }
     finally { setBusy(false); }
   };
   const submitManualPunchTime = async (eventType) => {

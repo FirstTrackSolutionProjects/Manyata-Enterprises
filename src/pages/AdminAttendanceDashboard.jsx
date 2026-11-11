@@ -836,8 +836,9 @@ export default function AdminAttendanceDashboard({ context }) {
         >
           <form
             onSubmit={(event) => {
-              submitManagerEvent(event);
-              setShowManual(false);
+              submitManagerEvent(event).then((saved) => {
+                if (saved) setShowManual(false);
+              });
             }}
             className="grid gap-3 sm:grid-cols-2"
           >
