@@ -235,10 +235,12 @@ export default function AttendanceDashboard({ isManager }) {
         const position = await new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition(resolve, () => reject(new Error("Location permission was not granted. Turn off location check-in or allow browser location access.")), { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }));
         location = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: Math.round(position.coords.accuracy) };
       }
-      if (!punchPhoto) throw new Error("Capture a camera photo before clocking in or out.");
-      if (action === "in") await clockInToAttendance({ ...location, photoDataUrl: punchPhoto });
-      else await clockOutOfAttendance({ ...location, photoDataUrl: punchPhoto });
+      const punchDetails = { ...location, ...(punchPhoto ? { photoDataUrl: punchPhoto } : {}) };
+      if (action === "in") await clockInToAttendance(punchDetails);
+      else await clockOutOfAttendance(punchDetails);
       setPunchPhoto("");
+      cameraStream?.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
       setNotice(action === "in" ? "Clock-in recorded successfully." : "Clock-out recorded successfully.");
       await load();
     } catch (err) { setError(err.message || "Could not record attendance."); }

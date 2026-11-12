@@ -116,9 +116,7 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
   const hasPhotoCapture = Boolean(punchPhoto);
 
   const handleClockOut = () => {
-    if (punchPhoto) return submitPunch("out");
-    if (cameraStream) return setError("Capture the selfie in the Camera card before clocking out.");
-    return startPunchCamera();
+    return submitPunch("out");
   };
 
   const handleCorrectionSubmit = (event) => {
@@ -207,9 +205,7 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
                   title={
                     onBreak
                       ? "End your break before clocking out."
-                      : !punchPhoto
-                      ? "Tap to open the camera, capture a selfie, then clock out."
-                      : ""
+                      : "Selfie is optional. You can clock out without taking a photo."
                   }
                   className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-3 text-sm font-bold text-navy disabled:opacity-50 sm:w-auto"
                 >
@@ -220,8 +216,8 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
             ) : (
               <button
                 onClick={() => submitPunch("in")}
-                disabled={busy || loading || clockedInToday || !punchPhoto}
-                title={!punchPhoto ? "Capture a camera photo before clocking in." : ""}
+                disabled={busy || loading || clockedInToday}
+                title="Selfie is optional. You can clock in without taking a photo."
                 className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-amber px-5 py-3 text-sm font-bold text-navy disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               >
                 <LogIn size={17} />
@@ -259,9 +255,9 @@ const pageSlice = (list) => list.slice(safePage * PAGE_SIZE, (safePage + 1) * PA
         <div className="rounded-2xl border border-navy/10 bg-white p-4">
           <div className="flex items-center gap-2">
             <Camera size={18} className="text-amber" />
-            <h2 className="font-bold text-navy">Camera photo</h2>
+            <h2 className="font-bold text-navy">Selfie (optional)</h2>
           </div>
-          <p className="mt-1 text-xs text-muted">Live selfie is stored privately with your punch.</p>
+          <p className="mt-1 text-xs text-muted">You can take a selfie to attach it to your punch, or clock in/out without a photo.</p>
 
           {cameraStream ? (
             <video
