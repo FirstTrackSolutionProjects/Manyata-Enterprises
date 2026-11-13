@@ -92,16 +92,16 @@ function Stat({ label, value }) {
 
 export default function AdminAttendanceDashboard({ context }) {
   const {
-    isManager, register, rowTimeEdits, setRowTimeEdits, savingTimeRecord,
+    isManager, isOwner, register, rowTimeEdits, setRowTimeEdits, savingTimeRecord,
     attendanceEmployees, manualEvent, setManualEvent, manualPunchTimes, setManualPunchTimes,
     from, setFrom, to, setTo, search, setSearch, busy, loading, setError, settings,
     calendar, corrections, holidayDate, setHolidayDate, holidayTitle, setHolidayTitle,
     scheduleForm, setScheduleForm, loadRegister, syncManualDate, load, reviewCorrection,
     saveSchedule, submitHoliday, submitManagerEvent, submitManualPunchTime,
     updateRegisterTime, saveAttendanceBreak, addRegisterBreak, printAttendanceReport, downloadRegister, statusLabel,
-    saveRegisterPhoto,
+    saveRegisterPhoto, removeRegisterPhoto,
     attendancePhotoHref, removeAttendanceHoliday, attendanceDateLabel, attendanceTimeLabel,
-    attendanceDateTimeLabel, indiaTodayInput, indiaDateTimeInput, breakTypeLabel,
+    attendanceDateTimeLabel, indiaTodayInput, indiaDateTimeInput, indiaDateTimeSecondsInput, breakTypeLabel,
   } = context;
 
   const [tab, setTab] = useState("register");
@@ -541,9 +541,9 @@ export default function AdminAttendanceDashboard({ context }) {
                                         <li key={entry.id || index}>
                                           <div className="flex flex-wrap items-center gap-2">
                                             <span><span className="font-semibold text-navy">{breakTypeLabel(entry.break_type)}</span>: {attendanceTimeLabel(entry.break_start_at)} - {entry.break_end_at ? attendanceTimeLabel(entry.break_end_at) : "In progress"}</span>
-                                            <button type="button" className="inline-flex items-center gap-1 rounded-md border border-navy/15 px-2 py-1 text-[11px] font-semibold text-navy hover:bg-white" onClick={() => setBreakEdits((current) => ({ ...current, [entry.id]: current[entry.id] ? null : { break_type: entry.break_type || "rest", break_start_at: indiaDateTimeInput(entry.break_start_at), break_end_at: entry.break_end_at ? indiaDateTimeInput(entry.break_end_at) : "" } }))}><Pencil size={11}/>{breakEdits[entry.id] ? "Cancel edit" : "Edit break"}</button>
+                                          <button type="button" className="inline-flex items-center gap-1 rounded-md border border-navy/15 px-2 py-1 text-[11px] font-semibold text-navy hover:bg-white" onClick={() => setBreakEdits((current) => ({ ...current, [entry.id]: current[entry.id] ? null : { break_type: entry.break_type || "rest", break_start_at: indiaDateTimeSecondsInput(entry.break_start_at), break_end_at: entry.break_end_at ? indiaDateTimeSecondsInput(entry.break_end_at) : "" } }))}><Pencil size={11}/>{breakEdits[entry.id] ? "Cancel edit" : "Edit break"}</button>
                                           </div>
-                                          {breakEdits[entry.id] && <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg bg-white p-2"><label className="text-[11px] text-muted">Type<select className="mt-1 block rounded-md border border-navy/15 bg-white px-2 py-1.5 text-xs" value={breakEdits[entry.id].break_type} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_type: event.target.value } }))}>{BREAK_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="text-[11px] text-muted">Start (IST)<input type="datetime-local" className="mt-1 block rounded-md border border-navy/15 bg-white px-2 py-1.5 text-xs" value={breakEdits[entry.id].break_start_at} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_start_at: event.target.value } }))}/></label><label className="text-[11px] text-muted">End (IST)<input type="datetime-local" className="mt-1 block rounded-md border border-navy/15 bg-white px-2 py-1.5 text-xs" value={breakEdits[entry.id].break_end_at} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_end_at: event.target.value } }))}/></label><button type="button" disabled={savingBreakId === entry.id} className="rounded-md bg-navy px-3 py-2 text-xs font-semibold text-white disabled:opacity-50" onClick={async () => { setSavingBreakId(entry.id); try { const saved = await saveAttendanceBreak(entry.id, breakEdits[entry.id], item.employee_name); if (saved) setBreakEdits((current) => ({ ...current, [entry.id]: null })); } finally { setSavingBreakId(null); } }}>{savingBreakId === entry.id ? "Saving..." : "Save"}</button></div>}
+                                          {breakEdits[entry.id] && <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg bg-white p-2"><label className="text-[11px] text-muted">Type<select className="mt-1 block rounded-md border border-navy/15 bg-white px-2 py-1.5 text-xs" value={breakEdits[entry.id].break_type} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_type: event.target.value } }))}>{BREAK_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="text-[11px] text-muted">Start (IST)<input type="datetime-local" step="1" className="mt-1 block rounded-md border border-navy/15 bg-white px-2 py-1.5 text-xs" value={breakEdits[entry.id].break_start_at} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_start_at: event.target.value } }))}/></label><label className="text-[11px] text-muted">End (IST)<input type="datetime-local" step="1" className="mt-1 block rounded-md border border-navy/15 bg-white px-2 py-1.5 text-xs" value={breakEdits[entry.id].break_end_at} onChange={(event) => setBreakEdits((current) => ({ ...current, [entry.id]: { ...current[entry.id], break_end_at: event.target.value } }))}/></label><button type="button" disabled={savingBreakId === entry.id} className="rounded-md bg-navy px-3 py-2 text-xs font-semibold text-white disabled:opacity-50" onClick={async () => { setSavingBreakId(entry.id); try { const saved = await saveAttendanceBreak(entry.id, breakEdits[entry.id], item.employee_name); if (saved) setBreakEdits((current) => ({ ...current, [entry.id]: null })); } finally { setSavingBreakId(null); } }}>{savingBreakId === entry.id ? "Saving..." : "Save"}</button></div>}
                                         </li>
                                       ))}
                                     </ul>
@@ -778,24 +778,20 @@ export default function AdminAttendanceDashboard({ context }) {
                     {item.employee_name} · {attendanceDateLabel(item.attendance_date)}
                   </span>
                   {item.clock_in_photo_key && (
-                    <a
-                      href={attendancePhotoHref(item.id, "clock-in")}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-blue-700 underline"
-                    >
-                      Clock-in photo{item.clock_in_photo_source === "manual" ? " · Manual" : ""}
-                    </a>
+                    <>
+                      <a href={attendancePhotoHref(item.id, "clock-in")} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline">
+                        Clock-in photo{item.clock_in_photo_source === "manual" ? " · Manual" : ""}
+                      </a>
+                      {isOwner && <button type="button" onClick={() => removeRegisterPhoto(item, "clock-in")} disabled={busy} className="rounded-md border border-red-200 px-2 py-1 font-semibold text-red-700 disabled:opacity-50" aria-label={`Delete ${item.employee_name} clock-in photo`}>Delete</button>}
+                    </>
                   )}
                   {item.clock_out_photo_key && (
-                    <a
-                      href={attendancePhotoHref(item.id, "clock-out")}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-blue-700 underline"
-                    >
-                      Clock-out photo{item.clock_out_photo_source === "manual" ? " · Manual" : ""}
-                    </a>
+                    <>
+                      <a href={attendancePhotoHref(item.id, "clock-out")} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline">
+                        Clock-out photo{item.clock_out_photo_source === "manual" ? " · Manual" : ""}
+                      </a>
+                      {isOwner && <button type="button" onClick={() => removeRegisterPhoto(item, "clock-out")} disabled={busy} className="rounded-md border border-red-200 px-2 py-1 font-semibold text-red-700 disabled:opacity-50" aria-label={`Delete ${item.employee_name} clock-out photo`}>Delete</button>}
+                    </>
                   )}
                 </div>
               ))}
