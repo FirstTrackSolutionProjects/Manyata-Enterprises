@@ -430,6 +430,7 @@ export const attachAttendancePhoto = (id, action, file, reason) => {
   return apiFetch(`/attendance/register/${encodeURIComponent(id)}/photo/${encodeURIComponent(action)}`, { method: "PATCH", body });
 };
 export const updateAttendanceBreak = (id, payload) => apiFetch(`/attendance/breaks/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+export const addAttendanceRegisterBreak = (id, payload) => apiFetch(`/attendance/register/${encodeURIComponent(id)}/breaks`, { method: "POST", body: JSON.stringify(payload) });
 export const getAttendanceSettings = () => apiFetch("/attendance/settings");
 export const saveAttendanceSettings = (payload) => apiFetch("/attendance/settings", { method: "PUT", body: JSON.stringify(payload) });
 export const addAttendanceHoliday = (payload) => apiFetch("/attendance/holidays", { method: "POST", body: JSON.stringify(payload) });
