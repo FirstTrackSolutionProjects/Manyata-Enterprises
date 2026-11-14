@@ -123,8 +123,6 @@ export default function CameraFileInput({ label, name, accept, required = false,
   const openFilePicker = () => pickerRef.current?.click();
   const handleFileChange = (event) => {
     selectFile(event.target.files?.[0]);
-    // Clearing the native input lets the user pick the same file again after a failed upload.
-    event.target.value = "";
   };
 
   const startCamera = async (nextFacing) => {
