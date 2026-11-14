@@ -93,12 +93,26 @@ export default function ChangePassword() {
         )}
 
         <label className="mt-6 block">
+          <span className="mb-1.5 block text-xs font-semibold text-navy/70">Account email</span>
+          <input
+            type="email"
+            name="username"
+            autoComplete="username"
+            readOnly
+            value={user?.email || ""}
+            className="w-full rounded-lg border border-navy/15 bg-slate-50 px-3.5 py-2.5 text-sm text-navy"
+          />
+        </label>
+
+        <label className="mt-4 block">
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
             Current Password
           </span>
           <div className="relative">
             <input
               type={showCurrent ? "text" : "password"}
+              name="current-password"
+              autoComplete="current-password"
               required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -145,6 +159,8 @@ export default function ChangePassword() {
           <div className="relative">
             <input
               type={showNew ? "text" : "password"}
+              name="new-password"
+              autoComplete="new-password"
               required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -168,6 +184,8 @@ export default function ChangePassword() {
           <div className="relative">
             <input
               type={showConfirm ? "text" : "password"}
+              name="confirm-password"
+              autoComplete="new-password"
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}

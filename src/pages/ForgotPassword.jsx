@@ -14,7 +14,9 @@ export default function ForgotPassword() {
     setLoading(true);
     setError("");
     try {
-      await requestPasswordReset(email.trim());
+      const accountEmail = email.trim();
+      sessionStorage.setItem("manyata-password-reset-email", accountEmail);
+      await requestPasswordReset(accountEmail);
       setSubmitted(true);
     } catch (err) {
       setError(err.message || "Could not request a password reset. Please try again.");

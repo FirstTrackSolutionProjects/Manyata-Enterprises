@@ -55,6 +55,12 @@ export const requestPasswordReset = (email) =>
     body: JSON.stringify({ email }),
   });
 
+export const getResetPasswordAccount = (token) =>
+  apiFetch("/auth/reset-password/account", {
+    method: "POST",
+    body: JSON.stringify({ token }),
+  });
+
 export const resetPassword = (token, newPassword) =>
   apiFetch("/auth/reset-password", {
     method: "POST",

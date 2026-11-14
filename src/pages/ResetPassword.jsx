@@ -1,17 +1,36 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Eye, EyeOff, Loader2, Lock } from "lucide-react";
-import { resetPassword } from "../services/api";
+import { getResetPasswordAccount, resetPassword } from "../services/api";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
+  const [email, setEmail] = useState(() => sessionStorage.getItem("manyata-password-reset-email") || "");
+  const [accountLoading, setAccountLoading] = useState(Boolean(token));
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    getResetPasswordAccount(token)
+      .then((response) => {
+        if (active) setEmail(response.data.email);
+      })
+      .catch((err) => {
+        if (active) {
+          setEmail("");
+          setError(err.message || "This reset link is invalid or expired. Request a new one.");
+        }
+      })
+      .finally(() => { if (active) setAccountLoading(false); });
+    return () => { active = false; };
+  }, [token]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -46,17 +65,21 @@ export default function ResetPassword() {
           <>
             {error && <p role="alert" className="mt-5 rounded-lg border border-red-300 bg-red-50 p-3 text-xs text-red-700">{error}</p>}
             <label className="mt-6 block">
+              <span className="mb-1.5 block text-xs font-semibold text-navy/70">Account email</span>
+              <input type="email" name="username" autoComplete="username" required readOnly value={email} placeholder={accountLoading ? "Loading account…" : "Account email unavailable"} className="w-full rounded-lg border border-navy/15 bg-slate-50 px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none" />
+            </label>
+            <label className="mt-6 block">
               <span className="mb-1.5 block text-xs font-semibold text-navy/70">New password</span>
               <div className="relative">
-                <input type={showPassword ? "text" : "password"} required minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 pr-10 text-sm text-navy focus:border-amber focus:outline-none" />
+                <input type={showPassword ? "text" : "password"} name="new-password" required minLength={8} autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 pr-10 text-sm text-navy focus:border-amber focus:outline-none" />
                 <button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? "Hide password" : "Show password"} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
               </div>
             </label>
             <label className="mt-4 block">
               <span className="mb-1.5 block text-xs font-semibold text-navy/70">Confirm new password</span>
-              <input type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none" />
+              <input type="password" name="confirm-password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="w-full rounded-lg border border-navy/15 px-3.5 py-2.5 text-sm text-navy focus:border-amber focus:outline-none" />
             </label>
-            <button type="submit" disabled={loading} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy hover:bg-amber-hover disabled:opacity-60">
+            <button type="submit" disabled={loading || accountLoading || !email} className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-amber px-6 py-3 text-sm font-bold text-navy hover:bg-amber-hover disabled:opacity-60">
               {loading ? <><Loader2 size={16} className="animate-spin" /> Updating…</> : "Reset password"}
             </button>
           </>

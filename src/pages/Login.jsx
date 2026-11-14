@@ -83,6 +83,11 @@ export default function Login() {
             <p className="text-xs text-red-700">{error}</p>
           </div>
         )}
+        {error === "Invalid credentials" && (
+          <p className="mt-2 text-xs leading-5 text-muted">
+            If you recently reset your password, clear any browser-filled password and type the newest one. Passwords are case-sensitive. A temporary password is replaced when you set a new password after your first sign-in.
+          </p>
+        )}
 
         <label className="mt-6 block">
           <span className="mb-1.5 block text-xs font-semibold text-navy/70">
