@@ -1277,7 +1277,11 @@ function ApplicationsTab({ initialLocation = "" }) {
   ]);
   const additionalRegionalStatusCards = Object.entries(applicationStatusCounts)
     .filter(([status, count]) => status !== "loan_visible" && Number(count || 0) > 0 && !regionalCardCoveredStatuses.has(status))
-    .map(([status, count]) => [applicationStatusLabel(status), Number(count), `status-${status}`]);
+    .map(([status, count]) => [
+      String(status || "").trim() ? applicationStatusLabel(status) : "Status Not Set",
+      Number(count),
+      `status-${status || "not-set"}`,
+    ]);
 
   return (
     <div className="space-y-4">
