@@ -23,7 +23,11 @@ const BRANCHES = [
     address: "At: Bisra, Rourkela, Sundargarh, Odisha - 770036",
     phones: ["8114721300"],
   },
-  
+  {
+    name: "Kolkata Branch",
+    address: "At: Baruipur Nera HP Petrol Pump, Kolkata, West Bengal - 700144",
+    phones: [],
+  },
 ];
 
 export default function Footer() {
@@ -96,20 +100,22 @@ export default function Footer() {
                     <span>{branch.address}</span>
                   </p>
 
-                  <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <Phone size={16} className="shrink-0 text-amber" />
-                    {branch.phones.map((number, i) => (
-                      <span key={number} className="flex items-center gap-2">
-                        {i > 0 && <span className="text-white/30">/</span>}
-                        <a
-                          href={`tel:+91${number}`}
-                          className="transition-colors hover:text-amber"
-                        >
-                          +91 {number}
-                        </a>
-                      </span>
-                    ))}
-                  </p>
+                  {branch.phones.length > 0 && (
+                    <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <Phone size={16} className="shrink-0 text-amber" />
+                      {branch.phones.map((number, i) => (
+                        <span key={number} className="flex items-center gap-2">
+                          {i > 0 && <span className="text-white/30">/</span>}
+                          <a
+                            href={`tel:+91${number}`}
+                            className="transition-colors hover:text-amber"
+                          >
+                            +91 {number}
+                          </a>
+                        </span>
+                      ))}
+                    </p>
+                  )}
                 </li>
               ))}
 
