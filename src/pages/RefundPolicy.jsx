@@ -44,7 +44,7 @@ const SECTIONS = [
   {
     title: "9. How to Request a Cancellation or Refund",
     content:
-      "Email support@themanyata.com or call 8114721300 / 7008581300 with your name, application details, and reason for cancellation. Our team will confirm the applicable refund amount, if any, based on the stage of your order.",
+      "Email support@themanyata.com or call +91 8114721300 / +91 9827951364 with your name, application details, and reason for cancellation. Our team will confirm the applicable refund amount, if any, based on the stage of your order.",
   },
   {
     title: "10. Changes to This Policy",

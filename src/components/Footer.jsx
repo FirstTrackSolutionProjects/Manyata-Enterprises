@@ -16,7 +16,7 @@ const BRANCHES = [
   {
     name: "Main Office",
     address: "College Square, Soro, Balasore, Odisha - 756045",
-    phones: ["8114721300", "7008581300"],
+    phones: ["8114721300", "9827951364"],
   },
   {
     name: "Sundargarh Branch",
@@ -105,7 +105,7 @@ export default function Footer() {
                           href={`tel:+91${number}`}
                           className="transition-colors hover:text-amber"
                         >
-                          {number}
+                          +91 {number}
                         </a>
                       </span>
                     ))}

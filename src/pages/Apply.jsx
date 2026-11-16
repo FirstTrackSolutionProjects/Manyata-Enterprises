@@ -943,7 +943,7 @@ function OtherDocsStep() {
           >
             support@themanyata.com
           </a>{" "}
-          or WhatsApp us at 8114721300 after submitting your application.
+          or WhatsApp us at +91 8114721300 after submitting your application.
           Please mention your application number.
         </p>
       </div>

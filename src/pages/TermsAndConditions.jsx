@@ -49,7 +49,7 @@ const SECTIONS = [
   {
     title: "10. Contact Us",
     content:
-      "For any questions about these Terms & Conditions, contact us at support@themanyata.com or call 8114721300 / 7008581300.",
+      "For any questions about these Terms & Conditions, contact us at support@themanyata.com or call +91 8114721300 / +91 9827951364.",
   },
 ];
 

@@ -32,11 +32,17 @@ export default function CTASection() {
 
         <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
           
-          <a  href="tel:+918114721300"
+          <a href="tel:+918114721300"
             className="flex items-center gap-2 rounded-full bg-amber px-7 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover"
           >
             <Phone size={16} strokeWidth={2.5} />
-            8114721300 / 7008581300
+            +91 8114721300
+          </a>
+          <a href="tel:+919827951364"
+            className="flex items-center gap-2 rounded-full bg-amber px-7 py-3 text-sm font-bold text-navy transition-colors hover:bg-amber-hover"
+          >
+            <Phone size={16} strokeWidth={2.5} />
+            +91 9827951364
           </a>
           
            <a href="mailto:support@themanyata.com"

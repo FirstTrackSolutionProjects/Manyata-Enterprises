@@ -70,8 +70,8 @@ const contactCards = [
   {
     icon: Phone,
     label: "Call us",
-    lines: ["8114721300", "7008581300"],
-    href: "tel:+918114721300",
+    lines: ["+91 8114721300", "+91 9827951364"],
+    hrefs: ["tel:+918114721300", "tel:+919827951364"],
   },
   {
     icon: Mail,
@@ -115,11 +115,11 @@ function ContactBody() {
                 <p className="text-xs font-medium tracking-wide text-muted">
                   {c.label}
                 </p>
-                {c.lines.map((line) =>
-                  c.href ? (
+                {c.lines.map((line, lineIndex) =>
+                  c.href || c.hrefs?.[lineIndex] ? (
                     <a
                       key={line}
-                      href={c.href}
+                      href={c.hrefs?.[lineIndex] || c.href}
                       className="block text-sm sm:text-base font-medium text-navy hover:text-amber transition-colors"
                     >
                       {line}
