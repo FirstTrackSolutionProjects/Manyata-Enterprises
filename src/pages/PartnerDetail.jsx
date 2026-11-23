@@ -81,7 +81,8 @@ const hasValue = (value) => Array.isArray(value) ? value.length > 0 : value !== 
 export default function PartnerDetail() {
   const { user } = useAuth();
   const isOwner = user?.role === "owner";
-  const canEditPartner = isOwner || isHrEmployee(user);
+  const isHr = isHrEmployee(user);
+  const canEditPartner = isOwner || isHr;
   const { id } = useParams();
   const navigate = useNavigate();
   const [partner, setPartner] = useState(null);
@@ -365,7 +366,7 @@ export default function PartnerDetail() {
             ["Hybrid", partner.referral_commission?.commission_rates?.hybrid === undefined ? "Not set" : `₹${Number(partner.referral_commission.commission_rates.hybrid).toLocaleString("en-IN")} per completed installation`],
             ["Paid by", partner.referral_commission?.payer_partner_id ? partner.referrer_company_name || partner.referrer_contact_name || "Direct referrer" : "Owner"],
           ]} />}
-          {isOwner && partner.referral_partners?.some((child) => Number(child.depth) === 1) && <InfoSection title="Referral Offers & Estimated Partner Margin">
+          {(isOwner || isHr) && partner.referral_partners?.some((child) => Number(child.depth) === 1) && <InfoSection title="Referral Offers & Estimated Partner Margin">
             <p className="mb-4 text-sm text-muted">See each direct referral's offer and this partner's estimated amount left per completed installation. Actual payable, paid, and balance amounts are in Commission Payouts.</p>
             <div className="grid gap-3">{partner.referral_partners.filter((child) => Number(child.depth) === 1).map((child) => <OwnerReferralOfferRow key={child.id} parent={partner} child={child} />)}</div>
           </InfoSection>}
@@ -464,8 +465,8 @@ function SideCard({ icon: Icon, title, subtitle, badge, children }) {
 }
 
 function OwnerReferralOfferRow({ parent, child }) {
-  const incoming = parent.referral_commission?.commission_rates || {};
-  const offered = child.referral_commission_rates || {};
+  const incoming = { ...(parent.commission_rates || {}), ...(parent.referral_commission?.commission_rates || {}) };
+  const offered = { ...(child.partner_commission_rates || {}), ...(child.referral_commission_rates || {}) };
   const childType = ({ super_vendor: "Super-vendor", vendor: "Vendor", sub_vendor: "Sub-vendor", sub_vendor_commission: "Sub-vendor", dealer: "Dealer" })[child.partner_type] || titleCase(child.partner_type);
   const amount = (value) => value === undefined || value === null || value === ""
     ? "Not set"
