@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { SERVICE_LOCATIONS, locationLabel } from "../constants/serviceLocations";
 import { motion } from "framer-motion";
 import {
   Wrench,
@@ -102,7 +103,7 @@ export default function Installation() {
     setSelectedLocation(location);
     setForm((prev) => ({
       ...prev,
-      state: location === "odisha" ? "Odisha" : "West Bengal",
+      state: locationLabel(location),
     }));
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -195,23 +196,15 @@ export default function Installation() {
             </div>
 
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-              <LocationCard
-                icon={MapPin}
-                title="Odisha"
-                subtitle="For installations in Odisha"
-                description="Submit technical installation details for a rooftop solar system in Odisha."
-                buttonText="Continue with Odisha"
-                onClick={() => handleLocationSelect("odisha")}
-              />
-
-              <LocationCard
-                icon={Map}
-                title="West Bengal"
-                subtitle="For installations in West Bengal"
-                description="Submit technical installation details for a rooftop solar system in West Bengal."
-                buttonText="Continue with West Bengal"
-                onClick={() => handleLocationSelect("kolkata")}
-              />
+              {SERVICE_LOCATIONS.map(({ key, label }) => <LocationCard
+                key={key}
+                icon={key === "odisha" ? MapPin : Map}
+                title={label}
+                subtitle={`For installations in ${label}`}
+                description={`Submit technical installation details for a rooftop solar system in ${label}.`}
+                buttonText={`Continue with ${label}`}
+                onClick={() => handleLocationSelect(key)}
+              />)}
             </div>
 
             <div className="mt-8 flex items-start gap-3 rounded-xl border border-navy/10 bg-white p-4">
@@ -250,7 +243,7 @@ export default function Installation() {
 
           <p className="mt-3 text-sm leading-relaxed text-muted">
             Thank you for submitting the installation details for{" "}
-            {selectedLocation === "odisha" ? "Odisha" : "West Bengal"}. Our team
+              {locationLabel(selectedLocation)}. Our team
             will review the information and reach out if required.
           </p>
 
@@ -298,9 +291,7 @@ export default function Installation() {
 
               <div>
                 <span className="text-sm font-semibold text-amber">
-                  {selectedLocation === "odisha"
-                    ? "Odisha Installation"
-                    : "West Bengal Installation"}
+                  {locationLabel(selectedLocation)} Installation
                 </span>
                 <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl lg:text-4xl">
                   Technical Installation Form
@@ -335,9 +326,7 @@ export default function Installation() {
                     Selected Location
                   </p>
                   <p className="text-base font-bold text-navy">
-                    {selectedLocation === "odisha"
-                      ? "Odisha"
-                      : "West Bengal"}
+                    {locationLabel(selectedLocation)}
                   </p>
                 </div>
               </div>

@@ -3,6 +3,6 @@ export function formatApplicationLocation(location) {
     .split(",")
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean)
-    .map((value) => value === "odisha" ? "Odisha" : value === "kolkata" ? "West Bengal" : value)
+    .map((value) => value === "odisha" ? "Odisha" : value === "kolkata" ? "West Bengal" : value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()))
     .join(" & ") || "-";
 }

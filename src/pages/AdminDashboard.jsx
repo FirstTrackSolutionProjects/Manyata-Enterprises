@@ -97,6 +97,7 @@ import {
 import { hasActionPermission } from "../utils/permissions";
 import { isHrEmployee, isTejashHrEmployee } from "../utils/employeeRoles";
 import { formatApplicationLocation } from "../utils/applicationLocation";
+import { SERVICE_LOCATIONS, locationLabel } from "../constants/serviceLocations";
 import AttendanceDashboard from "./AttendanceDashboard";
 
 const TECHNICAL_APPLICATION_STATUS_VALUES = ["technical_installation_pending", "technical_installation_half_work_done", "technical_installation_completed"];
@@ -142,10 +143,9 @@ export default function AdminDashboard() {
       {hasAccess && tab === "overview" && <OverviewTab />}
       {hasAccess && tab === "employee-profile" && user?.role === "employee" && <EmployeeProfile />}
       {hasAccess && tab === "applications" && <ApplicationsTab />}
-      {hasAccess && tab === "applications-odisha" && <ApplicationsTab initialLocation="odisha" />}
-      {hasAccess && tab === "applications-kolkata" && <ApplicationsTab initialLocation="kolkata" />}
+      {hasAccess && tab.startsWith("applications-") && <ApplicationsTab initialLocation={tab.slice("applications-".length)} />}
       {hasAccess && tab === "application-forward-history" && <ApplicationForwardHistory onBack={() => handleSectionChange(searchParams.get("historyReturn") || "applications")} />}
-      {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab === "installations-odisha" ? "odisha" : tab === "installations-kolkata" ? "kolkata" : ""} />}
+      {hasAccess && tab.startsWith("installations") && <InstallationsTab location={tab.startsWith("installations-") ? tab.slice("installations-".length) : ""} />}
       {hasAccess && tab === "employees" && <EmployeesTab />}
       {hasAccess && tab === "salary-slips" && user?.role === "employee" && <div className="space-y-5"><EmployeeAdvanceHistory /><EmployeeSalarySlipsTab /></div>}
       {hasAccess && tab === "salary-management" && (user?.role === "owner" || isHr) && <SalaryManagementTab onOpenHistory={() => handleSectionChange("salary-history")} />}
@@ -1265,7 +1265,7 @@ function ApplicationsTab({ initialLocation = "" }) {
       }] : []),
     ]
     : null;
-  const showRegionalStatusCards = ["kolkata", "west_bengal", "odisha", "orissa", "udisa", "odisa"].includes(String(initialLocation || "").toLowerCase())
+  const showRegionalStatusCards = ["kolkata", "west_bengal", "odisha", "orissa", "udisa", "odisa", "assam", "uttar_pradesh", "maharashtra"].includes(String(initialLocation || "").toLowerCase())
     && (user?.role === "owner" || isHrEmployee(user));
   const regionalCardCoveredStatuses = new Set([
     "pending", "verified", "consumer_login_submitted_to_govt_portal", "submitted_to_govt",
@@ -1287,7 +1287,7 @@ function ApplicationsTab({ initialLocation = "" }) {
     <div className="space-y-4">
       {initialLocation ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         {(roleScopedCards || [
-          [`Total Applications - ${initialLocation === "odisha" ? "Odisha" : "West Bengal"}`, Number(totalApplicationCount || 0), "total-applications"],
+          [`Total Applications - ${locationLabel(initialLocation)}`, Number(totalApplicationCount || 0), "total-applications"],
           ["New Customer Application", Number(applicationStatusCounts.pending || 0)],
           ["Verified", Number(applicationStatusCounts.verified || 0)],
           ["Submitted to Government Portal", Number(applicationStatusCounts.consumer_login_submitted_to_govt_portal || 0) + Number(applicationStatusCounts.submitted_to_govt || 0)],
@@ -1311,7 +1311,7 @@ function ApplicationsTab({ initialLocation = "" }) {
         {roleScopedCards.map(({ label, value }) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
       </div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Applications</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalApplicationCount ?? "—"}</p></div>
-        {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
+        {[["Odisha Applications", "odisha"], ["West Bengal Applications", "west_bengal"], ["Assam Applications", "assam"], ["Uttar Pradesh Applications", "uttar_pradesh"], ["Maharashtra Applications", "maharashtra"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Customer Side - Documents Issue</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(applicationStatusCounts.customer_side_documents_issue || 0)}</p></div>
       </div>}
       {/* Top search + filter toggle */}
@@ -1431,8 +1431,8 @@ function ApplicationsTab({ initialLocation = "" }) {
               value={filters.location}
               onChange={(v) => updateFilter("location", v)}
               options={initialLocation
-                ? [{ value: initialLocation === "odisha" ? "odisha" : "kolkata", label: initialLocation === "odisha" ? "Odisha" : "West Bengal" }]
-                : [{ value: "odisha", label: "Odisha" }, { value: "kolkata", label: "West Bengal" }]}
+                ? [{ value: initialLocation, label: locationLabel(initialLocation) }]
+                : SERVICE_LOCATIONS.map(({ key, label }) => ({ value: key, label }))}
               placeholder="All locations"
               searchPlaceholder="Search location..."
             />
@@ -2633,7 +2633,7 @@ function EmployeeModal({ employee, branches, onClose, onSaved }) {
                     <input type="checkbox" checked={form.permissions.includes(value)} onChange={(event) => toggleModule(value, event.target.checked)} className="accent-amber" />
                     {label}
                   </label>
-                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{[["odisha", "Odisha"], ["west_bengal", "West Bengal"]].map(([location, locationLabel]) => <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{locationLabel}</label>)}</div>{value === "applications" && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Branch access (optional; overrides state access)</p><div className="max-h-32 space-y-1 overflow-y-auto">{branches.map((branch) => <label key={branch.id} className="flex items-center gap-2 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.branchIds?.map(Number).includes(Number(branch.id)))} onChange={(event) => toggleBranchPermission(branch.id, event.target.checked)} className="accent-amber" /><span>{branch.name} ({branch.code})</span><span className="text-muted">{[branch.district, branch.state].filter(Boolean).join(", ")}</span></label>)}</div><p className="mt-1 text-[10px] text-muted">Selected branches restrict this employee to applications from those branches.</p></div>}</div>}
+                  {["applications", "installations"].includes(value) && form.permissions.includes(value) && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Location access</p><div className="flex flex-wrap gap-x-3 gap-y-1">{SERVICE_LOCATIONS.map(({ key, label }) => { const location = key === "kolkata" ? "west_bengal" : key; return <label key={location} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.[value]?.includes(location))} onChange={(event) => toggleLocationPermission(value, location, event.target.checked)} className="accent-amber" />{label}</label>; })}</div>{value === "applications" && <div className="mt-2 border-t border-navy/10 pt-2"><p className="mb-1 text-[11px] font-semibold text-muted">Branch access (optional; overrides state access)</p><div className="max-h-32 space-y-1 overflow-y-auto">{branches.map((branch) => <label key={branch.id} className="flex items-center gap-2 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.locationPermissions?.branchIds?.map(Number).includes(Number(branch.id)))} onChange={(event) => toggleBranchPermission(branch.id, event.target.checked)} className="accent-amber" /><span>{branch.name} ({branch.code})</span><span className="text-muted">{[branch.district, branch.state].filter(Boolean).join(", ")}</span></label>)}</div><p className="mt-1 text-[10px] text-muted">Selected branches restrict this employee to applications from those branches.</p></div>}</div>}
                   {["applications", "installations", "partners"].includes(value) && form.permissions.includes(value) && <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 border-t border-navy/10 pt-2">{(value === "partners" ? [["export", "Excel export"]] : [["view", "View"], ["edit", "Edit"], ["download", "PDF download"], ["export", "Excel export"]]).map(([action, actionLabel]) => <label key={action} className="flex items-center gap-1.5 text-xs text-navy/80"><input type="checkbox" checked={Boolean(form.actionPermissions[value]?.[action])} disabled={value !== "partners" && action !== "view" && !form.actionPermissions[value]?.view} onChange={(event) => toggleAction(value, action, event.target.checked)} className="accent-amber" />{actionLabel}</label>)}</div>}
                   {["applications", "installations"].includes(value) && form.permissions.includes(value) && <details className="mt-2 border-t border-navy/10 pt-2">
                     <summary className="cursor-pointer text-[11px] font-semibold text-navy">Role-wise Status access ({(form.actionPermissions[value]?.statusUpdates || []).filter((status) => status !== "loan_visible").length})</summary>
@@ -3047,12 +3047,7 @@ function BranchModal({ branch, onClose, onSaved }) {
             required
           />
           <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="State"
-              value={form.state}
-              onChange={(v) => setForm({ ...form, state: v })}
-              required
-            />
+              <label className="block text-xs font-semibold text-navy/70">State<input list="branch-state-options" value={form.state} onChange={(event) => setForm({ ...form, state: event.target.value })} required placeholder="Enter or choose a state" className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy" /><datalist id="branch-state-options">{SERVICE_LOCATIONS.map(({ label }) => <option key={label} value={label} />)}</datalist></label>
             <Input
               label="District"
               value={form.district}
@@ -3206,7 +3201,7 @@ function InstallationsTab({ location }) {
     return () => { active = false; };
   }, [location, locationFilter]);
 
-  const title = location === "odisha" ? "Odisha Installations" : location === "kolkata" ? "West Bengal Installations" : "All Installations";
+  const title = location ? `${locationLabel(location)} Installations` : "All Installations";
   const filteredItems = applyDateSort(items.filter((item) =>
     [item.customer_name, item.phone, item.location, item.installation_type, item.city, item.status, item.last_updated_by_name]
       .some((value) => String(value || "").toLowerCase().includes(search.trim().toLowerCase())) &&
@@ -3230,15 +3225,15 @@ function InstallationsTab({ location }) {
     <div className={`grid grid-cols-2 gap-3 ${location ? "sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-3"}`}>
       {location ? <>
         {[
-          [`Total Installations - ${location === "odisha" ? "Odisha" : "West Bengal"}`, totalInstallationCount],
+          [`Total Installations - ${locationLabel(location)}`, totalInstallationCount],
           ["Installation Pending", installationStatusCounts.pending],
           ["Reviewed", installationStatusCounts.reviewed],
           ["Stock Forwarded to Customer Home", installationStatusCounts.stock_forwarded_to_customer_home],
-          [`Total Installation Fully Completed - ${location === "odisha" ? "Odisha" : "West Bengal"}`, installationStatusCounts.completed],
+          [`Total Installation Fully Completed - ${locationLabel(location)}`, installationStatusCounts.completed],
         ].map(([label, value]) => <div key={label} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{Number(value || 0)}</p></div>)}
       </> : <>
         <div className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">Total Installations</p><p className="mt-2 text-2xl font-extrabold text-navy">{totalInstallationCount ?? "—"}</p></div>
-        {[["Odisha Installations", "odisha"], ["West Bengal Installations", "west_bengal"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
+        {[["Odisha Installations", "odisha"], ["West Bengal Installations", "west_bengal"], ["Assam Installations", "assam"], ["Uttar Pradesh Installations", "uttar_pradesh"], ["Maharashtra Installations", "maharashtra"]].map(([label, key]) => <div key={key} className="rounded-2xl border border-navy/10 bg-white p-4"><p className="text-xs font-semibold text-muted">{label}</p><p className="mt-2 text-2xl font-extrabold text-navy">{locationCounts?.[key] ?? "—"}</p></div>)}
       </>}
     </div>
     <div className="flex w-full flex-wrap gap-3">
@@ -3286,7 +3281,7 @@ function InstallationsTab({ location }) {
       {(user?.role === "owner" || isHrEmployee(user)) && <SearchableFilterSelect label="Updated by employee" value={updatedByFilter} onChange={setUpdatedByFilter} options={updateEmployees.map((employee) => ({ value: String(employee.id), label: employee.name }))} placeholder="All employees" searchPlaceholder="Search employee name..." />}
       <SearchableFilterSelect label="Status" value={statusFilter} onChange={setStatusFilter} options={INSTALLATION_STATUSES.map((status) => ({ ...status, count: Number(installationStatusCounts[status.value] || 0) }))} placeholder="All statuses" placeholderCount={totalInstallationCount} />
       <SearchableFilterSelect label="System Type" value={typeFilter} onChange={setTypeFilter} options={installationTypes.map((value) => ({ value, label: value }))} placeholder="All types" searchPlaceholder="Search installation type..." />
-      <SearchableFilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={[{ value: "odisha", label: "Odisha" }, { value: "kolkata", label: "West Bengal" }]} placeholder="All locations" searchPlaceholder="Search location..." />
+      <SearchableFilterSelect label="Location" value={locationFilter} onChange={setLocationFilter} options={SERVICE_LOCATIONS.map(({ key, label }) => ({ value: key, label }))} placeholder="All locations" searchPlaceholder="Search location..." />
       <FilterInput label="From Date" type="date" value={fromDate} onChange={setFromDate} />
       <FilterInput label="To Date" type="date" value={toDate} onChange={setToDate} />
       <FilterSelect label="Sort By" value={sortBy} onChange={setSortBy} options={[{ value: "created_at", label: "Date Created" }, { value: "updated_at", label: "Last Updated" }, { value: "customer_name", label: "Customer Name" }, { value: "status", label: "Status" }]} placeholder="Sort by" />

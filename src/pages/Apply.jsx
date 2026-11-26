@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { SERVICE_LOCATIONS, locationLabel } from "../constants/serviceLocations";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -197,7 +198,7 @@ export default function Apply() {
     setLocation(loc);
     setForm((prev) => ({
       ...prev,
-      state: selected.length > 1 ? "" : loc === "odisha" ? "Odisha" : "West Bengal",
+      state: selected.length > 1 ? "" : locationLabel(loc),
     }));
     setStep(2);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -404,22 +405,15 @@ function LocationStep({ onSelect }) {
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <LocationCard
-              icon={MapPin}
-              title="Odisha"
-              subtitle="For customers from Odisha"
-              description="Apply for rooftop solar installation and subsidy services in Odisha."
-              buttonText="Apply from Odisha"
-              onClick={() => onSelect("odisha")}
-            />
-            <LocationCard
-              icon={MapIcon}
-              title="West Bengal"
-              subtitle="For customers from West Bengal"
-              description="Apply for rooftop solar installation services in West Bengal."
-              buttonText="Apply from West Bengal"
-              onClick={() => onSelect("kolkata")}
-            />
+            {SERVICE_LOCATIONS.map(({ key, label }) => <LocationCard
+              key={key}
+              icon={key === "odisha" ? MapPin : MapIcon}
+              title={label}
+              subtitle={`For customers from ${label}`}
+              description={`Apply for rooftop solar installation services in ${label}.`}
+              buttonText={`Apply from ${label}`}
+              onClick={() => onSelect(key)}
+            />)}
           </div>
 
           <div className="mt-8 flex items-start gap-3 rounded-xl border border-navy/10 bg-white p-4">
@@ -469,7 +463,7 @@ function WizardShell({
                 Exit
               </button>
               <span className="text-xs font-semibold text-amber">
-                {location === "both" ? "Odisha & West Bengal" : location === "odisha" ? "Odisha" : "West Bengal"} Application
+                {location === "both" ? "Odisha & West Bengal" : locationLabel(location)} Application
               </span>
             </div>
             <div className="flex items-center gap-3 text-xs">
@@ -704,7 +698,7 @@ function AddressStep({ form, location, onChange }) {
       title="Consumer Address Details"
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {isBoth ? <label className="block text-xs font-semibold text-navy/70">State<select name="state" value={form.state} onChange={onChange} required className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose actual site state</option><option value="Odisha">Odisha</option><option value="West Bengal">West Bengal</option></select></label> : <Field label="State" name="state" value={form.state} onChange={onChange} readOnly />}
+        {isBoth ? <label className="block text-xs font-semibold text-navy/70">State<select name="state" value={form.state} onChange={onChange} required className="mt-1 w-full rounded-lg border border-navy/15 bg-white px-3.5 py-2.5 text-sm text-navy"><option value="">Choose actual site state</option>{SERVICE_LOCATIONS.map(({ key, label }) => <option key={key} value={label}>{label}</option>)}</select></label> : <Field label="State" name="state" value={form.state} onChange={onChange} readOnly />}
         <Field
           label="District"
           name="district"
@@ -746,7 +740,7 @@ function AddressStep({ form, location, onChange }) {
               placeholder="Enter ward number"
             />
           </>
-        ) : <p className="text-xs text-muted sm:col-span-2">Choose the actual site state to show the matching address fields.</p>}
+        ) : <p className="text-xs text-muted sm:col-span-2">Enter the locality details for this site.</p>}
         <Field
           label="Building / Plot No."
           name="buildingPlot"
@@ -1082,7 +1076,7 @@ function PreviewStep({ form, location, onEdit }) {
           </button>
         </div>
         <p className="mt-2 text-sm text-navy">
-          {location === "both" ? "Odisha & West Bengal" : location === "odisha" ? "Odisha" : "West Bengal"}
+          {location === "both" ? "Odisha & West Bengal" : locationLabel(location)}
         </p>
       </div>
 

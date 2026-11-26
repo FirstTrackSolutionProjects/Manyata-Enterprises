@@ -33,12 +33,13 @@ import { assets } from "../assets/assets";
 import { hasActionPermission } from "../utils/permissions";
 import { isHrEmployee, isTejashHrEmployee } from "../utils/employeeRoles";
 import { getTodaysEmployeeBirthdays } from "../services/api";
+import { SERVICE_LOCATIONS } from "../constants/serviceLocations";
 
 /* Sidebar navigation items — different for owner vs employee */
 const OWNER_NAV = [
   { id: "overview", label: "Dashboard", icon: LayoutDashboard },
-  { id: "applications", label: "Applications", icon: FileText, children: [{ id: "applications-odisha", label: "Odisha" }, { id: "applications-kolkata", label: "West Bengal" }] },
-  { id: "installations", label: "Installation", icon: Wrench, children: [{ id: "installations-odisha", label: "Odisha" }, { id: "installations-kolkata", label: "West Bengal" }] },
+  { id: "applications", label: "Applications", icon: FileText, children: SERVICE_LOCATIONS.map(({ key, label }) => ({ id: `applications-${key}`, label })) },
+  { id: "installations", label: "Installation", icon: Wrench, children: SERVICE_LOCATIONS.map(({ key, label }) => ({ id: `installations-${key}`, label })) },
   { id: "employees", label: "Employees", icon: Users },
   { id: "salary-management", label: "Salary Management", icon: Banknote },
   { id: "leave-requests", label: "Leave Requests", icon: CalendarDays },
@@ -308,7 +309,7 @@ export default function DashboardLayout({
     const module = item.id;
     const allowed = user?.locationPermissions?.[module];
     if (!Array.isArray(allowed) || allowed.length === 0) return { ...item, children: [] };
-    return { ...item, children: item.children.filter((child) => allowed.includes(child.id.endsWith("odisha") ? "odisha" : "west_bengal")) };
+    return { ...item, children: item.children.filter((child) => allowed.includes(child.id.slice(item.id.length + 1) === "kolkata" ? "west_bengal" : child.id.slice(item.id.length + 1))) };
   }), { id: "salary-slips", label: "Salary Slips", icon: Banknote }, { id: "leave-requests", label: "Leave Requests", icon: CalendarDays }, { id: "exit-requests", label: "Resignation Requests", icon: LogOut }, { id: "attendance", label: "Attendance", icon: Clock3 }, ...(isHr ? [{ id: "emp-attendance", label: "Manage Attendance", icon: Clock3 }, { id: "salary-management", label: "Salary Management", icon: Banknote }] : [])] : baseNavItems;
   const NAV_ITEMS = user?.role === "employee"
     ? employeeNavItems.filter((item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index)

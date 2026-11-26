@@ -689,7 +689,7 @@ function ApplicationEditForm({ app, technicalOnly = false, onClose, onSaved }) {
 
           <EditSection icon={FileText} title="Application Details">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className={EDIT_INPUT}><option value="odisha">Odisha</option><option value="kolkata">West Bengal</option><option value="both">Both regions</option></select></label>
+              <label className="text-xs font-semibold text-navy/70">Location<select name="location" value={form.location} onChange={change} className={EDIT_INPUT}><option value="odisha">Odisha</option><option value="kolkata">West Bengal</option><option value="assam">Assam</option><option value="uttar_pradesh">Uttar Pradesh</option><option value="maharashtra">Maharashtra</option><option value="both">Both regions</option></select></label>
               <label className="text-xs font-semibold text-navy/70">System Type<select name="systemType" value={form.systemType} onChange={change} className={EDIT_INPUT}><option value="on-grid">On-Grid</option><option value="hybrid">Hybrid</option></select></label>
               <label className="text-xs font-semibold text-navy/70">System Size<select name="systemSize" value={form.systemSize} onChange={change} className={EDIT_INPUT}><option value="1kw">1 kW</option><option value="2kw">2 kW</option><option value="3kw">3 kW</option></select></label>
               {renderInput("incomeSource")}
