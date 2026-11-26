@@ -1074,11 +1074,19 @@ function ApplicationsTab({ initialLocation = "" }) {
   const [applicationPartnerOptions, setApplicationPartnerOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState(() => ({ ...EMPTY_FILTERS, location: initialLocation }));
+  const previousInitialLocation = useRef(initialLocation);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const listRequestId = useRef(0);
   const limit = 20;
+
+  useEffect(() => {
+    if (previousInitialLocation.current === initialLocation) return;
+    previousInitialLocation.current = initialLocation;
+    setFilters((previous) => ({ ...previous, location: initialLocation }));
+    setPage(1);
+  }, [initialLocation]);
 
   // Load branches once for the branch filter dropdown
   useEffect(() => {
@@ -1185,6 +1193,9 @@ function ApplicationsTab({ initialLocation = "" }) {
 
   useEffect(() => {
     let active = true;
+    setLocationCounts(null);
+    setTotalApplicationCount(null);
+    setApplicationStatusCounts({});
     const statsParams = new URLSearchParams();
     if (filters.branchId) statsParams.set("branchId", filters.branchId);
     if (filters.location) statsParams.set("location", filters.location);
