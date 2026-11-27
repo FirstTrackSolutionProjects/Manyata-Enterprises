@@ -36,7 +36,7 @@ const BRANCHES = [
   {
     name: "Kolkata Branch",
     address: "At: Baruipur Nera HP Petrol Pump, Kolkata, West Bengal - 700144",
-    phones: [],
+    phones: ["9827951364", "8114721300"],
   },
 ];
 
