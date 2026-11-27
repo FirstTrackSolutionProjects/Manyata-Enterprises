@@ -80,16 +80,38 @@ const contactCards = [
     href: "mailto:support@themanyata.com",
   },
   {
-    icon: MapPin,
-    label: "Service area",
-    lines: ["Odisha — residential rooftop solar"],
-    href: null,
-  },
-  {
     icon: Clock,
     label: "Response time",
     lines: ["We usually reply within 24 hours"],
     href: null,
+  },
+];
+
+const officeLocations = [
+  {
+    label: "Registered Office",
+    address: "Dagarapada, Khaira, Baleswar, Odisha - 756047",
+    phones: ["8114721300", "9827951364"],
+  },
+  {
+    label: "Head Office",
+    address: "College Square, Soro, Balasore, Odisha - 756045",
+    phones: ["9827951364", "8114721300"],
+  },
+  {
+    label: "Corporate Office",
+    address: "Saheed Nagar, Bhubaneswar, Odisha - 751007",
+    phones: ["8114721300", "9827951364"],
+  },
+  {
+    label: "Rourkela Branch",
+    address: "Bisra Road, Near Arundhati Jewellers, Rourkela, Sundargarh, Odisha - 770036",
+    phones: ["9827951364", "8114721300"],
+  },
+  {
+    label: "Kolkata Branch",
+    address: "Baruipur Nera HP Petrol Pump, Kolkata, West Bengal - 700144",
+    phones: ["9827951364", "8114721300"],
   },
 ];
 
@@ -130,6 +152,35 @@ function ContactBody() {
                     </p>
                   )
                 )}
+              </div>
+            </motion.div>
+          ))}
+
+          {officeLocations.map((office, i) => (
+            <motion.div
+              key={office.label}
+              initial={{ opacity: 0, y: 18 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.45, delay: (i + contactCards.length) * 0.05 }}
+              className="rounded-xl border border-navy/10 bg-white p-5 flex items-start gap-4 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-center justify-center w-11 h-11 rounded-lg bg-amber-soft text-amber shrink-0">
+                <MapPin size={20} strokeWidth={1.75} />
+              </div>
+              <div>
+                <p className="text-xs font-medium tracking-wide text-muted">{office.label}</p>
+                <p className="text-sm sm:text-base font-medium text-navy">{office.address}</p>
+                <p className="mt-1 flex flex-wrap gap-x-2 text-sm sm:text-base font-medium">
+                  {office.phones.map((number, numberIndex) => (
+                    <span key={number}>
+                      {numberIndex > 0 && <span className="mr-2 text-muted">/</span>}
+                      <a href={`tel:+91${number}`} className="text-navy hover:text-amber transition-colors">
+                        +91 {number}
+                      </a>
+                    </span>
+                  ))}
+                </p>
               </div>
             </motion.div>
           ))}

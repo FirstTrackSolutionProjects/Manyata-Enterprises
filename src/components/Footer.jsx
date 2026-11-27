@@ -14,14 +14,24 @@ const QUICK_LINKS = [
 // Add a new branch or phone number here — the footer updates automatically.
 const BRANCHES = [
   {
-    name: "Main Office",
-    address: "College Square, Soro, Balasore, Odisha - 756045",
+    name: "Registered Office",
+    address: "Dagarapada, Khaira, Baleswar, Odisha - 756047",
     phones: ["8114721300", "9827951364"],
   },
   {
-    name: "Sundargarh Branch",
-    address: "At: Bisra, Rourkela, Sundargarh, Odisha - 770036",
-    phones: ["8114721300"],
+    name: "Head Office",
+    address: "College Square, Soro, Balasore, Odisha - 756045",
+    phones: ["9827951364", "8114721300"],
+  },
+  {
+    name: "Corporate Office",
+    address: "Saheed Nagar, Bhubaneswar, Odisha - 751007",
+    phones: ["8114721300", "9827951364"],
+  },
+  {
+    name: "Rourkela Branch",
+    address: "Bisra Road, Near Arundhati Jewellers, Rourkela, Sundargarh, Odisha - 770036",
+    phones: ["9827951364", "8114721300"],
   },
   {
     name: "Kolkata Branch",
@@ -145,7 +155,7 @@ export default function Footer() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/45 sm:flex-row">
           <p>© {new Date().getFullYear()} Manyata Enterprises · Developed by First Track Solution Technologies</p>
-          <p>Office Address: College Square, Soro, Balasore, Odisha - 756045</p>
+          <p>Registered Office: Dagarapada, Khaira, Baleswar, Odisha - 756047</p>
         </div>
       </div>
     </footer>
